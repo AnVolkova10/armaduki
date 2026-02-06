@@ -12,7 +12,7 @@ interface PersonFormProps {
 const roles: Role[] = ['GK', 'DEF', 'MID', 'ATT', 'FLEX'];
 const gkOptions: { value: GKWillingness; label: string }[] = [
     { value: 'yes', label: 'Sí' },
-    { value: 'low', label: 'Pocas chances' },
+    { value: 'low', label: 'Poco' },
     { value: 'no', label: 'No' },
 ];
 
@@ -78,73 +78,102 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     return (
         <div className="modal-overlay" onClick={onCancel}>
             <div className="modal" onClick={e => e.stopPropagation()}>
-                <h2>{person ? 'Editar Jugador' : 'Agregar Jugador'}</h2>
                 <form onSubmit={handleSubmit}>
 
+                    {/* Header: Avatar + Names */}
+                    <div className="modal-header">
+                        <div className="avatar-section">
+                            {avatar ? (
+                                <img src={avatar} alt="Preview" className="avatar-preview" />
+                            ) : (
+                                <div className="avatar-preview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                                    ?
+                                </div>
+                            )}
+                            <label className="avatar-upload-btn">
+                                {avatar ? 'Cambiar Foto' : 'Subir Foto'}
+                                <input type="file" accept="image/*" onChange={handleAvatarChange} />
+                            </label>
+                        </div>
+
+                        <div className="header-inputs">
+                            <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+                                <label>Apodo *</label>
+                                <input
+                                    type="text"
+                                    value={nickname}
+                                    onChange={e => setNickname(e.target.value)}
+                                    required
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label>Nombre Real (Opcional)</label>
+                                <input
+                                    type="text"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Compact Selectors */}
                     <div className="form-group">
-                        <label>Nombre Completo</label>
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={e => setName(e.target.value)}
-                            placeholder="Nombre real (opcional)"
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label>Apodo *</label>
-                        <input
-                            type="text"
-                            value={nickname}
-                            onChange={e => setNickname(e.target.value)}
-                            placeholder="Cómo le dicen"
-                            required
-                        />
-                    </div>
-
-                    <div className="form-row">
-                        <div className="form-group">
-                            <label>Rol</label>
-                            <select value={role} onChange={e => setRole(e.target.value as Role)}>
-                                {roles.map(r => (
-                                    <option key={r} value={r}>{r}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="form-group">
-                            <label>Rating (1-10)</label>
-                            <input
-                                type="number"
-                                min="1"
-                                max="10"
-                                value={rating}
-                                onChange={e => setRating(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <label>Ataja?</label>
-                            <select value={gkWillingness} onChange={e => setGkWillingness(e.target.value as GKWillingness)}>
-                                {gkOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                ))}
-                            </select>
+                        <label>Posición Preferida</label>
+                        <div className="selector-group">
+                            {roles.map(r => (
+                                <button
+                                    key={r}
+                                    type="button"
+                                    className={`role-btn ${r.toLowerCase()} ${role === r ? 'active' : ''}`}
+                                    onClick={() => setRole(r)}
+                                >
+                                    {r}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
                     <div className="form-group">
-                        <label>Avatar</label>
-                        <div className="avatar-upload">
-                            {avatar && <img src={avatar} alt="Avatar preview" className="avatar-preview" />}
-                            <input type="file" accept="image/*" onChange={handleAvatarChange} />
+                        <label>Nivel (1-10)</label>
+                        <div className="rating-selector">
+                            {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
+                                <button
+                                    key={num}
+                                    type="button"
+                                    className={`rating-btn ${rating === num ? 'active' : ''}`}
+                                    onClick={() => setRating(num)}
+                                >
+                                    {num}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
+                    <div className="form-group">
+                        <label>¿Puede atajar?</label>
+                        <div className="gk-selector">
+                            {gkOptions.map(opt => (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    className={`gk-btn ${gkWillingness === opt.value ? 'active' : ''}`}
+                                    onClick={() => setGkWillingness(opt.value)}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Relationships */}
                     {otherPeople.length > 0 && (
-                        <>
-                            <div className="form-group">
-                                <label>Quiere jugar con</label>
+                        <div className="relationships-container">
+                            <div className="relationship-column">
+                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#22c55e', marginBottom: '0.5rem', display: 'block' }}>
+                                    QUIERE JUGAR CON ({wantsWith.length})
+                                </label>
                                 <div className="relationship-grid">
                                     {otherPeople.map(p => (
                                         <button
@@ -159,8 +188,10 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                 </div>
                             </div>
 
-                            <div className="form-group">
-                                <label>Evita jugar con</label>
+                            <div className="relationship-column">
+                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', marginBottom: '0.5rem', display: 'block' }}>
+                                    EVITA JUGAR CON ({avoidsWith.length})
+                                </label>
                                 <div className="relationship-grid">
                                     {otherPeople.map(p => (
                                         <button
@@ -174,7 +205,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                     ))}
                                 </div>
                             </div>
-                        </>
+                        </div>
                     )}
 
                     <div className="form-actions">
