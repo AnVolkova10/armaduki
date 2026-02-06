@@ -147,9 +147,26 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                 <input type="file" accept="image/*" onChange={handleAvatarChange} />
                             </label>
 
+
+
+                            {/* Privacy Indicator (Matches Footer Icon) */}
                             {privacyMode && (
-                                <div style={{ fontSize: '0.7rem', color: '#888', textAlign: 'center', marginTop: '4px' }}>
-                                    🙈 Modo Privado
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: -6,
+                                    right: -8,
+                                    color: '#ef4444',
+                                    background: 'rgba(0,0,0,0.6)',
+                                    borderRadius: '50%',
+                                    padding: '2px',
+                                    display: 'flex'
+                                }} title="Modo Privado">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                                        <line x1="2" x2="22" y1="2" y2="22" />
+                                    </svg>
                                 </div>
                             )}
                         </div>
@@ -161,7 +178,6 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                     type="text"
                                     value={nickname}
                                     onChange={e => setNickname(e.target.value)}
-                                    placeholder="Ej: Messi"
                                     required
                                     autoFocus
                                 />
@@ -172,10 +188,28 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                     type="text"
                                     value={name}
                                     onChange={e => setName(e.target.value)}
-                                    placeholder="Ej: Lionel Andrés Messi"
                                 />
                             </div>
                         </div>
+
+                        {/* Col 3: Rating Manual (Hidden in Privacy Mode) */}
+                        {!privacyMode && (
+                            <div className="rating-section-header">
+                                {/* Label Removed per request, just grid with Gold accent */}
+                                <div className="rating-grid">
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
+                                        <button
+                                            key={val}
+                                            type="button"
+                                            className={`rating-num-btn ${rating === val ? 'active' : ''}`}
+                                            onClick={() => setRating(val)}
+                                        >
+                                            {val}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Compact Selectors Row */}
@@ -215,20 +249,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                         )}
                     </div>
 
-                    {/* Manual Rating Slider */}
-                    <div className="form-group">
-                        <label style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            Nivel General (1-10)
-                            {!privacyMode && <span style={{ color: 'var(--accent)' }}>{rating}</span>}
-                        </label>
-                        <input
-                            type="range" min="1" max="10" step="1"
-                            value={rating}
-                            onChange={(e) => setRating(parseInt(e.target.value))}
-                            className="stat-range"
-                            style={{ marginTop: '0.5rem' }}
-                        />
-                    </div>
+
 
                     {/* Attributes Grid */}
                     <div className="stats-section">
