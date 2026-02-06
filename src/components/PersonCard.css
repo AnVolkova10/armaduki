@@ -1,0 +1,146 @@
+.person-card {
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.person-card.selectable {
+  cursor: pointer;
+}
+
+.person-card.selected {
+  border-color: #dc2626;
+  background: #1a1212;
+}
+
+.card-content {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.avatar,
+.avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.avatar {
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  background: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #999;
+  font-size: 16px;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nickname {
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.name {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 6px;
+  min-height: 18px;
+}
+
+.tags {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.role {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.role.gk { 
+  background: #4a4a4a; 
+  color: #fff; 
+}
+
+.role.def { 
+  background: #22c55e; 
+  color: #fff; 
+}
+
+.role.mid { 
+  background: #f59e0b; 
+  color: #000; 
+}
+
+.role.att { 
+  background: #ef4444; 
+  color: #fff; 
+}
+
+.role.flex { 
+  background: #8b5cf6; 
+  color: #fff; 
+}
+
+.rating {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.person-card:hover .actions {
+  opacity: 1;
+}
+
+.actions button {
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 16px;
+  transition: all 0.15s;
+}
+
+.actions button:hover {
+  background: #222;
+  color: #fff;
+}
+
+.actions button.delete:hover {
+  color: #ef4444;
+}
