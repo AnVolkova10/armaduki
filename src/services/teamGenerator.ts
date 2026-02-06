@@ -1,4 +1,4 @@
-import type { Person, GeneratedTeams } from '../types';
+import type { Person, GeneratedTeams, AttributeLevel, Attributes } from '../types';
 
 interface TeamValidation {
   gkCount: number;
@@ -42,6 +42,12 @@ function isValidTeam(players: Person[]): boolean {
 
 function calculateTotalRating(players: Person[]): number {
   return players.reduce((sum, p) => sum + p.rating, 0);
+}
+
+function getAttrValue(level?: AttributeLevel): number {
+  if (level === 'high') return 1;
+  if (level === 'mid') return 0.5;
+  return 0;
 }
 
 function calculateRelationshipScore(team1: Person[], team2: Person[]): number {
@@ -116,42 +122,41 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     const ratingDiff = Math.abs(team1Rating - team2Rating);
     const relationshipScore = calculateRelationshipScore(team1Players, team2Players);
 
-    // Calculate Stat Differences
-    const getStatTotal = (team: Person[], stat: 'physical' | 'attack' | 'defense' | 'technique') => 
-      team.reduce((sum, p) => sum + (p.stats?.[stat] || 5), 0);
+    // Calculate Attribute Imbalances
+    const getAttrTotal = (team: Person[], key: keyof Attributes) => 
+      team.reduce((sum, p) => sum + getAttrValue(p.attributes?.[key]), 0);
 
-    const t1Phys = getStatTotal(team1Players, 'physical');
-    const t2Phys = getStatTotal(team2Players, 'physical');
-    const physDiff = Math.abs(t1Phys - t2Phys);
+    // Critical Balancing: Pace & Stamina & Defense
+    // We don't want one team to be much faster or have much better cardio
+    const t1Pace = getAttrTotal(team1Players, 'pace');
+    const t2Pace = getAttrTotal(team2Players, 'pace');
+    const paceDiff = Math.abs(t1Pace - t2Pace);
 
-    const t1Tech = getStatTotal(team1Players, 'technique');
-    const t2Tech = getStatTotal(team2Players, 'technique');
-    const techDiff = Math.abs(t1Tech - t2Tech);
+    const t1Stamina = getAttrTotal(team1Players, 'stamina');
+    const t2Stamina = getAttrTotal(team2Players, 'stamina');
+    const staminaDiff = Math.abs(t1Stamina - t2Stamina);
 
-    const t1Def = getStatTotal(team1Players, 'defense');
-    const t2Def = getStatTotal(team2Players, 'defense');
+    const t1Def = getAttrTotal(team1Players, 'defense');
+    const t2Def = getAttrTotal(team2Players, 'defense');
     const defDiff = Math.abs(t1Def - t2Def);
 
     // Scoring Weights
-    // 1. Relationships (Must be respected as much as possible)
-    // 2. Physical Balance (Critical: avoids slow team vs fast team)
-    // 3. Overall Rating Balance
-    // 4. Technique/Defense Balance
-
     let score = 0;
     
-    // Base score from rating balance (Max 100)
-    score += (100 - ratingDiff * 5); 
+    // 1. Rating Balance (Base) - Max 100
+    // Penalize difference in total rating.
+    score += (100 - ratingDiff * 10); 
 
-    // Heavy penalty for physical imbalance (User priority)
-    // If one team has +5 physical total, that's a huge advantage in 5v5
-    score -= (physDiff * 8); 
+    // 2. Physical/Pace Balance (User Critical)
+    // High penalty for speed mismatch. 
+    score -= (paceDiff * 15); 
+    score -= (staminaDiff * 10);
 
-    // Smaller penalties for other stats
-    score -= (techDiff * 2);
-    score -= (defDiff * 2);
+    // 3. Defense Balance
+    // Avoid one team having no defenders
+    score -= (defDiff * 8);
 
-    // Add relationship score (can be negative or positive)
+    // 4. Relationships
     score += relationshipScore;
 
     if (score > bestScore) {
@@ -164,13 +169,13 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     }
   }
 
-  // If no valid combination found with strict rules, try fallback with looser rules
+  // Fallback: If no valid team found (e.g. strict role constraints fail), 
+  // try to find the "least bad" distribution based on Rating + Pace
   if (!bestResult) {
-    // Fall back to simply balancing by Rating + Physical
-    // Sort by a composite score of Rating + Physical
+     // Sort by a composite score
     const sortedPlayers = [...players].sort((a, b) => {
-        const scoreA = (a.rating * 0.6) + ((a.stats?.physical || 5) * 0.4);
-        const scoreB = (b.rating * 0.6) + ((b.stats?.physical || 5) * 0.4);
+        const scoreA = (a.rating * 0.6) + (getAttrValue(a.attributes?.pace) * 4);
+        const scoreB = (b.rating * 0.6) + (getAttrValue(b.attributes?.pace) * 4);
         return scoreB - scoreA;
     });
 
@@ -180,7 +185,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     let team2Score = 0;
 
     for (const player of sortedPlayers) {
-        const pScore = player.rating + (player.stats?.physical || 5);
+        const pScore = player.rating + (getAttrValue(player.attributes?.pace) * 5);
         if (team1Players.length < 5 && (team1Score <= team2Score || team2Players.length >= 5)) {
             team1Players.push(player);
             team1Score += pScore;

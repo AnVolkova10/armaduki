@@ -15,8 +15,6 @@ export function PeoplePage() {
         updatePerson,
         deletePerson,
         setError,
-        privacyMode,
-        togglePrivacyMode
     } = useAppStore();
 
     const [showForm, setShowForm] = useState(false);
@@ -50,25 +48,11 @@ export function PeoplePage() {
         }
     };
 
-    const handleRefresh = () => {
-        fetchPeople();
-    };
-
     return (
         <div className="people-page">
             <div className="page-header">
                 <h2>Players</h2>
                 <div className="header-actions">
-                    <button className="btn btn-secondary" onClick={handleRefresh} disabled={isLoading}>
-                        🔄 {isLoading ? 'Cargando...' : 'Refrescar'}
-                    </button>
-                    <button
-                        className="btn btn-secondary"
-                        onClick={togglePrivacyMode}
-                        title={privacyMode ? "Mostrar puntajes" : "Ocultar puntajes"}
-                    >
-                        {privacyMode ? '🙈 Oculto' : '👁️ Visible'}
-                    </button>
                     <button className="btn btn-primary" onClick={() => setShowForm(true)}>
                         + Agregar Jugador
                     </button>

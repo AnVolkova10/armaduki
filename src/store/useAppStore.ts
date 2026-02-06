@@ -111,11 +111,9 @@ const useAppStore = create<AppStore>()((set) => ({
           gkWillingness: validateGKWillingness(row.gkwillingness),
           wantsWith: parseArrayField(row.wantswith),
           avoidsWith: parseArrayField(row.avoidswith),
-          stats: {
-            attack: parseInt(row.attack || '5') || 5, // Stats default to 5
-            defense: parseInt(row.defense || '5') || 5,
-            technique: parseInt(row.technique || '5') || 5,
-            physical: parseInt(row.physical || '5') || 5,
+          attributes: row.attributes ? JSON.parse(row.attributes) : {
+            shooting: 'mid', control: 'mid', passing: 'mid', defense: 'mid',
+            pace: 'mid', vision: 'mid', grit: 'mid', stamina: 'mid'
           }
         }));
 
@@ -157,10 +155,7 @@ const useAppStore = create<AppStore>()((set) => ({
           wantsWith: person.wantsWith.join(','),
           avoidsWith: person.avoidsWith.join(','),
           // New stats columns
-          attack: person.stats?.attack || 5,
-          defense: person.stats?.defense || 5,
-          technique: person.stats?.technique || 5,
-          physical: person.stats?.physical || 5,
+          attributes: JSON.stringify(person.attributes || {}),
         }),
       });
     } catch (error) {
@@ -194,10 +189,7 @@ const useAppStore = create<AppStore>()((set) => ({
           wantsWith: person.wantsWith.join(','),
           avoidsWith: person.avoidsWith.join(','),
           // New stats columns
-          attack: person.stats?.attack || 5,
-          defense: person.stats?.defense || 5,
-          technique: person.stats?.technique || 5,
-          physical: person.stats?.physical || 5,
+          attributes: JSON.stringify(person.attributes || {}),
         }),
       });
     } catch (error) {

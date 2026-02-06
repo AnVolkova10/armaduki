@@ -23,13 +23,30 @@
   flex-wrap: wrap;
 }
 
+
 .header-actions .btn {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
 }
 
-.header-actions label.btn {
+.header-actions .btn-icon {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  padding: 0.5rem;
   cursor: pointer;
+  line-height: 1;
+  transition: opacity 0.2s;
+}
+
+.header-actions .btn-icon:hover {
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.privacy-toggle {
+  color: #ef4444; /* Red color as requested */
 }
 
 .loading {

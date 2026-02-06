@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import useAppStore from '../store/useAppStore';
-import type { Person, Role, GKWillingness } from '../types';
+import type { Person, Role, GKWillingness, AttributeLevel, Attributes } from '../types';
 import './PersonForm.css';
 
 interface PersonFormProps {
@@ -16,6 +16,17 @@ const gkOptions: { value: GKWillingness; label: string }[] = [
     { value: 'no', label: 'No' },
 ];
 
+const attributesList: { key: keyof Attributes; label: string }[] = [
+    { key: 'shooting', label: 'Remate' },
+    { key: 'control', label: 'Control' },
+    { key: 'passing', label: 'Pases' },
+    { key: 'defense', label: 'Defensa' },
+    { key: 'pace', label: 'Velocidad' },
+    { key: 'vision', label: 'Visión' },
+    { key: 'grit', label: 'Garra' },
+    { key: 'stamina', label: 'Aire' },
+];
+
 function generateId(): string {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
@@ -26,14 +37,14 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const [nickname, setNickname] = useState(person?.nickname || '');
     const [role, setRole] = useState<Role>(person?.role || 'FLEX');
 
-    // Stats State
-    const [attack, setAttack] = useState(person?.stats?.attack || 5);
-    const [defense, setDefense] = useState(person?.stats?.defense || 5);
-    const [technique, setTechnique] = useState(person?.stats?.technique || 5);
-    const [physical, setPhysical] = useState(person?.stats?.physical || 5);
-
-    // Calculate rating automatically
+    // Rating is now manual
     const [rating, setRating] = useState(person?.rating || 5);
+
+    // Attributes State
+    const [attributes, setAttributes] = useState<Attributes>(person?.attributes || {
+        shooting: 'mid', control: 'mid', passing: 'mid', defense: 'mid',
+        pace: 'mid', vision: 'mid', grit: 'mid', stamina: 'mid'
+    });
 
     const [avatar, setAvatar] = useState(person?.avatar || '');
     const [gkWillingness, setGkWillingness] = useState<GKWillingness>(person?.gkWillingness || 'low');
@@ -42,11 +53,12 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
 
     const otherPeople = people.filter(p => p.id !== person?.id);
 
-    // Auto-calculate rating whenever stats change
+    // Auto-Set GK Willingness if Role is GK
     useEffect(() => {
-        const avg = Math.round((attack + defense + technique + physical) / 4);
-        setRating(avg);
-    }, [attack, defense, technique, physical]);
+        if (role === 'GK') {
+            setGkWillingness('yes');
+        }
+    }, [role]);
 
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -68,13 +80,17 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
             name: name.trim(),
             nickname: nickname.trim(),
             role,
-            rating, // Auto-calculated
-            stats: { attack, defense, technique, physical },
+            rating,
+            attributes,
             avatar,
             gkWillingness,
             wantsWith,
             avoidsWith,
         });
+    };
+
+    const updateAttribute = (key: keyof Attributes, val: AttributeLevel) => {
+        setAttributes(prev => ({ ...prev, [key]: val }));
     };
 
     const toggleWantsWith = (id: string) => {
@@ -91,23 +107,25 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         setWantsWith(prev => prev.filter(i => i !== id));
     };
 
-    const renderStatSlider = (label: string, value: number, setValue: (v: number) => void, _icon: string) => (
-        <div className="stat-slider-container">
-            <div className="stat-label">
-                <span>{label}</span>
-                {!privacyMode && <span className="stat-value">{value}</span>}
+    const renderAttributeRow = (key: keyof Attributes, label: string) => {
+        const val = attributes[key];
+        return (
+            <div className="attribute-row" key={key}>
+                <span className="attr-label">{label}</span>
+                <div className="attr-buttons">
+                    <button type="button"
+                        className={`attr-btn low ${val === 'low' ? 'active' : ''}`}
+                        onClick={() => updateAttribute(key, 'low')}>👎</button>
+                    <button type="button"
+                        className={`attr-btn mid ${val === 'mid' ? 'active' : ''}`}
+                        onClick={() => updateAttribute(key, 'mid')}>🤏</button>
+                    <button type="button"
+                        className={`attr-btn high ${val === 'high' ? 'active' : ''}`}
+                        onClick={() => updateAttribute(key, 'high')}>👍</button>
+                </div>
             </div>
-            <input
-                type="range"
-                min="1"
-                max="10"
-                step="1"
-                value={value}
-                onChange={(e) => setValue(parseInt(e.target.value))}
-                className="stat-range"
-            />
-        </div>
-    );
+        );
+    }
 
     return (
         <div className="modal-overlay" onClick={onCancel}>
@@ -129,7 +147,6 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                 <input type="file" accept="image/*" onChange={handleAvatarChange} />
                             </label>
 
-                            {/* Privacy Mode Badge - Only visible if active to remind user */}
                             {privacyMode && (
                                 <div style={{ fontSize: '0.7rem', color: '#888', textAlign: 'center', marginTop: '4px' }}>
                                     🙈 Modo Privado
@@ -144,6 +161,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                     type="text"
                                     value={nickname}
                                     onChange={e => setNickname(e.target.value)}
+                                    placeholder="Ej: Messi"
                                     required
                                     autoFocus
                                 />
@@ -154,6 +172,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                     type="text"
                                     value={name}
                                     onChange={e => setName(e.target.value)}
+                                    placeholder="Ej: Lionel Andrés Messi"
                                 />
                             </div>
                         </div>
@@ -177,34 +196,45 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                             </div>
                         </div>
 
-                        <div className="form-group" style={{ flex: 1 }}>
-                            <label>¿Ataja?</label>
-                            <div className="gk-selector">
-                                {gkOptions.map(opt => (
-                                    <button
-                                        key={opt.value}
-                                        type="button"
-                                        className={`gk-btn ${gkWillingness === opt.value ? 'active' : ''}`}
-                                        onClick={() => setGkWillingness(opt.value)}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                ))}
+                        {role !== 'GK' && (
+                            <div className="form-group" style={{ flex: 1 }}>
+                                <label>¿Ataja?</label>
+                                <div className="gk-selector">
+                                    {gkOptions.map(opt => (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            className={`gk-btn ${gkWillingness === opt.value ? 'active' : ''}`}
+                                            onClick={() => setGkWillingness(opt.value)}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
-                    {/* Stats Sliders */}
-                    <div className="stats-section">
-                        <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                            Stats
-                            {!privacyMode && <span style={{ color: 'var(--accent)', fontWeight: 'normal' }}>Promedio: {rating}</span>}
+                    {/* Manual Rating Slider */}
+                    <div className="form-group">
+                        <label style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            Nivel General (1-10)
+                            {!privacyMode && <span style={{ color: 'var(--accent)' }}>{rating}</span>}
                         </label>
-                        <div className="stats-grid">
-                            {renderStatSlider("Ataque", attack, setAttack, "")}
-                            {renderStatSlider("Defensa", defense, setDefense, "")}
-                            {renderStatSlider("Técnica", technique, setTechnique, "")}
-                            {renderStatSlider("Físico", physical, setPhysical, "")}
+                        <input
+                            type="range" min="1" max="10" step="1"
+                            value={rating}
+                            onChange={(e) => setRating(parseInt(e.target.value))}
+                            className="stat-range"
+                            style={{ marginTop: '0.5rem' }}
+                        />
+                    </div>
+
+                    {/* Attributes Grid */}
+                    <div className="stats-section">
+                        <label style={{ marginBottom: '1rem' }}>Atributos</label>
+                        <div className="attributes-grid">
+                            {attributesList.map(attr => renderAttributeRow(attr.key, attr.label))}
                         </div>
                     </div>
 

@@ -52,3 +52,43 @@
   width: 100%;
   margin: 0 auto;
 }
+
+.footer {
+  padding: 1rem 2rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  margin-top: auto; /* Push to bottom */
+}
+
+.footer-signature {
+  font-family: 'Courier New', Courier, monospace;
+  opacity: 0.6;
+}
+
+.footer-actions {
+  display: flex;
+  align-items: center;
+}
+
+.privacy-toggle-mini {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  opacity: 0.7;
+}
+
+.privacy-toggle-mini:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.1);
+}

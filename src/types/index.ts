@@ -1,22 +1,30 @@
 export type Role = 'GK' | 'DEF' | 'MID' | 'ATT' | 'FLEX';
 export type GKWillingness = 'yes' | 'no' | 'low';
 
+export type AttributeLevel = 'high' | 'mid' | 'low';
+
+export interface Attributes {
+  shooting: AttributeLevel;
+  control: AttributeLevel;
+  passing: AttributeLevel;
+  defense: AttributeLevel;
+  pace: AttributeLevel;
+  vision: AttributeLevel;
+  grit: AttributeLevel;
+  stamina: AttributeLevel;
+}
+
 export interface Person {
   id: string;
-  name: string; // Real name
-  nickname: string; // Display name
+  name: string;
+  nickname: string;
   role: Role;
-  rating: number; // 1-10
-  avatar: string; // base64 or URL
+  rating: number; // Manual 1-10
+  avatar?: string;
   gkWillingness: GKWillingness;
-  wantsWith: string[]; // IDs of people they want to play with
-  avoidsWith: string[]; // IDs of people they want to avoid
-  stats?: {
-    defense: number;
-    attack: number;
-    physical: number;
-    technique: number;
-  };
+  wantsWith: string[];
+  avoidsWith: string[];
+  attributes?: Attributes;
 }
 
 export interface Team {
