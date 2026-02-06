@@ -91,10 +91,8 @@
   display: block;
   margin-bottom: 0.35rem;
   color: var(--text-secondary);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .form-group input {
@@ -256,6 +254,103 @@
   text-align: center;
   transition: all 0.15s;
 }
+
+
+.form-row-compact {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  /* Removed uppercase */
+}
+
+/* Updated Stats Section */
+.stats-section {
+  margin-bottom: 1.25rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
+}
+
+.stat-slider-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  opacity: 0.9;
+}
+
+.stat-value {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: normal;
+  background: transparent;
+  padding: 0;
+  min-width: unset;
+}
+
+/* Minimal Slider */
+.stat-range {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none; /* Standard property */
+  height: 4px;
+  background: var(--bg-primary); /* Darker background track */
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  border: none;
+}
+
+.stat-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none; /* Standard property */
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-primary); /* Simple white/grey dot */
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  transition: transform 0.1s;
+  margin-top: 0;
+}
+
+.stat-range::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: var(--accent);
+}
+
+.stat-range::-webkit-slider-thumb:active {
+  transform: scale(1.0);
+}
+
+/* Active states for minimalist buttons */
+.role-btn.active.gk { background: #333; color: white; border-color: #555; }
+.role-btn.active.def { background: #166534; color: white; border-color: #166534; } /* Darker green */
+.role-btn.active.mid { background: #b45309; color: white; border-color: #b45309; } /* Darker yellow/orange */
+.role-btn.active.att { background: #991b1b; color: white; border-color: #991b1b; } /* Darker red */
+.role-btn.active.flex { background: #5b21b6; color: white; border-color: #5b21b6; } /* Darker purple */
 
 .relationship-btn:hover {
   border-color: var(--text-secondary);

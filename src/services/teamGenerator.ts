@@ -116,9 +116,43 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     const ratingDiff = Math.abs(team1Rating - team2Rating);
     const relationshipScore = calculateRelationshipScore(team1Players, team2Players);
 
-    // Score: minimize rating difference, maximize relationship satisfaction
-    // Rating balance is weighted more heavily (100 - diff) gives higher score for smaller diff
-    const score = (100 - ratingDiff * 10) + relationshipScore;
+    // Calculate Stat Differences
+    const getStatTotal = (team: Person[], stat: 'physical' | 'attack' | 'defense' | 'technique') => 
+      team.reduce((sum, p) => sum + (p.stats?.[stat] || 5), 0);
+
+    const t1Phys = getStatTotal(team1Players, 'physical');
+    const t2Phys = getStatTotal(team2Players, 'physical');
+    const physDiff = Math.abs(t1Phys - t2Phys);
+
+    const t1Tech = getStatTotal(team1Players, 'technique');
+    const t2Tech = getStatTotal(team2Players, 'technique');
+    const techDiff = Math.abs(t1Tech - t2Tech);
+
+    const t1Def = getStatTotal(team1Players, 'defense');
+    const t2Def = getStatTotal(team2Players, 'defense');
+    const defDiff = Math.abs(t1Def - t2Def);
+
+    // Scoring Weights
+    // 1. Relationships (Must be respected as much as possible)
+    // 2. Physical Balance (Critical: avoids slow team vs fast team)
+    // 3. Overall Rating Balance
+    // 4. Technique/Defense Balance
+
+    let score = 0;
+    
+    // Base score from rating balance (Max 100)
+    score += (100 - ratingDiff * 5); 
+
+    // Heavy penalty for physical imbalance (User priority)
+    // If one team has +5 physical total, that's a huge advantage in 5v5
+    score -= (physDiff * 8); 
+
+    // Smaller penalties for other stats
+    score -= (techDiff * 2);
+    score -= (defDiff * 2);
+
+    // Add relationship score (can be negative or positive)
+    score += relationshipScore;
 
     if (score > bestScore) {
       bestScore = score;
@@ -130,28 +164,35 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     }
   }
 
-  // If no valid combination found, try without strict constraints
+  // If no valid combination found with strict rules, try fallback with looser rules
   if (!bestResult) {
-    // Fall back to simple balanced split without role constraints
-    const sortedByRating = [...players].sort((a, b) => b.rating - a.rating);
+    // Fall back to simply balancing by Rating + Physical
+    // Sort by a composite score of Rating + Physical
+    const sortedPlayers = [...players].sort((a, b) => {
+        const scoreA = (a.rating * 0.6) + ((a.stats?.physical || 5) * 0.4);
+        const scoreB = (b.rating * 0.6) + ((b.stats?.physical || 5) * 0.4);
+        return scoreB - scoreA;
+    });
+
     const team1Players: Person[] = [];
     const team2Players: Person[] = [];
-    let team1Rating = 0;
-    let team2Rating = 0;
+    let team1Score = 0;
+    let team2Score = 0;
 
-    for (const player of sortedByRating) {
-      if (team1Players.length < 5 && (team1Rating <= team2Rating || team2Players.length >= 5)) {
-        team1Players.push(player);
-        team1Rating += player.rating;
-      } else {
-        team2Players.push(player);
-        team2Rating += player.rating;
-      }
+    for (const player of sortedPlayers) {
+        const pScore = player.rating + (player.stats?.physical || 5);
+        if (team1Players.length < 5 && (team1Score <= team2Score || team2Players.length >= 5)) {
+            team1Players.push(player);
+            team1Score += pScore;
+        } else {
+            team2Players.push(player);
+            team2Score += pScore;
+        }
     }
 
     bestResult = {
-      team1: { players: team1Players, totalRating: team1Rating },
-      team2: { players: team2Players, totalRating: team2Rating },
+      team1: { players: team1Players, totalRating: calculateTotalRating(team1Players) },
+      team2: { players: team2Players, totalRating: calculateTotalRating(team2Players) },
       relationshipScore: calculateRelationshipScore(team1Players, team2Players),
     };
   }

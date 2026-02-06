@@ -1,4 +1,5 @@
 import type { Person } from '../types';
+import useAppStore from '../store/useAppStore';
 import './PersonCard.css';
 
 interface PersonCardProps {
@@ -18,6 +19,7 @@ export function PersonCard({
     selected,
     selectable
 }: PersonCardProps) {
+    const { privacyMode } = useAppStore();
 
     return (
         <div
@@ -39,7 +41,7 @@ export function PersonCard({
 
                     <div className="tags">
                         <span className={`role ${person.role.toLowerCase()}`}>{person.role}</span>
-                        <span className="rating">{person.rating}</span>
+                        {!privacyMode && <span className="rating">{person.rating}</span>}
                     </div>
                 </div>
             </div>

@@ -11,6 +11,12 @@ export interface Person {
   gkWillingness: GKWillingness;
   wantsWith: string[]; // IDs of people they want to play with
   avoidsWith: string[]; // IDs of people they want to avoid
+  stats?: {
+    defense: number;
+    attack: number;
+    physical: number;
+    technique: number;
+  };
 }
 
 export interface Team {

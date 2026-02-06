@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useAppStore from '../store/useAppStore';
-import { PersonCard } from '../components/PersonCard';
 import { PersonForm } from '../components/PersonForm';
+import { PersonCard } from '../components/PersonCard';
 import type { Person } from '../types';
 import './PeoplePage.css';
 
@@ -14,7 +14,9 @@ export function PeoplePage() {
         addPerson,
         updatePerson,
         deletePerson,
-        setError
+        setError,
+        privacyMode,
+        togglePrivacyMode
     } = useAppStore();
 
     const [showForm, setShowForm] = useState(false);
@@ -59,6 +61,13 @@ export function PeoplePage() {
                 <div className="header-actions">
                     <button className="btn btn-secondary" onClick={handleRefresh} disabled={isLoading}>
                         🔄 {isLoading ? 'Cargando...' : 'Refrescar'}
+                    </button>
+                    <button
+                        className="btn btn-secondary"
+                        onClick={togglePrivacyMode}
+                        title={privacyMode ? "Mostrar puntajes" : "Ocultar puntajes"}
+                    >
+                        {privacyMode ? '🙈 Oculto' : '👁️ Visible'}
                     </button>
                     <button className="btn btn-primary" onClick={() => setShowForm(true)}>
                         + Agregar Jugador

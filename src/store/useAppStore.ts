@@ -60,6 +60,10 @@ interface AppStore {
   
   // Actions - Error handling
   setError: (error: string | null) => void;
+
+  // App State
+  privacyMode: boolean;
+  togglePrivacyMode: () => void;
 }
 
 const useAppStore = create<AppStore>()((set) => ({
@@ -69,6 +73,9 @@ const useAppStore = create<AppStore>()((set) => ({
   generatedTeams: null,
   isLoading: false,
   error: null,
+  privacyMode: false,
+
+  togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
 
   // Fetch people from Google Sheets CSV (Read-only)
   fetchPeople: async () => {
@@ -101,9 +108,15 @@ const useAppStore = create<AppStore>()((set) => ({
           role: validateRole(row.role),
           rating: validateRating(row.rating),
           avatar: row.avatar?.toString().trim() || '',
-          gkWillingness: validateGKWillingness(row.gkwillingness), // Note lowercase
-          wantsWith: parseArrayField(row.wantswith), // Note lowercase
-          avoidsWith: parseArrayField(row.avoidswith), // Note lowercase
+          gkWillingness: validateGKWillingness(row.gkwillingness),
+          wantsWith: parseArrayField(row.wantswith),
+          avoidsWith: parseArrayField(row.avoidswith),
+          stats: {
+            attack: parseInt(row.attack || '5') || 5, // Stats default to 5
+            defense: parseInt(row.defense || '5') || 5,
+            technique: parseInt(row.technique || '5') || 5,
+            physical: parseInt(row.physical || '5') || 5,
+          }
         }));
 
       console.log('Parsed People:', people);
@@ -143,6 +156,11 @@ const useAppStore = create<AppStore>()((set) => ({
           gkWillingness: person.gkWillingness,
           wantsWith: person.wantsWith.join(','),
           avoidsWith: person.avoidsWith.join(','),
+          // New stats columns
+          attack: person.stats?.attack || 5,
+          defense: person.stats?.defense || 5,
+          technique: person.stats?.technique || 5,
+          physical: person.stats?.physical || 5,
         }),
       });
     } catch (error) {
@@ -160,7 +178,7 @@ const useAppStore = create<AppStore>()((set) => ({
     try {
       await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
+        mode: 'no-cors', 
         headers: {
           'Content-Type': 'text/plain',
         },
@@ -175,6 +193,11 @@ const useAppStore = create<AppStore>()((set) => ({
           gkWillingness: person.gkWillingness,
           wantsWith: person.wantsWith.join(','),
           avoidsWith: person.avoidsWith.join(','),
+          // New stats columns
+          attack: person.stats?.attack || 5,
+          defense: person.stats?.defense || 5,
+          technique: person.stats?.technique || 5,
+          physical: person.stats?.physical || 5,
         }),
       });
     } catch (error) {
@@ -197,7 +220,7 @@ const useAppStore = create<AppStore>()((set) => ({
     try {
       await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors',
+        mode: 'no-cors', 
         headers: {
           'Content-Type': 'text/plain',
         },

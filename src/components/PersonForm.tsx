@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useAppStore from '../store/useAppStore';
 import type { Person, Role, GKWillingness } from '../types';
 import './PersonForm.css';
@@ -21,17 +21,32 @@ function generateId(): string {
 }
 
 export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
-    const { people } = useAppStore();
+    const { people, privacyMode } = useAppStore();
     const [name, setName] = useState(person?.name || '');
     const [nickname, setNickname] = useState(person?.nickname || '');
     const [role, setRole] = useState<Role>(person?.role || 'FLEX');
+
+    // Stats State
+    const [attack, setAttack] = useState(person?.stats?.attack || 5);
+    const [defense, setDefense] = useState(person?.stats?.defense || 5);
+    const [technique, setTechnique] = useState(person?.stats?.technique || 5);
+    const [physical, setPhysical] = useState(person?.stats?.physical || 5);
+
+    // Calculate rating automatically
     const [rating, setRating] = useState(person?.rating || 5);
+
     const [avatar, setAvatar] = useState(person?.avatar || '');
     const [gkWillingness, setGkWillingness] = useState<GKWillingness>(person?.gkWillingness || 'low');
     const [wantsWith, setWantsWith] = useState<string[]>(person?.wantsWith || []);
     const [avoidsWith, setAvoidsWith] = useState<string[]>(person?.avoidsWith || []);
 
     const otherPeople = people.filter(p => p.id !== person?.id);
+
+    // Auto-calculate rating whenever stats change
+    useEffect(() => {
+        const avg = Math.round((attack + defense + technique + physical) / 4);
+        setRating(avg);
+    }, [attack, defense, technique, physical]);
 
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -53,7 +68,8 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
             name: name.trim(),
             nickname: nickname.trim(),
             role,
-            rating,
+            rating, // Auto-calculated
+            stats: { attack, defense, technique, physical },
             avatar,
             gkWillingness,
             wantsWith,
@@ -75,6 +91,24 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         setWantsWith(prev => prev.filter(i => i !== id));
     };
 
+    const renderStatSlider = (label: string, value: number, setValue: (v: number) => void, _icon: string) => (
+        <div className="stat-slider-container">
+            <div className="stat-label">
+                <span>{label}</span>
+                {!privacyMode && <span className="stat-value">{value}</span>}
+            </div>
+            <input
+                type="range"
+                min="1"
+                max="10"
+                step="1"
+                value={value}
+                onChange={(e) => setValue(parseInt(e.target.value))}
+                className="stat-range"
+            />
+        </div>
+    );
+
     return (
         <div className="modal-overlay" onClick={onCancel}>
             <div className="modal" onClick={e => e.stopPropagation()}>
@@ -94,6 +128,13 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                 {avatar ? 'Cambiar Foto' : 'Subir Foto'}
                                 <input type="file" accept="image/*" onChange={handleAvatarChange} />
                             </label>
+
+                            {/* Privacy Mode Badge - Only visible if active to remind user */}
+                            {privacyMode && (
+                                <div style={{ fontSize: '0.7rem', color: '#888', textAlign: 'center', marginTop: '4px' }}>
+                                    🙈 Modo Privado
+                                </div>
+                            )}
                         </div>
 
                         <div className="header-inputs">
@@ -118,52 +159,52 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                         </div>
                     </div>
 
-                    {/* Compact Selectors */}
-                    <div className="form-group">
-                        <label>Posición Preferida</label>
-                        <div className="selector-group">
-                            {roles.map(r => (
-                                <button
-                                    key={r}
-                                    type="button"
-                                    className={`role-btn ${r.toLowerCase()} ${role === r ? 'active' : ''}`}
-                                    onClick={() => setRole(r)}
-                                >
-                                    {r}
-                                </button>
-                            ))}
+                    {/* Compact Selectors Row */}
+                    <div className="form-row-compact">
+                        <div className="form-group" style={{ flex: 2 }}>
+                            <label>Posición</label>
+                            <div className="selector-group">
+                                {roles.map(r => (
+                                    <button
+                                        key={r}
+                                        type="button"
+                                        className={`role-btn ${r.toLowerCase()} ${role === r ? 'active' : ''}`}
+                                        onClick={() => setRole(r)}
+                                    >
+                                        {r}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="form-group" style={{ flex: 1 }}>
+                            <label>¿Ataja?</label>
+                            <div className="gk-selector">
+                                {gkOptions.map(opt => (
+                                    <button
+                                        key={opt.value}
+                                        type="button"
+                                        className={`gk-btn ${gkWillingness === opt.value ? 'active' : ''}`}
+                                        onClick={() => setGkWillingness(opt.value)}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
-                    <div className="form-group">
-                        <label>Nivel (1-10)</label>
-                        <div className="rating-selector">
-                            {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
-                                <button
-                                    key={num}
-                                    type="button"
-                                    className={`rating-btn ${rating === num ? 'active' : ''}`}
-                                    onClick={() => setRating(num)}
-                                >
-                                    {num}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="form-group">
-                        <label>¿Puede atajar?</label>
-                        <div className="gk-selector">
-                            {gkOptions.map(opt => (
-                                <button
-                                    key={opt.value}
-                                    type="button"
-                                    className={`gk-btn ${gkWillingness === opt.value ? 'active' : ''}`}
-                                    onClick={() => setGkWillingness(opt.value)}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
+                    {/* Stats Sliders */}
+                    <div className="stats-section">
+                        <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                            Stats
+                            {!privacyMode && <span style={{ color: 'var(--accent)', fontWeight: 'normal' }}>Promedio: {rating}</span>}
+                        </label>
+                        <div className="stats-grid">
+                            {renderStatSlider("Ataque", attack, setAttack, "")}
+                            {renderStatSlider("Defensa", defense, setDefense, "")}
+                            {renderStatSlider("Técnica", technique, setTechnique, "")}
+                            {renderStatSlider("Físico", physical, setPhysical, "")}
                         </div>
                     </div>
 
