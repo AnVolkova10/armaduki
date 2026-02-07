@@ -78,15 +78,15 @@ export function TeamResult({ result }: TeamResultProps) {
             <div className="result-header">
                 <h3>Generated Teams</h3>
                 <div className="result-stats">
-                    {!privacyMode && <span>Diferencia Rating: {ratingDiff}</span>}
-                    <span>Score Relaciones: {result.relationshipScore}</span>
+                    {!privacyMode && <span>Rating Diff: {ratingDiff}</span>}
+                    <span>Relationship Score: {result.relationshipScore}</span>
                 </div>
             </div>
 
             <div className="teams-container">
                 <div className="team-box">
                     <div className="team-header">
-                        <span className="team-name">Equipo 1</span>
+                        <span className="team-name">Team 1</span>
                         {!privacyMode && <span className="team-rating">★ {result.team1.totalRating}</span>}
                     </div>
                     <div className="team-players">
@@ -100,7 +100,7 @@ export function TeamResult({ result }: TeamResultProps) {
 
                 <div className="team-box">
                     <div className="team-header">
-                        <span className="team-name">Equipo 2</span>
+                        <span className="team-name">Team 2</span>
                         {!privacyMode && <span className="team-rating">★ {result.team2.totalRating}</span>}
                     </div>
                     <div className="team-players">

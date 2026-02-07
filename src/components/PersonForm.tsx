@@ -11,20 +11,20 @@ interface PersonFormProps {
 
 const roles: Role[] = ['GK', 'DEF', 'MID', 'ATT', 'FLEX'];
 const gkOptions: { value: GKWillingness; label: string }[] = [
-    { value: 'yes', label: 'Sí' },
-    { value: 'low', label: 'Poco' },
+    { value: 'yes', label: 'Yes' },
+    { value: 'low', label: 'Low' },
     { value: 'no', label: 'No' },
 ];
 
 const attributesList: { key: keyof Attributes; label: string }[] = [
-    { key: 'shooting', label: 'Remate' },
+    { key: 'shooting', label: 'Shooting' },
     { key: 'control', label: 'Control' },
-    { key: 'passing', label: 'Pases' },
-    { key: 'defense', label: 'Defensa' },
-    { key: 'pace', label: 'Velocidad' },
-    { key: 'vision', label: 'Visión' },
-    { key: 'grit', label: 'Garra' },
-    { key: 'stamina', label: 'Aire' },
+    { key: 'passing', label: 'Passing' },
+    { key: 'defense', label: 'Defense' },
+    { key: 'pace', label: 'Pace' },
+    { key: 'vision', label: 'Vision' },
+    { key: 'grit', label: 'Grit' },
+    { key: 'stamina', label: 'Stamina' },
 ];
 
 
@@ -176,37 +176,18 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                 </div>
                             )}
                             <label className="avatar-upload-btn">
-                                {avatar ? 'Cambiar Foto' : 'Subir Foto'}
+                                {avatar ? 'Change Photo' : 'Upload Photo'}
                                 <input type="file" accept="image/*" onChange={handleAvatarChange} />
                             </label>
 
 
 
-                            {/* Privacy Indicator (Matches Footer Icon) */}
-                            {privacyMode && (
-                                <div style={{
-                                    position: 'absolute',
-                                    bottom: -6,
-                                    right: -8,
-                                    color: '#ef4444',
-                                    background: 'rgba(0,0,0,0.6)',
-                                    borderRadius: '50%',
-                                    padding: '2px',
-                                    display: 'flex'
-                                }} title="Modo Privado">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                                        <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                                        <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-                                        <line x1="2" x2="22" y1="2" y2="22" />
-                                    </svg>
-                                </div>
-                            )}
+
                         </div>
 
                         <div className="header-inputs">
                             <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                                <label>Apodo *</label>
+                                <label>Nickname *</label>
                                 <input
                                     type="text"
                                     value={nickname}
@@ -216,7 +197,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                 />
                             </div>
                             <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label>Nombre (opcional)</label>
+                                <label>Name (optional)</label>
                                 <input
                                     type="text"
                                     value={name}
@@ -248,7 +229,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                     {/* Compact Selectors Row */}
                     <div className="form-row-compact">
                         <div className="form-group" style={{ flex: 2 }}>
-                            <label>Posición</label>
+                            <label>Position</label>
                             <div className="selector-group">
                                 {roles.map(r => (
                                     <button
@@ -265,7 +246,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
 
                         {role !== 'GK' && (
                             <div className="form-group" style={{ flex: 1 }}>
-                                <label>¿Ataja?</label>
+                                <label>Goalkeeper?</label>
                                 <div className="gk-selector">
                                     {gkOptions.map(opt => (
                                         <button
@@ -286,7 +267,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
 
                     {/* Attributes Grid */}
                     <div className="stats-section">
-                        <label style={{ marginBottom: '1rem' }}>Atributos</label>
+                        <label style={{ marginBottom: '1rem' }}>Attributes</label>
                         <div className="attributes-grid">
                             {attributesList.map(attr => renderAttributeRow(attr.key, attr.label))}
                         </div>
@@ -297,7 +278,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                         <div className="relationships-container">
                             <div className="relationship-column">
                                 <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#22c55e', marginBottom: '0.5rem', display: 'block' }}>
-                                    QUIERE JUGAR CON ({wantsWith.length})
+                                    WANTS TO PLAY WITH ({wantsWith.length})
                                 </label>
                                 <div className="relationship-grid">
                                     {otherPeople.map(p => (
@@ -315,7 +296,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
 
                             <div className="relationship-column">
                                 <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', marginBottom: '0.5rem', display: 'block' }}>
-                                    EVITA JUGAR CON ({avoidsWith.length})
+                                    AVOIDS PLAYING WITH ({avoidsWith.length})
                                 </label>
                                 <div className="relationship-grid">
                                     {otherPeople.map(p => (
@@ -335,10 +316,10 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
 
                     <div className="form-actions">
                         <button type="button" className="btn btn-secondary" onClick={onCancel}>
-                            Cancelar
+                            Cancel
                         </button>
                         <button type="submit" className="btn btn-primary">
-                            {person ? 'Guardar Cambios' : 'Agregar Jugador'}
+                            {person ? 'Save Changes' : 'Add Player'}
                         </button>
                     </div>
                 </form>

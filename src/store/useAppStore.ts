@@ -93,7 +93,7 @@ const useAppStore = create<AppStore>()((set) => ({
       console.log('Raw Data from Apps Script:', rawData);
 
       if (!Array.isArray(rawData)) {
-        throw new Error('Formato de datos incorrecto: no es un array');
+        throw new Error('Incorrect data format: not an array');
       }
 
       const people: Person[] = rawData
@@ -127,7 +127,7 @@ const useAppStore = create<AppStore>()((set) => ({
     } catch (error) {
       console.error('Error fetching people data:', error);
       set({ 
-        error: 'Error cargando datos desde Google Sheets', 
+        error: 'Error loading data from Google Sheets', 
         isLoading: false 
       });
     }
@@ -170,7 +170,7 @@ const useAppStore = create<AppStore>()((set) => ({
       });
     } catch (error) {
       console.error('Error adding person to sheet:', error);
-      set({ error: 'Error agregando jugador al Excel (se guardó localmente)' });
+      set({ error: 'Error adding player to Excel (saved locally)' });
     }
   },
 
@@ -208,7 +208,7 @@ const useAppStore = create<AppStore>()((set) => ({
       console.log('[DEBUG] updatePerson response:', response.type, response.status);
     } catch (error) {
       console.error('[DEBUG] updatePerson ERROR:', error);
-      set({ error: 'Error actualizando jugador en Excel (se actualizó localmente)' });
+      set({ error: 'Error updating player in Excel (updated locally)' });
     }
   },
 
@@ -238,7 +238,7 @@ const useAppStore = create<AppStore>()((set) => ({
       });
     } catch (error) {
       console.error('Error deleting person from sheet:', error);
-      set({ error: 'Error eliminando jugador del Excel (se eliminó localmente)' });
+      set({ error: 'Error deleting player from Excel (deleted locally)' });
     }
   },
 

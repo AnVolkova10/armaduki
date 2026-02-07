@@ -25,7 +25,7 @@ export function MatchPage() {
         setGeneratedTeams(null);
 
         if (selectedCount !== 10) {
-            setLocalError(`Seleccioná exactamente 10 jugadores. Seleccionados: ${selectedCount}`);
+            setLocalError(`Select exactly 10 players. Selected: ${selectedCount}`);
             return;
         }
 
@@ -35,7 +35,7 @@ export function MatchPage() {
         if (teams) {
             setGeneratedTeams(teams);
         } else {
-            setLocalError('No se pudieron generar equipos válidos. Revisá los roles y disponibilidad de arquero.');
+            setLocalError('Could not generate valid teams. Check roles and goalkeeper availability.');
         }
     };
 
@@ -47,32 +47,32 @@ export function MatchPage() {
     return (
         <div className="match-page">
             <div className="page-header">
-                <h2>Armar Partido</h2>
+                <h2>Match Setup</h2>
                 <div className="header-actions">
                     <span className="selection-count">
-                        {selectedCount}/10 seleccionados
+                        {selectedCount}/10 selected
                     </span>
                     <button className="btn btn-secondary" onClick={handleClear}>
-                        Limpiar Selección
+                        Clear Selection
                     </button>
                     <button
                         className="btn btn-primary"
                         onClick={handleGenerate}
                         disabled={!canGenerate}
                     >
-                        Generar Equipos
+                        Generate Teams
                     </button>
                 </div>
             </div>
 
             {people.length === 0 ? (
                 <div className="empty-state">
-                    <p>No hay jugadores disponibles. Andá a la página de Jugadores para agregar.</p>
+                    <p>No players available. Go to the Players page to add some.</p>
                 </div>
             ) : (
                 <>
                     <div className="instructions">
-                        Seleccioná exactamente 10 jugadores para generar equipos balanceados.
+                        Select exactly 10 players to generate balanced teams.
                     </div>
 
                     <div className="people-grid">

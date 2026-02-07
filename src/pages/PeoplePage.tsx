@@ -54,12 +54,12 @@ export function PeoplePage() {
                 <h2>Players</h2>
                 <div className="header-actions">
                     <button className="btn btn-primary" onClick={() => setShowForm(true)}>
-                        + Agregar Jugador
+                        + Add Player
                     </button>
                 </div>
             </div>
 
-            {isLoading && <div className="loading">Cargando desde Google Sheets...</div>}
+            {isLoading && <div className="loading">Loading from Google Sheets...</div>}
             {error && (
                 <div className="error">
                     {error}
@@ -69,9 +69,9 @@ export function PeoplePage() {
 
             {!isLoading && people.length === 0 ? (
                 <div className="empty-state">
-                    <p>No hay jugadores todavía.</p>
+                    <p>No players yet.</p>
                     <p className="hint">
-                        Los datos se cargan desde Google Sheets. Podés agregar jugadores manualmente o editar la hoja de cálculo.
+                        Data is loaded from Google Sheets. You can add players manually or edit the spreadsheet.
                     </p>
                 </div>
             ) : (
@@ -88,7 +88,7 @@ export function PeoplePage() {
             )}
 
             <div className="people-count">
-                Total: {people.length} jugadores
+                Total: {people.length} players
             </div>
 
             {showForm && (

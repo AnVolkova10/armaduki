@@ -30,7 +30,7 @@ export function Layout() {
                     <button
                         className="privacy-toggle-mini"
                         onClick={(e) => { if (e.detail === 3) togglePrivacyMode(); }}
-                        title={privacyMode ? "Triple click para mostrar puntajes" : "Triple click para ocultar puntajes"}
+                        title={privacyMode ? "Triple click to show ratings" : "Triple click to hide ratings"}
                     >
                         {privacyMode ? (
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
