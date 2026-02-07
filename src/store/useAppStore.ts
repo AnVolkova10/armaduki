@@ -4,13 +4,18 @@ import type { Person, Role, GKWillingness, GeneratedTeams } from '../types';
 // Google Apps Script Web App URL
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
 
-function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+// Helper to get next sequential ID
+function getNextId(people: Person[]): string {
+  if (people.length === 0) return '0';
+  const maxId = Math.max(...people.map(p => parseInt(p.id, 10) || 0));
+  return String(maxId + 1);
 }
 
-function parseArrayField(value: string | undefined): string[] {
-  if (!value || value.trim() === '') return [];
-  return value.split(',').map(s => s.trim()).filter(Boolean);
+function parseArrayField(value: string | number | undefined): string[] {
+  if (value === undefined || value === null || value === '') return [];
+  const str = String(value).trim();
+  if (str === '') return [];
+  return str.split('|').map(s => s.trim()).filter(Boolean);
 }
 
 function validateRole(value: string | undefined): Role {
@@ -93,29 +98,29 @@ const useAppStore = create<AppStore>()((set) => ({
 
       const people: Person[] = rawData
         .map((row: any) => {
-          // Normalize keys to lowercase to handle case mismatch (e.g. "Nickname" vs "nickname")
-          const normalizedRow: any = {};
-          Object.keys(row).forEach(key => {
-            normalizedRow[key.toLowerCase().trim()] = row[key];
-          });
-          return normalizedRow;
-        })
-        .filter((row: any) => row.nickname && row.nickname.trim() !== '')
-        .map((row: any) => ({
-          id: row.id?.toString().trim() || generateId(),
-          name: row.name?.toString().trim() || '',
-          nickname: row.nickname?.toString().trim() || 'Unknown',
-          role: validateRole(row.role),
-          rating: validateRating(row.rating),
-          avatar: row.avatar?.toString().trim() || '',
-          gkWillingness: validateGKWillingness(row.gkwillingness),
-          wantsWith: parseArrayField(row.wantswith),
-          avoidsWith: parseArrayField(row.avoidswith),
-          attributes: row.attributes ? JSON.parse(row.attributes) : {
-            shooting: 'mid', control: 'mid', passing: 'mid', defense: 'mid',
-            pace: 'mid', vision: 'mid', grit: 'mid', stamina: 'mid'
-          }
-        }));
+          // Helper to find key ignoring case and spaces
+          const getValue = (targetKey: string) => {
+            const key = Object.keys(row).find(k => k.toLowerCase().replace(/\s/g, '') === targetKey.toLowerCase());
+            return key ? row[key] : undefined;
+          };
+
+          return {
+            id: getValue('id')?.toString().trim() || '0',
+            name: getValue('name')?.toString().trim() || '',
+            nickname: getValue('nickname')?.toString().trim() || 'Unknown',
+            role: validateRole(getValue('role')),
+            rating: validateRating(getValue('rating')),
+            avatar: getValue('avatar')?.toString().trim() || '',
+            gkWillingness: validateGKWillingness(getValue('gkwillingness')),
+            wantsWith: parseArrayField(getValue('wantswith')),
+            avoidsWith: parseArrayField(getValue('avoidswith')),
+            attributes: getValue('attributes') ? (typeof getValue('attributes') === 'string' ? JSON.parse(getValue('attributes')) : getValue('attributes')) : {
+              shooting: 'mid', control: 'mid', passing: 'mid', defense: 'mid',
+              pace: 'mid', vision: 'mid', grit: 'mid', stamina: 'mid'
+            }
+          };
+        }).filter((p: Person) => p.nickname !== 'Unknown' && p.nickname !== '');
+
 
       console.log('Parsed People:', people);
       set({ people, isLoading: false });
@@ -131,9 +136,14 @@ const useAppStore = create<AppStore>()((set) => ({
   setPeople: (people) => set({ people }),
 
   addPerson: async (person) => {
+    // Generate sequential ID if not provided
+    const state = useAppStore.getState();
+    const newId = person.id || getNextId(state.people);
+    const personWithId = { ...person, id: newId };
+    
     // Optimistic update
     set((state) => ({ 
-      people: [...state.people, person] 
+      people: [...state.people, personWithId] 
     }));
 
     try {
@@ -145,15 +155,15 @@ const useAppStore = create<AppStore>()((set) => ({
         },
         body: JSON.stringify({
           action: 'add',
-          id: person.id,
+          id: personWithId.id,
           name: person.name,
           nickname: person.nickname,
           role: person.role,
           rating: person.rating,
           avatar: person.avatar,
           gkWillingness: person.gkWillingness,
-          wantsWith: person.wantsWith.join(','),
-          avoidsWith: person.avoidsWith.join(','),
+          wantsWith: person.wantsWith.join('|'),
+          avoidsWith: person.avoidsWith.join('|'),
           // New stats columns
           attributes: JSON.stringify(person.attributes || {}),
         }),
@@ -170,33 +180,38 @@ const useAppStore = create<AppStore>()((set) => ({
       people: state.people.map(p => p.id === person.id ? person : p)
     }));
 
+    const payload = {
+      action: 'update',
+      id: person.id,
+      name: person.name,
+      nickname: person.nickname,
+      role: person.role,
+      rating: person.rating,
+      avatar: person.avatar,
+      gkWillingness: person.gkWillingness,
+      wantsWith: person.wantsWith.join('|'),
+      avoidsWith: person.avoidsWith.join('|'),
+      attributes: JSON.stringify(person.attributes || {}),
+    };
+
+    console.log('[DEBUG] updatePerson payload:', payload);
+
     try {
-      await fetch(APPS_SCRIPT_URL, {
+      const response = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors', 
         headers: {
           'Content-Type': 'text/plain',
         },
-        body: JSON.stringify({
-          action: 'update',
-          id: person.id,
-          name: person.name,
-          nickname: person.nickname,
-          role: person.role,
-          rating: person.rating,
-          avatar: person.avatar,
-          gkWillingness: person.gkWillingness,
-          wantsWith: person.wantsWith.join(','),
-          avoidsWith: person.avoidsWith.join(','),
-          // New stats columns
-          attributes: JSON.stringify(person.attributes || {}),
-        }),
+        body: JSON.stringify(payload),
       });
+      console.log('[DEBUG] updatePerson response:', response.type, response.status);
     } catch (error) {
-      console.error('Error updating person in sheet:', error);
+      console.error('[DEBUG] updatePerson ERROR:', error);
       set({ error: 'Error actualizando jugador en Excel (se actualizó localmente)' });
     }
   },
+
 
   deletePerson: async (id) => {
     // Optimistic update

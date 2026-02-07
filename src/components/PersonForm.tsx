@@ -27,9 +27,7 @@ const attributesList: { key: keyof Attributes; label: string }[] = [
     { key: 'stamina', label: 'Aire' },
 ];
 
-function generateId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
+
 
 export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const { people, privacyMode } = useAppStore();
@@ -76,7 +74,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         if (!nickname.trim()) return;
 
         onSave({
-            id: person?.id || generateId(),
+            id: person?.id || '',  // Empty string for new - addPerson will generate sequential ID
             name: name.trim(),
             nickname: nickname.trim(),
             role,
