@@ -128,6 +128,68 @@
   opacity: 1;
 }
 
+/* Mobile adjustments: Compact Horizontal Layout */
+@media (max-width: 640px) {
+  .person-card {
+    padding: 8px 30px 8px 8px; /* High right padding for actions */
+    min-height: 60px;
+    justify-content: center;
+  }
+
+  .card-content {
+    gap: 8px;
+  }
+
+  .avatar, .avatar-placeholder {
+    width: 32px;
+    height: 32px;
+  }
+
+  .info .nickname {
+    font-size: 13px;
+    margin-bottom: 0;
+  }
+
+  .info .name {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .info .role {
+    font-size: 9px;
+    padding: 2px 4px;
+  }
+  
+  .info .rating {
+    font-size: 11px;
+  }
+
+  .actions {
+    opacity: 1;
+    flex-direction: column-reverse; /* Trash on top */
+    top: 50%;
+    transform: translateY(-50%);
+    right: 4px;
+    gap: 4px;
+  }
+  
+  .actions button {
+    padding: 4px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(30,30,30,0.9);
+    border: 1px solid #333;
+  }
+  
+  .actions button svg {
+    width: 14px;
+    height: 14px;
+  }
+}
+
 .actions button {
   background: rgba(0, 0, 0, 0.6);
   border: none;

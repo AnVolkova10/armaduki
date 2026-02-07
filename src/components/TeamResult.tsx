@@ -33,12 +33,42 @@ export function TeamResult({ result }: TeamResultProps) {
 
     const handleCopy = async () => {
         try {
-            await navigator.clipboard.writeText(fullText);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            // INTENTO 1: API Moderna (funciona en HTTPS y localhost)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(fullText);
+                setCopied(true);
+            } else {
+                throw new Error('Clipboard API not available');
+            }
         } catch (err) {
-            console.error('Failed to copy:', err);
+            // INTENTO 2: Fallback para HTTP/Mobile (crea un textarea invisible)
+            try {
+                const textArea = document.createElement("textarea");
+                textArea.value = fullText;
+
+                // Asegurar que no sea visible pero sea parte del DOM
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                document.body.appendChild(textArea);
+
+                textArea.focus();
+                textArea.select();
+
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                if (successful) {
+                    setCopied(true);
+                } else {
+                    console.error('Fallback copy failed.');
+                }
+            } catch (fallbackErr) {
+                console.error('All copy attempts failed:', fallbackErr);
+            }
         }
+
+        setTimeout(() => setCopied(false), 2000);
     };
 
     const ratingDiff = Math.abs(result.team1.totalRating - result.team2.totalRating);

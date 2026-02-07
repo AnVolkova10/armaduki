@@ -183,7 +183,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                 />
                             </div>
                             <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label>Nombre Real (Opcional)</label>
+                                <label>Nombre (opcional)</label>
                                 <input
                                     type="text"
                                     value={name}

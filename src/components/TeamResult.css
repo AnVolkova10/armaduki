@@ -5,6 +5,13 @@
   margin-top: 2rem;
 }
 
+@media (max-width: 640px) {
+  .team-result {
+    padding: 1rem;
+    margin-top: 1.5rem;
+  }
+}
+
 .result-header {
   display: flex;
   justify-content: space-between;

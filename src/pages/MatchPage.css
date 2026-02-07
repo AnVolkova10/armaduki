@@ -55,8 +55,15 @@
 
 .people-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 cols on mobile too */
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .people-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 1rem;
+  }
 }
 
 .error {
