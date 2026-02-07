@@ -8,7 +8,7 @@
   --border: #333333;
 
   /* Role Colors */
-  --role-gk: #4a4a4a;
+  --role-gk: #4b4d50; /* Neutral gray, distinct but not too light */
   --role-def: #22c55e;
   --role-mid: #f59e0b;
   --role-att: #ef4444;

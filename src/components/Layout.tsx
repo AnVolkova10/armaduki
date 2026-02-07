@@ -29,8 +29,8 @@ export function Layout() {
                 <div className="footer-actions">
                     <button
                         className="privacy-toggle-mini"
-                        onClick={togglePrivacyMode}
-                        title={privacyMode ? "Mostrar puntajes" : "Ocultar puntajes"}
+                        onClick={(e) => { if (e.detail === 3) togglePrivacyMode(); }}
+                        title={privacyMode ? "Triple click para mostrar puntajes" : "Triple click para ocultar puntajes"}
                     >
                         {privacyMode ? (
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

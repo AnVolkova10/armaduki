@@ -73,7 +73,7 @@ const useAppStore = create<AppStore>()((set) => ({
   generatedTeams: null,
   isLoading: false,
   error: null,
-  privacyMode: false,
+  privacyMode: true,
 
   togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
 
