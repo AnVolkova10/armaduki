@@ -61,9 +61,44 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Compress Image Logic
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setAvatar(reader.result as string);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 200; // Increased size again per user request
+
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Calculate new dimensions (keeping aspect ratio, although we force 32x32 mostly for icons)
+                    // For avatars, square is usually best. Let's force fit to 32x32 or keep aspect within 32x32
+                    if (width > height) {
+                        if (width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        }
+                    } else {
+                        if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.drawImage(img, 0, 0, width, height);
+                        // Convert to lightweight JPG (or PNG if transparency needed, but JPG is smaller)
+                        // Using high quality for such small size is fine
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                        setAvatar(dataUrl);
+                    }
+                };
+                img.src = event.target?.result as string;
             };
             reader.readAsDataURL(file);
         }
