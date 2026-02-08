@@ -1,110 +1,156 @@
 import type { Person, GeneratedTeams, AttributeLevel, Attributes } from '../types';
 
-interface TeamValidation {
-  gkCount: number;
-  defCount: number;
-  attCount: number;
-  gkWillingCount: number;
+// Points configuration
+const POINTS = {
+  HIGH: 1,
+  MID: 0,
+  LOW: -1,
+  DOUBLE_WANT: 20,
+  SINGLE_WANT: 10,
+  RATING_BALANCE_BASE: 100,
+  BIAS_PENALTY: 500, // Massive penalty to force ID 10 to weaker team
+};
+
+// Hard Constraints
+const MAX_GK = 1;
+const MAX_DEF = 2;
+const MAX_ATT = 2;
+const REQUIRED_GK_WILLINGNESS = 3; // If no main GK
+const OWNER_ID = '10';
+
+interface TeamStats {
+  rating: number;
+  attributes: Record<keyof Attributes, number>;
 }
 
-function countRoles(players: Person[]): TeamValidation {
+// Attribute Weights Configuration
+const WEIGHTS = {
+  PHYSICAL: { HIGH: 2, MID: 0, LOW: -2 }, // Critical: Pace, Stamina
+  TECHNICAL: { HIGH: 1.5, MID: 0, LOW: -1 }, // Important: Shooting, Defense, Control, Passing
+  MENTAL: { HIGH: 1, MID: 0, LOW: -0.5 }, // Secondary: Vision, Grit
+};
+
+function getAttrValue(level: AttributeLevel | undefined, type: keyof typeof WEIGHTS): number {
+  if (!level) return WEIGHTS[type].MID; // Default to MID if undefined
+  const weight = WEIGHTS[type];
+  if (level === 'high') return weight.HIGH;
+  if (level === 'low') return weight.LOW;
+  return weight.MID;
+}
+
+function calculateTeamStats(players: Person[]): TeamStats {
+  const rating = players.reduce((sum, p) => sum + p.rating, 0);
+  
+  const attributes: Record<keyof Attributes, number> = {
+    shooting: 0, control: 0, passing: 0, defense: 0,
+    pace: 0, vision: 0, grit: 0, stamina: 0
+  };
+
+  const keys = Object.keys(attributes) as (keyof Attributes)[];
+  
+  for (const key of keys) {
+    let type: keyof typeof WEIGHTS = 'TECHNICAL'; // Default
+    if (['pace', 'stamina'].includes(key)) type = 'PHYSICAL';
+    else if (['vision', 'grit'].includes(key)) type = 'MENTAL';
+
+    attributes[key] = players.reduce((sum, p) => sum + getAttrValue(p.attributes?.[key], type), 0);
+  }
+
+  return { rating, attributes };
+}
+
+function hasSocialConflict(players: Person[]): boolean {
+  const ids = new Set(players.map(p => p.id));
+  for (const p of players) {
+    for (const avoidId of p.avoidsWith) {
+      if (ids.has(avoidId)) return true; // Hard constraint: Avoid means NO
+    }
+  }
+  return false;
+}
+
+function isValidTeam(players: Person[]): boolean {
+  // 1. Social Hard Constraint
+  if (hasSocialConflict(players)) return false;
+
   let gkCount = 0;
   let defCount = 0;
   let attCount = 0;
   let gkWillingCount = 0;
 
-  for (const player of players) {
-    if (player.role === 'GK') gkCount++;
-    if (player.role === 'DEF') defCount++;
-    if (player.role === 'ATT') attCount++;
-    if (player.gkWillingness === 'yes' || player.gkWillingness === 'low') {
-      gkWillingCount++;
-    }
+  for (const p of players) {
+    if (p.role === 'GK') gkCount++;
+    if (p.role === 'DEF') defCount++;
+    if (p.role === 'ATT') attCount++;
+    if (p.gkWillingness === 'yes') gkWillingCount++; // Only YES counts now
   }
 
-  return { gkCount, defCount, attCount, gkWillingCount };
-}
+  if (gkCount > MAX_GK) return false;
+  if (defCount > MAX_DEF) return false;
+  if (attCount > MAX_ATT) return false;
 
-function isValidTeam(players: Person[]): boolean {
-  const counts = countRoles(players);
-  
-  // Max 1 GK per team
-  if (counts.gkCount > 1) return false;
-  // Max 2 DEF per team
-  if (counts.defCount > 2) return false;
-  // Max 2 ATT per team
-  if (counts.attCount > 2) return false;
-  // At least 3 players willing to be GK (if no dedicated GK)
-  if (counts.gkCount === 0 && counts.gkWillingCount < 3) return false;
+  // Emergency GK Rule
+  if (gkCount === 0 && gkWillingCount < REQUIRED_GK_WILLINGNESS) return false;
 
   return true;
 }
 
-function calculateTotalRating(players: Person[]): number {
-  return players.reduce((sum, p) => sum + p.rating, 0);
-}
-
-function getAttrValue(level?: AttributeLevel): number {
-  if (level === 'high') return 1;
-  if (level === 'mid') return 0.5;
-  return 0;
-}
-
 function calculateRelationshipScore(team1: Person[], team2: Person[]): number {
   let score = 0;
-  const team1Ids = new Set(team1.map(p => p.id));
-  const team2Ids = new Set(team2.map(p => p.id));
+  
+  const calculateTeamScore = (players: Person[]) => {
+    let teamScore = 0;
+    const processedPairs = new Set<string>();
 
-  // Check team 1 relationships
-  for (const player of team1) {
-    for (const wantId of player.wantsWith) {
-      if (team1Ids.has(wantId)) score += 10; // bonus for being with wanted player
-    }
-    for (const avoidId of player.avoidsWith) {
-      if (team1Ids.has(avoidId)) score -= 20; // penalty for being with avoided player
-    }
-  }
+    for (const p1 of players) {
+      for (const p2 of players) {
+        if (p1.id === p2.id) continue;
+        
+        // Ensure pair is processed once
+        const pairKey = [p1.id, p2.id].sort().join('-');
+        if (processedPairs.has(pairKey)) continue;
+        processedPairs.add(pairKey);
 
-  // Check team 2 relationships
-  for (const player of team2) {
-    for (const wantId of player.wantsWith) {
-      if (team2Ids.has(wantId)) score += 10;
+        const p1WantsP2 = p1.wantsWith.includes(p2.id);
+        const p2WantsP1 = p2.wantsWith.includes(p1.id);
+
+        if (p1WantsP2 && p2WantsP1) {
+          teamScore += POINTS.DOUBLE_WANT;
+        } else if (p1WantsP2 || p2WantsP1) {
+          teamScore += POINTS.SINGLE_WANT;
+        }
+      }
     }
-    for (const avoidId of player.avoidsWith) {
-      if (team2Ids.has(avoidId)) score -= 20;
-    }
-  }
+    return teamScore;
+  };
+
+  score += calculateTeamScore(team1);
+  score += calculateTeamScore(team2);
 
   return score;
 }
 
 function getCombinations<T>(arr: T[], k: number): T[][] {
   const result: T[][] = [];
-  
   function backtrack(start: number, current: T[]) {
     if (current.length === k) {
       result.push([...current]);
       return;
     }
-    
     for (let i = start; i < arr.length; i++) {
       current.push(arr[i]);
       backtrack(i + 1, current);
       current.pop();
     }
   }
-  
   backtrack(0, []);
   return result;
 }
 
 export function generateTeams(players: Person[]): GeneratedTeams | null {
-  if (players.length !== 10) {
-    return null;
-  }
+  if (players.length !== 10) return null;
 
   const allCombinations = getCombinations(players, 5);
-  
   let bestResult: GeneratedTeams | null = null;
   let bestScore = -Infinity;
 
@@ -112,93 +158,98 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     const team1Ids = new Set(team1Players.map(p => p.id));
     const team2Players = players.filter(p => !team1Ids.has(p.id));
 
-    // Validate both teams
+    // 1. Hard Constraints
     if (!isValidTeam(team1Players) || !isValidTeam(team2Players)) {
       continue;
     }
 
-    const team1Rating = calculateTotalRating(team1Players);
-    const team2Rating = calculateTotalRating(team2Players);
-    const ratingDiff = Math.abs(team1Rating - team2Rating);
-    const relationshipScore = calculateRelationshipScore(team1Players, team2Players);
+    // 2. Stats Calculation (Now Weighted)
+    const stats1 = calculateTeamStats(team1Players);
+    const stats2 = calculateTeamStats(team2Players);
 
-    // Calculate Attribute Imbalances
-    const getAttrTotal = (team: Person[], key: keyof Attributes) => 
-      team.reduce((sum, p) => sum + getAttrValue(p.attributes?.[key]), 0);
-
-    // Critical Balancing: Pace & Stamina & Defense
-    // We don't want one team to be much faster or have much better cardio
-    const t1Pace = getAttrTotal(team1Players, 'pace');
-    const t2Pace = getAttrTotal(team2Players, 'pace');
-    const paceDiff = Math.abs(t1Pace - t2Pace);
-
-    const t1Stamina = getAttrTotal(team1Players, 'stamina');
-    const t2Stamina = getAttrTotal(team2Players, 'stamina');
-    const staminaDiff = Math.abs(t1Stamina - t2Stamina);
-
-    const t1Def = getAttrTotal(team1Players, 'defense');
-    const t2Def = getAttrTotal(team2Players, 'defense');
-    const defDiff = Math.abs(t1Def - t2Def);
-
-    // Scoring Weights
+    // 3. Scoring
     let score = 0;
     
-    // 1. Rating Balance (Base) - Max 100
+    // Rating Balance (Base) - Max 100
     // Penalize difference in total rating.
-    score += (100 - ratingDiff * 10); 
+    const ratingDiff = Math.abs(stats1.rating - stats2.rating);
+    score += (POINTS.RATING_BALANCE_BASE - ratingDiff * 10);
 
-    // 2. Physical/Pace Balance (User Critical)
-    // High penalty for speed mismatch. 
-    score -= (paceDiff * 15); 
-    score -= (staminaDiff * 10);
+    // Attribute Balance (Sum of all weighted diffs)
+    let totalAttrDiff = 0;
+    (Object.keys(stats1.attributes) as (keyof Attributes)[]).forEach(key => {
+      const diff = Math.abs(stats1.attributes[key] - stats2.attributes[key]);
+      totalAttrDiff += diff;
+    });
 
-    // 3. Defense Balance
-    // Avoid one team having no defenders
-    score -= (defDiff * 8);
+    score -= (totalAttrDiff * 5); // Penalize total attribute imbalance
 
-    // 4. Relationships
-    score += relationshipScore;
+    // Critical Balancing: Pace & Stamina (Physical)
+    // We double down on physical stats because they are critical
+    const paceDiff = Math.abs(stats1.attributes.pace - stats2.attributes.pace);
+    const staminaDiff = Math.abs(stats1.attributes.stamina - stats2.attributes.stamina);
+    
+    score -= (paceDiff * 10); 
+    score -= (staminaDiff * 8);
+
+    // Defense Balance
+    const defDiff = Math.abs(stats1.attributes.defense - stats2.attributes.defense);
+    score -= (defDiff * 5);
+
+    // Social Score
+    const socialScore = calculateRelationshipScore(team1Players, team2Players);
+    score += socialScore;
+
+    // 4. ID 10 Bias (The Owner wants to be underdog)
+    // If Owner is in the STRONGER team (by rating), penalize.
+    const owner = players.find(p => p.id === OWNER_ID);
+    if (owner) {
+      const ownerInTeam1 = team1Ids.has(OWNER_ID);
+      const team1IsStronger = stats1.rating > stats2.rating;
+      // If Owner is in T1 and T1 is stronger -> BAD
+      // If Owner is in T2 and T2 is stronger (T1 is weaker) -> BAD
+      if ((ownerInTeam1 && team1IsStronger) || (!ownerInTeam1 && !team1IsStronger)) {
+         // Only apply significant penalty if the difference is real (> 1 point)
+         if (ratingDiff > 1) {
+             score -= POINTS.BIAS_PENALTY;
+         }
+      }
+    }
 
     if (score > bestScore) {
       bestScore = score;
       bestResult = {
-        team1: { players: team1Players, totalRating: team1Rating },
-        team2: { players: team2Players, totalRating: team2Rating },
-        relationshipScore,
+        team1: { players: team1Players, totalRating: stats1.rating },
+        team2: { players: team2Players, totalRating: stats2.rating },
+        relationshipScore: socialScore
       };
     }
   }
 
-  // Fallback: If no valid team found (e.g. strict role constraints fail), 
-  // try to find the "least bad" distribution based on Rating + Pace
+  // 5. Fallback Logic (Pan y Queso powered by Weighted Power Rating)
+  // If no valid team found due to strict constraints.
   if (!bestResult) {
-     // Sort by a composite score
+     // Sort by a composite score using our Weights
     const sortedPlayers = [...players].sort((a, b) => {
-        const scoreA = (a.rating * 0.6) + (getAttrValue(a.attributes?.pace) * 4);
-        const scoreB = (b.rating * 0.6) + (getAttrValue(b.attributes?.pace) * 4);
-        return scoreB - scoreA;
+        const getP = (p: Person) => 
+          p.rating + 
+          getAttrValue(p.attributes?.pace, 'PHYSICAL') + 
+          getAttrValue(p.attributes?.control, 'TECHNICAL');
+        return getP(b) - getP(a);
     });
 
-    const team1Players: Person[] = [];
-    const team2Players: Person[] = [];
-    let team1Score = 0;
-    let team2Score = 0;
-
-    for (const player of sortedPlayers) {
-        const pScore = player.rating + (getAttrValue(player.attributes?.pace) * 5);
-        if (team1Players.length < 5 && (team1Score <= team2Score || team2Players.length >= 5)) {
-            team1Players.push(player);
-            team1Score += pScore;
-        } else {
-            team2Players.push(player);
-            team2Score += pScore;
-        }
-    }
+    const t1: Person[] = [];
+    const t2: Person[] = [];
+    // Balanced distribution (1-2-2-1 snake)
+    sortedPlayers.forEach((p, i) => {
+      if (i % 4 === 0 || i % 4 === 3) t1.push(p);
+      else t2.push(p);
+    });
 
     bestResult = {
-      team1: { players: team1Players, totalRating: calculateTotalRating(team1Players) },
-      team2: { players: team2Players, totalRating: calculateTotalRating(team2Players) },
-      relationshipScore: calculateRelationshipScore(team1Players, team2Players),
+      team1: { players: t1, totalRating: calculateTeamStats(t1).rating },
+      team2: { players: t2, totalRating: calculateTeamStats(t2).rating },
+      relationshipScore: calculateRelationshipScore(t1, t2)
     };
   }
 
