@@ -69,9 +69,9 @@ function hasSocialConflict(players: Person[]): boolean {
   return false;
 }
 
-function isValidTeam(players: Person[]): boolean {
+function validateTeam(players: Person[]): { valid: boolean; reason?: 'social' | 'roles' | 'emergencyGK' } {
   // 1. Social Hard Constraint
-  if (hasSocialConflict(players)) return false;
+  if (hasSocialConflict(players)) return { valid: false, reason: 'social' };
 
   let gkCount = 0;
   let defCount = 0;
@@ -85,14 +85,14 @@ function isValidTeam(players: Person[]): boolean {
     if (p.gkWillingness === 'yes') gkWillingCount++; // Only YES counts now
   }
 
-  if (gkCount > MAX_GK) return false;
-  if (defCount > MAX_DEF) return false;
-  if (attCount > MAX_ATT) return false;
+  if (gkCount > MAX_GK) return { valid: false, reason: 'roles' };
+  if (defCount > MAX_DEF) return { valid: false, reason: 'roles' };
+  if (attCount > MAX_ATT) return { valid: false, reason: 'roles' };
 
   // Emergency GK Rule
-  if (gkCount === 0 && gkWillingCount < REQUIRED_GK_WILLINGNESS) return false;
+  if (gkCount === 0 && gkWillingCount < REQUIRED_GK_WILLINGNESS) return { valid: false, reason: 'emergencyGK' };
 
-  return true;
+  return { valid: true };
 }
 
 function calculateRelationshipScore(team1: Person[], team2: Person[]): number {
@@ -153,14 +153,21 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
   const allCombinations = getCombinations(players, 5);
   let bestResult: GeneratedTeams | null = null;
   let bestScore = -Infinity;
+  
+  const failureStats = { social: 0, roles: 0, emergencyGK: 0, ownerBias: 0 };
 
   for (const team1Players of allCombinations) {
     const team1Ids = new Set(team1Players.map(p => p.id));
     const team2Players = players.filter(p => !team1Ids.has(p.id));
 
     // 1. Hard Constraints
-    if (!isValidTeam(team1Players) || !isValidTeam(team2Players)) {
-      continue;
+    const v1 = validateTeam(team1Players);
+    const v2 = validateTeam(team2Players);
+
+    if (!v1.valid || !v2.valid) {
+        if (v1.reason) failureStats[v1.reason]++;
+        if (v2.reason) failureStats[v2.reason]++;
+        continue;
     }
 
     // 2. Stats Calculation (Now Weighted)
@@ -200,36 +207,53 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     const socialScore = calculateRelationshipScore(team1Players, team2Players);
     score += socialScore;
 
-    // 4. ID 10 Bias (The Owner wants to be underdog)
-    // If Owner is in the STRONGER team (by rating), penalize.
+  /* OWNER BIAS: STRICT HARD CONSTRAINT */
+    // If Owner is in the STRONGER team (rating >), this combination is INVALID.
+    // We want Owner to always be in the "Underdog" team (or equal).
     const owner = players.find(p => p.id === OWNER_ID);
-    if (owner) {
+    if (owner && ratingDiff > 0) {
       const ownerInTeam1 = team1Ids.has(OWNER_ID);
       const team1IsStronger = stats1.rating > stats2.rating;
-      // If Owner is in T1 and T1 is stronger -> BAD
-      // If Owner is in T2 and T2 is stronger (T1 is weaker) -> BAD
+      
       if ((ownerInTeam1 && team1IsStronger) || (!ownerInTeam1 && !team1IsStronger)) {
-         // Only apply significant penalty if the difference is real (> 1 point)
-         if (ratingDiff > 1) {
-             score -= POINTS.BIAS_PENALTY;
-         }
+         failureStats.ownerBias++;
+         continue; 
       }
     }
 
     if (score > bestScore) {
       bestScore = score;
+      
+      const socialDetails1 = getRelationshipDetails(team1Players);
+      const socialDetails2 = getRelationshipDetails(team2Players);
+      const socialSat = calculateSocialSatisfaction(team1Players, team2Players);
+      
       bestResult = {
         team1: { players: team1Players, totalRating: stats1.rating },
         team2: { players: team2Players, totalRating: stats2.rating },
-        relationshipScore: socialScore
+        relationshipScore: socialScore,
+        explanation: `Analysis (Score: ${Math.round(score)}):
+• Rating: T1 (${stats1.rating}) vs T2 (${stats2.rating}) → Diff: ${ratingDiff}
+• Physical (Pace/Stamina): T1 (${(stats1.attributes.pace + stats1.attributes.stamina).toFixed(1)}) vs T2 (${(stats2.attributes.pace + stats2.attributes.stamina).toFixed(1)}) → Diff: ${(paceDiff + staminaDiff).toFixed(1)}
+• Technical (Ctrl/Pass/Sht): T1 (${(stats1.attributes.control + stats1.attributes.passing + stats1.attributes.shooting).toFixed(1)}) vs T2 (${(stats2.attributes.control + stats2.attributes.passing + stats2.attributes.shooting).toFixed(1)}) → Diff: ${Math.abs((stats1.attributes.control + stats1.attributes.passing + stats1.attributes.shooting) - (stats2.attributes.control + stats2.attributes.passing + stats2.attributes.shooting)).toFixed(1)}
+• Defense: T1 (${stats1.attributes.defense.toFixed(1)}) vs T2 (${stats2.attributes.defense.toFixed(1)}) → Diff: ${defDiff.toFixed(1)}
+• Mental (Vis/Grit): T1 (${(stats1.attributes.vision + stats1.attributes.grit).toFixed(1)}) vs T2 (${(stats2.attributes.vision + stats2.attributes.grit).toFixed(1)}) → Diff: ${Math.abs((stats1.attributes.vision + stats1.attributes.grit) - (stats2.attributes.vision + stats2.attributes.grit)).toFixed(1)}
+• Social Satisfaction: ${socialSat.percentage}% (${socialSat.met}/${socialSat.total} desires met)
+  - T1: ${socialDetails1}
+  - T2: ${socialDetails2}`,
+        isFallback: false
       };
     }
   }
 
-  // 5. Fallback Logic (Pan y Queso powered by Weighted Power Rating)
-  // If no valid team found due to strict constraints.
+  // 5. Fallback Logic
   if (!bestResult) {
-     // Sort by a composite score using our Weights
+     // Analyze failures
+     const total = failureStats.social + failureStats.roles + failureStats.emergencyGK + failureStats.ownerBias;
+     const socialPct = total > 0 ? Math.round((failureStats.social / total) * 100) : 0;
+     const rolePct = total > 0 ? Math.round((failureStats.roles / total) * 100) : 0;
+     const biasPct = total > 0 ? Math.round((failureStats.ownerBias / total) * 100) : 0;
+     
     const sortedPlayers = [...players].sort((a, b) => {
         const getP = (p: Person) => 
           p.rating + 
@@ -249,9 +273,74 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     bestResult = {
       team1: { players: t1, totalRating: calculateTeamStats(t1).rating },
       team2: { players: t2, totalRating: calculateTeamStats(t2).rating },
-      relationshipScore: calculateRelationshipScore(t1, t2)
+      relationshipScore: calculateRelationshipScore(t1, t2),
+      explanation: `FALLBACK USED: Strict constraints could not be met.
+- Social Conflicts: ${socialPct}%
+- Role Issues: ${rolePct}%
+- Owner Bias (Too strong): ${biasPct}%
+Teams generated using Power Rating (Best Fit, ignoring constraints).`,
+      isFallback: true
     };
   }
 
   return bestResult;
 }
+
+function calculateSocialSatisfaction(team1: Person[], team2: Person[]): { met: number, total: number, percentage: number } {
+    const allPlayers = [...team1, ...team2];
+    const allIds = new Set(allPlayers.map(p => p.id));
+    let totalWants = 0;
+    let metWants = 0;
+
+    // Helper to check if two players are in the same team
+    const inSameTeam = (id1: string, id2: string) => {
+        const inT1 = team1.some(p => p.id === id1) && team1.some(p => p.id === id2);
+        const inT2 = team2.some(p => p.id === id1) && team2.some(p => p.id === id2);
+        return inT1 || inT2;
+    };
+
+    allPlayers.forEach(p => {
+        p.wantsWith.forEach(targetId => {
+            if (allIds.has(targetId)) {
+                totalWants++;
+                if (inSameTeam(p.id, targetId)) {
+                    metWants++;
+                }
+            }
+        });
+    });
+
+    return {
+        met: metWants,
+        total: totalWants,
+        percentage: totalWants === 0 ? 100 : Math.round((metWants / totalWants) * 100)
+    };
+}
+
+function getRelationshipDetails(players: Person[]): string {
+    let double = 0;
+    let single = 0;
+    const processedPairs = new Set<string>();
+
+    for (const p1 of players) {
+      for (const p2 of players) {
+        if (p1.id === p2.id) continue;
+        const pairKey = [p1.id, p2.id].sort().join('-');
+        if (processedPairs.has(pairKey)) continue;
+        processedPairs.add(pairKey);
+
+        const p1WantsP2 = p1.wantsWith.includes(p2.id);
+        const p2WantsP1 = p2.wantsWith.includes(p1.id);
+
+        if (p1WantsP2 && p2WantsP1) double++;
+        else if (p1WantsP2 || p2WantsP1) single++;
+      }
+    }
+    if (double === 0 && single === 0) return "No links";
+    const parts = [];
+    if (double > 0) parts.push(`${double} Mutual`);
+    if (single > 0) parts.push(`${single} Single`);
+    return parts.join(', ');
+} 
+
+

@@ -113,6 +113,25 @@ export function TeamResult({ result }: TeamResultProps) {
                 </div>
             </div>
 
+            {result.explanation && (
+                <div className="explanation-box" style={{
+                    margin: '20px 0',
+                    padding: '12px',
+                    backgroundColor: '#1a1a1a',
+                    color: result.isFallback ? '#ff4d4d' : '#cccccc',
+                    fontSize: '0.85rem',
+                    whiteSpace: 'pre-line',
+                    textAlign: 'left',
+                    borderRadius: '4px',
+                    fontFamily: 'monospace',
+                    border: '1px solid #333'
+                }}>
+                    {result.explanation}
+                </div>
+            )}
+
+
+
             <button className="btn btn-primary copy-btn" onClick={handleCopy}>
                 {copied ? '✓ Copied!' : 'Copy Teams'}
             </button>
