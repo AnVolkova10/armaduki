@@ -5,6 +5,7 @@ import { TeamResult } from '../components/TeamResult';
 import { ActionButton } from '../components/ActionButton';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DropdownMenuSelect } from '../components/DropdownMenuSelect';
+import { SheetLoader } from '../components/SheetLoader';
 import { generateTeams } from '../services/teamGenerator';
 import { matchesWordPrefix, normalizeSearch } from '../utils/search';
 import type { Person } from '../types';
@@ -414,7 +415,9 @@ export function MatchPage() {
             </div>
 
             {isLoading ? (
-                <div className="loading">Loading from Google Sheets...</div>
+                <div className="loading-shell">
+                    <SheetLoader ariaLabel="Loading players from Google Sheets" />
+                </div>
             ) : people.length === 0 ? (
                 <div className="empty-state">
                     <p>No players available. Go to the Players page to add some.</p>

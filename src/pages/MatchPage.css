@@ -242,10 +242,11 @@
   color: var(--text-secondary);
 }
 
-.match-page .loading {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-secondary);
+.match-page .loading-shell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 46vh;
 }
 
 .match-page .people-grid {

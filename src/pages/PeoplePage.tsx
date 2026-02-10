@@ -5,6 +5,7 @@ import { PersonCard } from '../components/PersonCard';
 import { ActionButton } from '../components/ActionButton';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DropdownMenuSelect } from '../components/DropdownMenuSelect';
+import { SheetLoader } from '../components/SheetLoader';
 import type { Person } from '../types';
 import { matchesWordPrefix, normalizeSearch } from '../utils/search';
 import './PeoplePage.css';
@@ -399,7 +400,11 @@ export function PeoplePage() {
                 </div>
             </div>
 
-            {isLoading && <div className="loading">Loading from Google Sheets...</div>}
+            {isLoading && (
+                <div className="loading-shell">
+                    <SheetLoader ariaLabel="Loading players from Google Sheets" />
+                </div>
+            )}
             {error && (
                 <div className="error">
                     {error}
@@ -448,11 +453,13 @@ export function PeoplePage() {
                 </div>
             )}
 
-            <div className="people-count">
-                {normalizedQuery || uiRoleFilter !== 'all' || (!privacyMode && uiScoreFilter !== 'all')
-                    ? `Showing ${visiblePeople.length} of ${people.length} players`
-                    : `Total: ${people.length} players`}
-            </div>
+            {!isLoading && (
+                <div className="people-count">
+                    {normalizedQuery || uiRoleFilter !== 'all' || (!privacyMode && uiScoreFilter !== 'all')
+                        ? `Showing ${visiblePeople.length} of ${people.length} players`
+                        : `Total: ${people.length} players`}
+                </div>
+            )}
 
             {showForm && (
                 <PersonForm
