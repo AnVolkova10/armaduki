@@ -52,6 +52,15 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const [avoidsWith, setAvoidsWith] = useState<string[]>(person?.avoidsWith || []);
 
     const otherPeople = people.filter(p => p.id !== person?.id);
+    const inverseWants = useMemo(() => {
+        if (!person?.id) return [];
+        return otherPeople.filter(p => p.wantsWith.includes(person.id));
+    }, [otherPeople, person?.id]);
+
+    const inverseAvoids = useMemo(() => {
+        if (!person?.id) return [];
+        return otherPeople.filter(p => p.avoidsWith.includes(person.id));
+    }, [otherPeople, person?.id]);
 
     // Auto-Set GK Willingness if Role is GK
     useEffect(() => {
@@ -290,7 +299,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                         <button
                                             key={p.id}
                                             type="button"
-                                            className={`relationship-btn wants ${wantsWith.includes(p.id) ? 'active' : ''}`}
+                                            className={`relationship-btn wants ${wantsWith.includes(p.id) ? 'active' : ''} ${inverseWants.some(i => i.id === p.id) ? 'inverse-hint-wants' : ''}`}
                                             onClick={() => toggleWantsWith(p.id)}
                                         >
                                             {p.nickname}
@@ -308,7 +317,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                         <button
                                             key={p.id}
                                             type="button"
-                                            className={`relationship-btn avoids ${avoidsWith.includes(p.id) ? 'active' : ''}`}
+                                            className={`relationship-btn avoids ${avoidsWith.includes(p.id) ? 'active' : ''} ${inverseAvoids.some(i => i.id === p.id) ? 'inverse-hint-avoids' : ''}`}
                                             onClick={() => toggleAvoidsWith(p.id)}
                                         >
                                             {p.nickname}

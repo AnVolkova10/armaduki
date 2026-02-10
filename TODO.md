@@ -49,7 +49,7 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 
 - [x] F3-01 Balance tactico DEF/ATT: si hay 2 DEF o 2 ATT, intentar 1 por equipo como regla fuerte.
 - [x] F3-03b Wants por etapas: strict (unilateral+mutuo), relaxed_unilateral (solo mutuo), relaxed_mutual (sin wants), sin puntaje social.
-- [ ] F3-04 En modal, mostrar relaciones inversas (quien te quiere / quien te evita) con estilo de baja opacidad.
+- [x] F3-04 En modal, mostrar relaciones inversas (quien te quiere / quien te evita) con estilo de baja opacidad.
 - [ ] F3-05 Generar segunda opcion de armado (Plan B) con explicacion completa y UI debajo de `Copy Teams`.
 - [ ] F3-06 Permitir partidos con tamano variable sin romper balanceador (con y sin suplentes).
 - [ ] F3-07 Guardar historial de equipos/partidos en otra pestana del Sheet (investigar complejidad tecnica).
