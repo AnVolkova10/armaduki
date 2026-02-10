@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { PersonForm } from '../components/PersonForm';
 import { PersonCard } from '../components/PersonCard';
@@ -37,12 +37,28 @@ export function PeoplePage() {
     const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showClearLinksMenu, setShowClearLinksMenu] = useState(false);
+    const clearLinksMenuRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         if (people.length === 0) {
             fetchPeople();
         }
     }, []);
+
+    useEffect(() => {
+        const handleDocumentClick = (event: MouseEvent) => {
+            if (!showClearLinksMenu) return;
+
+            const target = event.target as Node;
+            if (!clearLinksMenuRef.current?.contains(target)) {
+                setShowClearLinksMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleDocumentClick);
+        return () => document.removeEventListener('mousedown', handleDocumentClick);
+    }, [showClearLinksMenu]);
 
     const normalizedQuery = normalizeSearch(searchQuery);
 
@@ -103,6 +119,7 @@ export function PeoplePage() {
     };
 
     const handleClearAllRelationships = () => {
+        setShowClearLinksMenu(false);
         requestConfirm({
             title: 'Clear all links?',
             message: 'This will remove every positive and negative relationship for all players.',
@@ -113,6 +130,7 @@ export function PeoplePage() {
     };
 
     const handleClearWantsRelationships = () => {
+        setShowClearLinksMenu(false);
         requestConfirm({
             title: 'Clear positive links?',
             message: 'This will remove all wants links for every player.',
@@ -123,6 +141,7 @@ export function PeoplePage() {
     };
 
     const handleClearAvoidsRelationships = () => {
+        setShowClearLinksMenu(false);
         requestConfirm({
             title: 'Clear negative links?',
             message: 'This will remove all avoids links for every player.',
@@ -137,31 +156,49 @@ export function PeoplePage() {
             <div className="page-header">
                 <h2>Players</h2>
                 <div className="header-actions">
-                    <div className="relationship-actions">
-                        <ActionButton
-                            variant="neutral"
-                            tone="positive"
-                            onClick={handleClearWantsRelationships}
-                            disabled={people.length === 0}
-                        >
-                            Clear Wants
-                        </ActionButton>
-                        <ActionButton
-                            variant="neutral"
-                            tone="negative"
-                            onClick={handleClearAvoidsRelationships}
-                            disabled={people.length === 0}
-                        >
-                            Clear Avoids
-                        </ActionButton>
+                    <div className="relationship-actions" ref={clearLinksMenuRef}>
                         <ActionButton
                             variant="neutral"
                             tone="light"
-                            onClick={handleClearAllRelationships}
+                            className="clear-links-trigger"
+                            onClick={() => setShowClearLinksMenu((prev) => !prev)}
                             disabled={people.length === 0}
+                            aria-expanded={showClearLinksMenu}
+                            aria-haspopup="menu"
                         >
-                            Clear All Links
+                            Clear Links
+                            <span className="clear-links-caret" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                    <path d="M6 9l6 6 6-6" />
+                                </svg>
+                            </span>
                         </ActionButton>
+
+                        {showClearLinksMenu && (
+                            <div className="clear-links-menu" role="menu">
+                                <button
+                                    type="button"
+                                    className="clear-links-option clear-links-option--positive"
+                                    onClick={handleClearWantsRelationships}
+                                >
+                                    Clear Wants
+                                </button>
+                                <button
+                                    type="button"
+                                    className="clear-links-option clear-links-option--negative"
+                                    onClick={handleClearAvoidsRelationships}
+                                >
+                                    Clear Avoids
+                                </button>
+                                <button
+                                    type="button"
+                                    className="clear-links-option clear-links-option--light"
+                                    onClick={handleClearAllRelationships}
+                                >
+                                    Clear All
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <ActionButton variant="primary" onClick={() => setShowForm(true)}>
                         + Add Player

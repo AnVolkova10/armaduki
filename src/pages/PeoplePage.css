@@ -28,8 +28,86 @@
 .people-page .relationship-actions {
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
+  position: relative;
+  width: fit-content;
+}
+
+.people-page .clear-links-trigger {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.people-page .clear-links-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  opacity: 0.9;
+}
+
+.people-page .clear-links-caret svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.people-page .clear-links-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: auto;
+  width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
+  padding: 0.3rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  display: grid;
+  gap: 0.25rem;
+  z-index: 30;
+}
+
+.people-page .clear-links-option {
+  min-height: 34px;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.people-page .clear-links-option:hover,
+.people-page .clear-links-option:focus-visible {
+  outline: none;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.people-page .clear-links-option--positive:hover,
+.people-page .clear-links-option--positive:focus-visible {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.65);
+}
+
+.people-page .clear-links-option--negative:hover,
+.people-page .clear-links-option--negative:focus-visible {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.65);
 }
 
 .people-page .people-controls {
