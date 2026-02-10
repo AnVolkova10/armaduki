@@ -61,7 +61,7 @@ export function PeoplePage() {
     const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [uiRoleFilter, setUiRoleFilter] = useState('all');
+    const [uiRoleFilter, setUiRoleFilter] = useState<'all' | Person['role']>('all');
     const [uiSortMode, setUiSortMode] = useState('none');
     const [uiScoreSortDirection, setUiScoreSortDirection] = useState<'desc' | 'asc'>('desc');
     const [showClearLinksMenu, setShowClearLinksMenu] = useState(false);
@@ -100,10 +100,15 @@ export function PeoplePage() {
         });
     }, [normalizedQuery, people]);
 
-    const visiblePeople = useMemo(() => {
-        if (uiSortMode === 'none') return searchedPeople;
+    const filteredPeople = useMemo(() => {
+        if (uiRoleFilter === 'all') return searchedPeople;
+        return searchedPeople.filter((person) => person.role === uiRoleFilter);
+    }, [searchedPeople, uiRoleFilter]);
 
-        const sorted = [...searchedPeople];
+    const visiblePeople = useMemo(() => {
+        if (uiSortMode === 'none') return filteredPeople;
+
+        const sorted = [...filteredPeople];
         if (uiSortMode === 'score') {
             if (uiScoreSortDirection === 'desc') {
                 sorted.sort((a, b) => (b.rating - a.rating) || a.nickname.localeCompare(b.nickname));
@@ -124,7 +129,9 @@ export function PeoplePage() {
         }
 
         return sorted;
-    }, [searchedPeople, uiScoreSortDirection, uiSortMode]);
+    }, [filteredPeople, uiScoreSortDirection, uiSortMode]);
+
+    const hasActiveSearchOrFilter = Boolean(normalizedQuery) || uiRoleFilter !== 'all';
 
     const handleSave = (person: Person) => {
         if (editingPerson) {
@@ -273,7 +280,7 @@ export function PeoplePage() {
                     <DropdownMenuSelect
                         value={uiRoleFilter}
                         options={ROLE_FILTER_OPTIONS}
-                        onChange={setUiRoleFilter}
+                        onChange={(value) => setUiRoleFilter(value as 'all' | Person['role'])}
                         ariaLabel="Filter by role"
                     />
 
@@ -339,8 +346,12 @@ export function PeoplePage() {
                 </div>
             ) : !isLoading && visiblePeople.length === 0 ? (
                 <div className="empty-state">
-                    <p>No players match this search.</p>
-                    <p className="hint">Try another prefix (for example: a, an, ma).</p>
+                    <p>No players match current controls.</p>
+                    <p className="hint">
+                        {hasActiveSearchOrFilter
+                            ? 'Try another search prefix or role filter.'
+                            : 'Try adjusting search, filter, or sort.'}
+                    </p>
                 </div>
             ) : (
                 <div className="people-grid">
@@ -358,7 +369,7 @@ export function PeoplePage() {
             )}
 
             <div className="people-count">
-                {normalizedQuery
+                {normalizedQuery || uiRoleFilter !== 'all'
                     ? `Showing ${visiblePeople.length} of ${people.length} players`
                     : `Total: ${people.length} players`}
             </div>

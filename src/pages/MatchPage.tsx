@@ -47,7 +47,7 @@ export function MatchPage() {
 
     const [localError, setLocalError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [uiRoleFilter, setUiRoleFilter] = useState('all');
+    const [uiRoleFilter, setUiRoleFilter] = useState<'all' | Person['role']>('all');
     const [uiSortMode, setUiSortMode] = useState('none');
     const [uiScoreSortDirection, setUiScoreSortDirection] = useState<'desc' | 'asc'>('desc');
 
@@ -73,10 +73,15 @@ export function MatchPage() {
         });
     }, [normalizedQuery, people]);
 
-    const visiblePeople = useMemo(() => {
-        if (uiSortMode === 'none') return searchedPeople;
+    const filteredPeople = useMemo(() => {
+        if (uiRoleFilter === 'all') return searchedPeople;
+        return searchedPeople.filter((person) => person.role === uiRoleFilter);
+    }, [searchedPeople, uiRoleFilter]);
 
-        const sorted = [...searchedPeople];
+    const visiblePeople = useMemo(() => {
+        if (uiSortMode === 'none') return filteredPeople;
+
+        const sorted = [...filteredPeople];
         if (uiSortMode === 'score') {
             if (uiScoreSortDirection === 'desc') {
                 sorted.sort((a, b) => (b.rating - a.rating) || a.nickname.localeCompare(b.nickname));
@@ -96,7 +101,9 @@ export function MatchPage() {
         }
 
         return sorted;
-    }, [searchedPeople, uiScoreSortDirection, uiSortMode]);
+    }, [filteredPeople, uiScoreSortDirection, uiSortMode]);
+
+    const hasActiveSearchOrFilter = Boolean(normalizedQuery) || uiRoleFilter !== 'all';
 
     const handleGenerate = () => {
         setLocalError(null);
@@ -158,7 +165,7 @@ export function MatchPage() {
                     <DropdownMenuSelect
                         value={uiRoleFilter}
                         options={ROLE_FILTER_OPTIONS}
-                        onChange={setUiRoleFilter}
+                        onChange={(value) => setUiRoleFilter(value as 'all' | Person['role'])}
                         ariaLabel="Filter by role"
                     />
 
@@ -213,8 +220,12 @@ export function MatchPage() {
                 </div>
             ) : visiblePeople.length === 0 ? (
                 <div className="empty-state">
-                    <p>No players match this search.</p>
-                    <p>Try another prefix (for example: a, an, ma).</p>
+                    <p>No players match current controls.</p>
+                    <p>
+                        {hasActiveSearchOrFilter
+                            ? 'Try another search prefix or role filter.'
+                            : 'Try adjusting search, filter, or sort.'}
+                    </p>
                 </div>
             ) : (
                 <>
@@ -234,7 +245,7 @@ export function MatchPage() {
 
             {!isLoading && people.length > 0 && (
                 <div className="match-count">
-                    {normalizedQuery
+                    {normalizedQuery || uiRoleFilter !== 'all'
                         ? `Showing ${visiblePeople.length} of ${people.length} players`
                         : `Total: ${people.length} players`}
                 </div>
