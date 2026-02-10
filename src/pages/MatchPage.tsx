@@ -2,6 +2,7 @@ import { useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { PersonCard } from '../components/PersonCard';
 import { TeamResult } from '../components/TeamResult';
+import { ActionButton } from '../components/ActionButton';
 import { generateTeams } from '../services/teamGenerator';
 import './MatchPage.css';
 
@@ -52,16 +53,17 @@ export function MatchPage() {
                     <span className="selection-count">
                         {selectedCount}/10 selected
                     </span>
-                    <button className="btn btn-secondary" onClick={handleClear}>
+                    <ActionButton variant="neutral" tone="light" onClick={handleClear}>
                         Clear Selection
-                    </button>
-                    <button
-                        className="btn btn-primary"
+                    </ActionButton>
+                    <ActionButton
+                        variant="primary"
+                        className="generate-teams-btn"
                         onClick={handleGenerate}
                         disabled={!canGenerate}
                     >
                         Generate Teams
-                    </button>
+                    </ActionButton>
                 </div>
             </div>
 

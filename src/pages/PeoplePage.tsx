@@ -2,8 +2,18 @@ import { useEffect, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { PersonForm } from '../components/PersonForm';
 import { PersonCard } from '../components/PersonCard';
+import { ActionButton } from '../components/ActionButton';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { Person } from '../types';
 import './PeoplePage.css';
+
+interface ConfirmState {
+    title: string;
+    message: string;
+    confirmLabel: string;
+    tone: 'default' | 'danger';
+    onConfirm: () => Promise<void> | void;
+}
 
 export function PeoplePage() {
     const {
@@ -23,6 +33,8 @@ export function PeoplePage() {
 
     const [showForm, setShowForm] = useState(false);
     const [editingPerson, setEditingPerson] = useState<Person | undefined>();
+    const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+    const [isConfirming, setIsConfirming] = useState(false);
 
     // Fetch data from Google Sheets on mount
     useEffect(() => {
@@ -46,25 +58,64 @@ export function PeoplePage() {
         setShowForm(true);
     };
 
-    const handleDelete = (id: string) => {
-        if (confirm('Are you sure you want to delete this player?')) {
-            deletePerson(id);
+    const requestConfirm = (state: ConfirmState) => {
+        setConfirmState(state);
+    };
+
+    const handleConfirmCancel = () => {
+        if (isConfirming) return;
+        setConfirmState(null);
+    };
+
+    const handleConfirmAccept = async () => {
+        if (!confirmState) return;
+        setIsConfirming(true);
+        try {
+            await confirmState.onConfirm();
+        } finally {
+            setIsConfirming(false);
+            setConfirmState(null);
         }
     };
 
-    const handleClearAllRelationships = async () => {
-        if (!confirm('Are you sure you want to clear ALL links (positive and negative) for every player?')) return;
-        await clearAllRelationships();
+    const handleDelete = (id: string) => {
+        requestConfirm({
+            title: 'Delete player?',
+            message: 'This will remove the player from this app and from the sheet.',
+            confirmLabel: 'Delete',
+            tone: 'danger',
+            onConfirm: () => deletePerson(id),
+        });
     };
 
-    const handleClearWantsRelationships = async () => {
-        if (!confirm('Are you sure you want to clear all positive links (wants) for every player?')) return;
-        await clearWantsRelationships();
+    const handleClearAllRelationships = () => {
+        requestConfirm({
+            title: 'Clear all links?',
+            message: 'This will remove every positive and negative relationship for all players.',
+            confirmLabel: 'Clear All',
+            tone: 'danger',
+            onConfirm: () => clearAllRelationships(),
+        });
     };
 
-    const handleClearAvoidsRelationships = async () => {
-        if (!confirm('Are you sure you want to clear all negative links (avoids) for every player?')) return;
-        await clearAvoidsRelationships();
+    const handleClearWantsRelationships = () => {
+        requestConfirm({
+            title: 'Clear positive links?',
+            message: 'This will remove all wants links for every player.',
+            confirmLabel: 'Clear Wants',
+            tone: 'danger',
+            onConfirm: () => clearWantsRelationships(),
+        });
+    };
+
+    const handleClearAvoidsRelationships = () => {
+        requestConfirm({
+            title: 'Clear negative links?',
+            message: 'This will remove all avoids links for every player.',
+            confirmLabel: 'Clear Avoids',
+            tone: 'danger',
+            onConfirm: () => clearAvoidsRelationships(),
+        });
     };
 
     return (
@@ -73,31 +124,34 @@ export function PeoplePage() {
                 <h2>Players</h2>
                 <div className="header-actions">
                     <div className="relationship-actions">
-                        <button
-                            className="btn btn-secondary relationship-btn relationship-btn-positive"
+                        <ActionButton
+                            variant="neutral"
+                            tone="positive"
                             onClick={handleClearWantsRelationships}
                             disabled={people.length === 0}
                         >
                             Clear Wants
-                        </button>
-                        <button
-                            className="btn btn-secondary relationship-btn relationship-btn-negative"
+                        </ActionButton>
+                        <ActionButton
+                            variant="neutral"
+                            tone="negative"
                             onClick={handleClearAvoidsRelationships}
                             disabled={people.length === 0}
                         >
                             Clear Avoids
-                        </button>
-                        <button
-                            className="btn btn-secondary relationship-btn relationship-btn-all"
+                        </ActionButton>
+                        <ActionButton
+                            variant="neutral"
+                            tone="light"
                             onClick={handleClearAllRelationships}
                             disabled={people.length === 0}
                         >
                             Clear All Links
-                        </button>
+                        </ActionButton>
                     </div>
-                    <button className="btn btn-primary" onClick={() => setShowForm(true)}>
+                    <ActionButton variant="primary" onClick={() => setShowForm(true)}>
                         + Add Player
-                    </button>
+                    </ActionButton>
                 </div>
             </div>
 
@@ -145,6 +199,17 @@ export function PeoplePage() {
                     }}
                 />
             )}
+
+            <ConfirmDialog
+                open={Boolean(confirmState)}
+                title={confirmState?.title || ''}
+                message={confirmState?.message || ''}
+                confirmLabel={confirmState?.confirmLabel || 'Confirm'}
+                tone={confirmState?.tone || 'default'}
+                loading={isConfirming}
+                onCancel={handleConfirmCancel}
+                onConfirm={handleConfirmAccept}
+            />
         </div>
     );
 }

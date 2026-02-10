@@ -38,19 +38,11 @@
   line-height: 1;
 }
 
-.match-page .header-actions .btn {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.match-page .header-actions .btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.match-page .generate-teams-btn:hover:not(:disabled),
+.match-page .generate-teams-btn:focus-visible:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.75);
 }
 
 .match-page .empty-state {
