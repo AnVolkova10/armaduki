@@ -32,6 +32,30 @@
   align-items: center;
 }
 
+.people-page .people-controls {
+  width: 100%;
+}
+
+.people-page .people-search-input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.people-page .people-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.people-page .people-search-input:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
 .people-page .header-actions .btn-icon {
   background: transparent;
   border: none;

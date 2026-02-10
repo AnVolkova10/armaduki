@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { PersonForm } from '../components/PersonForm';
 import { PersonCard } from '../components/PersonCard';
 import { ActionButton } from '../components/ActionButton';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import type { Person } from '../types';
+import { matchesWordPrefix, normalizeSearch } from '../utils/search';
 import './PeoplePage.css';
 
 interface ConfirmState {
@@ -35,13 +36,26 @@ export function PeoplePage() {
     const [editingPerson, setEditingPerson] = useState<Person | undefined>();
     const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    // Fetch data from Google Sheets on mount
     useEffect(() => {
         if (people.length === 0) {
             fetchPeople();
         }
     }, []);
+
+    const normalizedQuery = normalizeSearch(searchQuery);
+
+    const filteredPeople = useMemo(() => {
+        if (!normalizedQuery) return people;
+
+        return people.filter((person) => {
+            return (
+                matchesWordPrefix(person.nickname || '', normalizedQuery) ||
+                matchesWordPrefix(person.name || '', normalizedQuery)
+            );
+        });
+    }, [normalizedQuery, people]);
 
     const handleSave = (person: Person) => {
         if (editingPerson) {
@@ -155,11 +169,24 @@ export function PeoplePage() {
                 </div>
             </div>
 
+            <div className="people-controls">
+                <input
+                    type="text"
+                    className="people-search-input"
+                    placeholder="Search players (prefix)..."
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    aria-label="Search players by nickname or name"
+                />
+            </div>
+
             {isLoading && <div className="loading">Loading from Google Sheets...</div>}
             {error && (
                 <div className="error">
                     {error}
-                    <button className="btn btn-secondary" onClick={() => setError(null)}>✕</button>
+                    <button className="btn btn-secondary" onClick={() => setError(null)}>
+                        &times;
+                    </button>
                 </div>
             )}
 
@@ -170,9 +197,14 @@ export function PeoplePage() {
                         Data is loaded from Google Sheets. You can add players manually or edit the spreadsheet.
                     </p>
                 </div>
+            ) : !isLoading && filteredPeople.length === 0 ? (
+                <div className="empty-state">
+                    <p>No players match this search.</p>
+                    <p className="hint">Try another prefix (for example: a, an, ma).</p>
+                </div>
             ) : (
                 <div className="people-grid">
-                    {people.map(person => (
+                    {filteredPeople.map((person) => (
                         <PersonCard
                             key={person.id}
                             person={person}
@@ -186,7 +218,9 @@ export function PeoplePage() {
             )}
 
             <div className="people-count">
-                Total: {people.length} players
+                {normalizedQuery
+                    ? `Showing ${filteredPeople.length} of ${people.length} players`
+                    : `Total: ${people.length} players`}
             </div>
 
             {showForm && (

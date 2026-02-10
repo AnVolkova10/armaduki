@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { PersonCard } from '../components/PersonCard';
 import { TeamResult } from '../components/TeamResult';
 import { ActionButton } from '../components/ActionButton';
 import { generateTeams } from '../services/teamGenerator';
+import { matchesWordPrefix, normalizeSearch } from '../utils/search';
 import './MatchPage.css';
 
 export function MatchPage() {
@@ -20,6 +21,7 @@ export function MatchPage() {
     } = useAppStore();
 
     const [localError, setLocalError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const selectedCount = selectedIds.size;
     const canGenerate = selectedCount === 10;
@@ -29,6 +31,19 @@ export function MatchPage() {
             fetchPeople();
         }
     }, [fetchPeople, people.length]);
+
+    const normalizedQuery = normalizeSearch(searchQuery);
+
+    const filteredPeople = useMemo(() => {
+        if (!normalizedQuery) return people;
+
+        return people.filter((person) => {
+            return (
+                matchesWordPrefix(person.nickname || '', normalizedQuery) ||
+                matchesWordPrefix(person.name || '', normalizedQuery)
+            );
+        });
+    }, [normalizedQuery, people]);
 
     const handleGenerate = () => {
         setLocalError(null);
@@ -76,16 +91,32 @@ export function MatchPage() {
                 </div>
             </div>
 
+            <div className="match-controls">
+                <input
+                    type="text"
+                    className="match-search-input"
+                    placeholder="Search players (prefix)..."
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    aria-label="Search players by nickname or name"
+                />
+            </div>
+
             {isLoading ? (
                 <div className="loading">Loading from Google Sheets...</div>
             ) : people.length === 0 ? (
                 <div className="empty-state">
                     <p>No players available. Go to the Players page to add some.</p>
                 </div>
+            ) : filteredPeople.length === 0 ? (
+                <div className="empty-state">
+                    <p>No players match this search.</p>
+                    <p>Try another prefix (for example: a, an, ma).</p>
+                </div>
             ) : (
                 <>
                     <div className="people-grid">
-                        {people.map(person => (
+                        {filteredPeople.map(person => (
                             <PersonCard
                                 key={person.id}
                                 person={person}
@@ -96,6 +127,14 @@ export function MatchPage() {
                         ))}
                     </div>
                 </>
+            )}
+
+            {!isLoading && people.length > 0 && (
+                <div className="match-count">
+                    {normalizedQuery
+                        ? `Showing ${filteredPeople.length} of ${people.length} players`
+                        : `Total: ${people.length} players`}
+                </div>
             )}
 
             {error && <div className="error">{error}</div>}

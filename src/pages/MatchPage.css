@@ -25,6 +25,30 @@
   flex-wrap: wrap;
 }
 
+.match-page .match-controls {
+  width: 100%;
+}
+
+.match-page .match-search-input {
+  width: 100%;
+  min-height: 38px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.match-page .match-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.match-page .match-search-input:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
 .match-page .selection-count {
   padding: 0 1rem;
   background: var(--bg-secondary);
@@ -76,4 +100,10 @@
   border-radius: 8px;
   padding: 1rem;
   color: #ef4444;
+}
+
+.match-page .match-count {
+  text-align: right;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }

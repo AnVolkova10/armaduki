@@ -30,15 +30,23 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [x] F2-01 Si la app abre en `/match`, cargar jugadores desde Sheets tambien (local y deploy).
 - [x] F2-02 Arreglar bug 404 en Vercel para rutas SPA (`/match`) con rewrites.
 - [x] F2-03 Agregar metadatos para compartir (Open Graph + Twitter): icono, titulo y descripcion.
-- [ ] F2-04 Agregar `pronombres` en modal, store, sheet y tarjeta.
-- [ ] F2-05 Agregar `numero de camiseta` en modal, store, sheet y tarjeta.
-- [ ] F2-06 Agregar `equipo` + `dia/lugar` (multiples valores) en modal, store, sheet y tarjeta.
-- [ ] F2-07 En la tarjeta, mostrar `equipo` con circulo de dos colores.
-- [ ] F2-08 Ordenar por score, equipo, posicion (`GK > DEF > MID > ATT > FLEX`) y dia/lugar.
-- [ ] F2-09 Filtrar por equipo, score, posicion y dia/lugar.
+- [x] F2-04A Buscador prefijo por `nickname/name` en People + Match (`a`, `ab`, etc), case-insensitive.
+- [ ] F2-04B UI base mobile-first de controles (search + filter + sort), minimalista y compacta.
+- [ ] F2-04C Ordenar por score (`asc/desc`).
+- [ ] F2-04D Ordenar por posicion (`GK > DEF > MID > ATT > FLEX`).
+- [ ] F2-04E Filtrar por posicion (single-select + opcion `all`).
+- [ ] F2-04F Filtrar por score (modo inicial simple: `min score`).
+- [ ] F2-04G Combinacion estable: aplicar `search -> filters -> sort` sin romper seleccion actual.
+- [ ] F2-04H Boton `Reset controls` para limpiar buscador, filtros y orden.
 - [ ] F2-10 Mejorar guardado optimista: estado de sync, error claro y opcion de reintento cuando falle Apps Script.
 - [ ] F2-11 Rating default automatico desde atributos cuando el rating manual no fue editado (definir puntos y restas).
 - [ ] F2-12 Hacer variable el sesgo de owner (`OWNER_ID`) para que no quede hardcodeado.
+
+## Fase 2 - Postergado (cambios en Sheet/App Script)
+- [ ] P2-01 (antes F2-04) Agregar `pronombres` en modal, store, sheet y tarjeta.
+- [ ] P2-02 (antes F2-05) Agregar `numero de camiseta` en modal, store, sheet y tarjeta.
+- [ ] P2-03 (antes F2-06) Agregar `equipo` + `dia/lugar` (multiples valores) en modal, store, sheet y tarjeta.
+- [ ] P2-04 (antes F2-07) En la tarjeta, mostrar `equipo` con circulo de dos colores.
 
 ## Fase 3 - Dificil
 - [ ] F3-01 Balance tactico DEF/ATT: si hay 2 DEF o 2 ATT, intentar 1 por equipo como regla fuerte.
