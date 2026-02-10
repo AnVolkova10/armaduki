@@ -5,8 +5,7 @@ const POINTS = {
   HIGH: 1,
   MID: 0,
   LOW: -1,
-  DOUBLE_WANT: 20,
-  SINGLE_WANT: 10,
+  SINGLE_WANT: 20,
   RATING_BALANCE_BASE: 100,
   BIAS_PENALTY: 500, // Massive penalty to force ID 10 to weaker team
 };
@@ -30,6 +29,8 @@ interface TeamStats {
   rating: number;
   attributes: Record<keyof Attributes, number>;
 }
+
+type TeamValidationReason = 'social' | 'roles' | 'emergencyGK';
 
 // Attribute Weights Configuration
 const WEIGHTS = {
@@ -77,7 +78,7 @@ function hasSocialConflict(players: Person[]): boolean {
   return false;
 }
 
-function validateTeam(players: Person[]): { valid: boolean; reason?: 'social' | 'roles' | 'emergencyGK' } {
+function validateTeam(players: Person[]): { valid: boolean; reason?: TeamValidationReason } {
   // 1. Social Hard Constraint
   if (hasSocialConflict(players)) return { valid: false, reason: 'social' };
 
@@ -103,6 +104,60 @@ function validateTeam(players: Person[]): { valid: boolean; reason?: 'social' | 
   return { valid: true };
 }
 
+function countRole(players: Person[], role: Person['role']): number {
+  return players.reduce((total, player) => total + (player.role === role ? 1 : 0), 0);
+}
+
+function validateRoleSplitWhenExactlyTwo(
+  team1: Person[],
+  team2: Person[],
+  allPlayers: Person[],
+): { valid: boolean; reason?: 'roleSplit' } {
+  const rolesToSplit: Person['role'][] = ['ATT', 'DEF'];
+
+  for (const role of rolesToSplit) {
+    const totalRoleCount = countRole(allPlayers, role);
+    if (totalRoleCount !== 2) continue;
+
+    const team1RoleCount = countRole(team1, role);
+    const team2RoleCount = countRole(team2, role);
+    if (team1RoleCount !== 1 || team2RoleCount !== 1) {
+      return { valid: false, reason: 'roleSplit' };
+    }
+  }
+
+  return { valid: true };
+}
+
+function validateMutualWantsHardConstraint(
+  team1: Person[],
+  team2: Person[],
+): { valid: boolean; reason?: 'mutualWants' } {
+  const allPlayers = [...team1, ...team2];
+  const byId = new Map(allPlayers.map((player) => [player.id, player]));
+  const team1Ids = new Set(team1.map((player) => player.id));
+  const processedPairs = new Set<string>();
+
+  for (const source of allPlayers) {
+    for (const targetId of source.wantsWith) {
+      const target = byId.get(targetId);
+      if (!target) continue;
+      if (!target.wantsWith.includes(source.id)) continue;
+
+      const pairKey = [source.id, targetId].sort().join('|');
+      if (processedPairs.has(pairKey)) continue;
+      processedPairs.add(pairKey);
+
+      const sameTeam = team1Ids.has(source.id) === team1Ids.has(targetId);
+      if (!sameTeam) {
+        return { valid: false, reason: 'mutualWants' };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
 function calculateRelationshipScore(team1: Person[], team2: Person[]): number {
   let score = 0;
   
@@ -122,9 +177,9 @@ function calculateRelationshipScore(team1: Person[], team2: Person[]): number {
         const p1WantsP2 = p1.wantsWith.includes(p2.id);
         const p2WantsP1 = p2.wantsWith.includes(p1.id);
 
-        if (p1WantsP2 && p2WantsP1) {
-          teamScore += POINTS.DOUBLE_WANT;
-        } else if (p1WantsP2 || p2WantsP1) {
+        // Mutual wants are already enforced as a hard constraint.
+        // Score only unilateral wants.
+        if (p1WantsP2 !== p2WantsP1) {
           teamScore += POINTS.SINGLE_WANT;
         }
       }
@@ -162,7 +217,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
   let bestResult: GeneratedTeams | null = null;
   let bestScore = -Infinity;
   
-  const failureStats = { social: 0, roles: 0, emergencyGK: 0, ownerBias: 0 };
+  const failureStats = { social: 0, roles: 0, emergencyGK: 0, roleSplit: 0, mutualWants: 0, ownerBias: 0 };
 
   for (const team1Players of allCombinations) {
     const team1Ids = new Set(team1Players.map(p => p.id));
@@ -176,6 +231,18 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
         if (v1.reason) failureStats[v1.reason]++;
         if (v2.reason) failureStats[v2.reason]++;
         continue;
+    }
+
+    const roleSplitValidation = validateRoleSplitWhenExactlyTwo(team1Players, team2Players, players);
+    if (!roleSplitValidation.valid) {
+      failureStats.roleSplit++;
+      continue;
+    }
+
+    const mutualWantsValidation = validateMutualWantsHardConstraint(team1Players, team2Players);
+    if (!mutualWantsValidation.valid) {
+      failureStats.mutualWants++;
+      continue;
     }
 
     // 2. Stats Calculation (Now Weighted)
@@ -232,8 +299,6 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     if (score > bestScore) {
       bestScore = score;
       
-      const socialDetails1 = getRelationshipDetails(team1Players);
-      const socialDetails2 = getRelationshipDetails(team2Players);
       const socialSat = calculateSocialSatisfaction(team1Players, team2Players);
       const socialMetLinks = getMetRelationshipDetails(team1Players, team2Players);
       const socialMetDislikes = getMetDislikeDetails(team1Players, team2Players);
@@ -254,9 +319,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
 [Social]
 - Social Satisfaction: ${socialSat.percentage}% (Wants: ${socialSat.wantsMet}/${socialSat.wantsTotal}, Dislikes: ${socialSat.dislikesMet}/${socialSat.dislikesTotal})
 - Met wants links: ${socialMetLinks}
-- Met dislikes links: ${socialMetDislikes}
-- T1 links: ${socialDetails1}
-- T2 links: ${socialDetails2}`,
+- Met dislikes links: ${socialMetDislikes}`,
         isFallback: false
       };
     }
@@ -265,9 +328,17 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
   // 5. Fallback Logic
   if (!bestResult) {
      // Analyze failures
-     const total = failureStats.social + failureStats.roles + failureStats.emergencyGK + failureStats.ownerBias;
+     const total =
+       failureStats.social +
+       failureStats.roles +
+       failureStats.emergencyGK +
+       failureStats.roleSplit +
+       failureStats.mutualWants +
+       failureStats.ownerBias;
      const socialPct = total > 0 ? Math.round((failureStats.social / total) * 100) : 0;
      const rolePct = total > 0 ? Math.round((failureStats.roles / total) * 100) : 0;
+     const roleSplitPct = total > 0 ? Math.round((failureStats.roleSplit / total) * 100) : 0;
+     const mutualWantsPct = total > 0 ? Math.round((failureStats.mutualWants / total) * 100) : 0;
      const biasPct = total > 0 ? Math.round((failureStats.ownerBias / total) * 100) : 0;
      
     const sortedPlayers = [...players].sort((a, b) => {
@@ -293,6 +364,8 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
       explanation: `FALLBACK USED: Strict constraints could not be met.
 - Social Conflicts: ${socialPct}%
 - Role Issues: ${rolePct}%
+- DEF/ATT Split Rule: ${roleSplitPct}%
+- Mutual Wants Hard Rule: ${mutualWantsPct}%
 - Owner Bias (Too strong): ${biasPct}%
 Teams generated using Power Rating (Best Fit, ignoring constraints).`,
       isFallback: true
@@ -434,31 +507,3 @@ function getMetDislikeDetails(team1: Person[], team2: Person[]): string {
 
     return metDislikes.length > 0 ? metDislikes.join(', ') : 'No met dislikes';
 }
-
-function getRelationshipDetails(players: Person[]): string {
-    let double = 0;
-    let single = 0;
-    const processedPairs = new Set<string>();
-
-    for (const p1 of players) {
-      for (const p2 of players) {
-        if (p1.id === p2.id) continue;
-        const pairKey = [p1.id, p2.id].sort().join('-');
-        if (processedPairs.has(pairKey)) continue;
-        processedPairs.add(pairKey);
-
-        const p1WantsP2 = p1.wantsWith.includes(p2.id);
-        const p2WantsP1 = p2.wantsWith.includes(p1.id);
-
-        if (p1WantsP2 && p2WantsP1) double++;
-        else if (p1WantsP2 || p2WantsP1) single++;
-      }
-    }
-    if (double === 0 && single === 0) return "No links";
-    const parts = [];
-    if (double > 0) parts.push(`${double} Mutual`);
-    if (single > 0) parts.push(`${single} Single`);
-    return parts.join(', ');
-} 
-
-

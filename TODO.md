@@ -45,22 +45,24 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [x] F2-11 Sugerencia de rating desde atributos en modal (rating manual no se modifica solo).
 - [x] F2-12 Hacer variable el sesgo de owner (`OWNER_ID`) para que no quede hardcodeado.
 
-## Fase 2 - Postergado (cambios en Sheet/App Script)
+## Fase 3 - Dificil
+
+- [x] F3-01 Balance tactico DEF/ATT: si hay 2 DEF o 2 ATT, intentar 1 por equipo como regla fuerte.
+- [x] F3-03b Regla dura de likes: si dos personas se eligen mutuamente (want mutuo), deben ir juntas.
+- [ ] F3-04 En modal, mostrar relaciones inversas (quien te quiere / quien te evita) con estilo de baja opacidad.
+- [ ] F3-05 Generar segunda opcion de armado (Plan B) con explicacion completa y UI debajo de `Copy Teams`.
+- [ ] F3-06 Permitir partidos con tamano variable sin romper balanceador (con y sin suplentes).
+- [ ] F3-07 Guardar historial de equipos/partidos en otra pestana del Sheet (investigar complejidad tecnica).
+- [ ] F3-08 Loader UI para acciones largas (generacion/sync), minimalista y consistente en mobile/desktop.
+
+## Postergado (despues de Fase 3) - Cambios en Sheet/App Script
 
 - [ ] P2-01 (antes F2-04) Agregar `pronombres` en modal, store, sheet y tarjeta.
 - [ ] P2-02 (antes F2-05) Agregar `numero de camiseta` en modal, store, sheet y tarjeta.
 - [ ] P2-03 (antes F2-06) Agregar `equipo` + `dia/lugar` (multiples valores) en modal, store, sheet y tarjeta.
 - [ ] P2-04 (antes F2-07) En la tarjeta, mostrar `equipo` con circulo de dos colores.
-
-## Fase 3 - Dificil
-
-- [ ] F3-01 Balance tactico DEF/ATT: si hay 2 DEF o 2 ATT, intentar 1 por equipo como regla fuerte.
-- [ ] F3-02 Soporte de suplentes: 10 titulares + 1 o 2 suplentes (en gris) y salida/copia clara.
-- [ ] F3-03 Regla social avanzada: avoid mutuo = restriccion dura, avoid unilateral = penalizacion blanda.
-- [ ] F3-04 En modal, mostrar relaciones inversas (quien te quiere / quien te evita) con estilo de baja opacidad.
-- [ ] F3-05 Generar segunda opcion de armado (Plan B) con explicacion completa y UI debajo de `Copy Teams`.
-- [ ] F3-06 Permitir partidos con tamano variable sin romper balanceador (con y sin suplentes).
-- [ ] F3-07 Guardar historial de equipos/partidos en otra pestana del Sheet (investigar complejidad tecnica).
+- [ ] P2-05 Agregar filtros para campos nuevos (`equipo`, `dia/lugar` y otros que se sumen).
+- [ ] P2-06 Agregar orden para campos nuevos (`equipo`, `dia/lugar` y otros que se sumen).
 
 ## Backlog (low priority)
 
@@ -70,3 +72,5 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [ ] B-04 Definir alcance a mediano plazo (seguir personal o abrir a mas grupos).
 - [ ] B-05 Aclarar requisito pendiente "sugerencia #1 no entendida" y convertirlo en item tecnico concreto.
 - [ ] B-06 Aclarar requisito pendiente "pregunta #10 no entendida" y convertirlo en item tecnico concreto.
+- [ ] B-07 F3-02 Soporte de suplentes: 10 titulares + 1 o 2 suplentes (en gris) y salida/copia clara.
+- [ ] B-08 F3-03 Regla social avanzada: avoid mutuo = restriccion dura, avoid unilateral = penalizacion blanda.
