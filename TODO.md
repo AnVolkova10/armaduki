@@ -6,9 +6,12 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [ ] Tomar solo 1 item por iteracion.
 - [ ] No tocar otros modulos salvo dependencias directas del item.
 - [ ] Al cerrar un item, probar en local antes de pasar al siguiente.
+- [ ] Disenar y validar siempre con enfoque mobile-first (layout, interacciones y legibilidad).
 
 ## Fase 1 - Facil
-- [ ] F1-01 Quitar "Relationship Score" del resultado y mostrar solo Social Satisfaction (%).
+- [x] F1-01 Quitar "Relationship Score" del resultado y mostrar solo Social Satisfaction (%).
+- [x] F1-01b En el Analysis, detallar Social Satisfaction con nombres (quien con quien).
+- [x] F1-01c Mover Analysis debajo de Copy Teams y mostrarlo en 2 columnas en desktop (mobile-first).
 - [ ] F1-02 En Social Satisfaction mostrar tambien dislikes cumplidos (met dislikes / total dislikes).
 - [ ] F1-03 En `People` mostrar quienes estan seleccionados en `Match`.
 - [ ] F1-04 Cambiar label del modal: "Name" -> "Name or description".

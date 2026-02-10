@@ -35,7 +35,7 @@ export interface Team {
 export interface GeneratedTeams {
   team1: Team;
   team2: Team;
-  relationshipScore: number;
+  socialSatisfactionPct: number;
   explanation?: string;
   isFallback?: boolean;
 }

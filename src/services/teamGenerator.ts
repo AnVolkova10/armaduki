@@ -1,4 +1,4 @@
-import type { Person, GeneratedTeams, AttributeLevel, Attributes } from '../types';
+﻿import type { Person, GeneratedTeams, AttributeLevel, Attributes } from '../types';
 
 // Points configuration
 const POINTS = {
@@ -227,18 +227,20 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
       const socialDetails1 = getRelationshipDetails(team1Players);
       const socialDetails2 = getRelationshipDetails(team2Players);
       const socialSat = calculateSocialSatisfaction(team1Players, team2Players);
+      const socialMetLinks = getMetRelationshipDetails(team1Players, team2Players);
       
       bestResult = {
         team1: { players: team1Players, totalRating: stats1.rating },
         team2: { players: team2Players, totalRating: stats2.rating },
-        relationshipScore: socialScore,
+        socialSatisfactionPct: socialSat.percentage,
         explanation: `Analysis (Score: ${Math.round(score)}):
-• Rating: T1 (${stats1.rating}) vs T2 (${stats2.rating}) → Diff: ${ratingDiff}
-• Physical (Pace/Stamina): T1 (${(stats1.attributes.pace + stats1.attributes.stamina).toFixed(1)}) vs T2 (${(stats2.attributes.pace + stats2.attributes.stamina).toFixed(1)}) → Diff: ${(paceDiff + staminaDiff).toFixed(1)}
-• Technical (Ctrl/Pass/Sht): T1 (${(stats1.attributes.control + stats1.attributes.passing + stats1.attributes.shooting).toFixed(1)}) vs T2 (${(stats2.attributes.control + stats2.attributes.passing + stats2.attributes.shooting).toFixed(1)}) → Diff: ${Math.abs((stats1.attributes.control + stats1.attributes.passing + stats1.attributes.shooting) - (stats2.attributes.control + stats2.attributes.passing + stats2.attributes.shooting)).toFixed(1)}
-• Defense: T1 (${stats1.attributes.defense.toFixed(1)}) vs T2 (${stats2.attributes.defense.toFixed(1)}) → Diff: ${defDiff.toFixed(1)}
-• Mental (Vis/Grit): T1 (${(stats1.attributes.vision + stats1.attributes.grit).toFixed(1)}) vs T2 (${(stats2.attributes.vision + stats2.attributes.grit).toFixed(1)}) → Diff: ${Math.abs((stats1.attributes.vision + stats1.attributes.grit) - (stats2.attributes.vision + stats2.attributes.grit)).toFixed(1)}
-• Social Satisfaction: ${socialSat.percentage}% (${socialSat.met}/${socialSat.total} desires met)
+- Rating: T1 (${stats1.rating}) vs T2 (${stats2.rating}) -> Diff: ${ratingDiff}
+- Physical (Pace/Stamina): T1 (${(stats1.attributes.pace + stats1.attributes.stamina).toFixed(1)}) vs T2 (${(stats2.attributes.pace + stats2.attributes.stamina).toFixed(1)}) -> Diff: ${(paceDiff + staminaDiff).toFixed(1)}
+- Technical (Ctrl/Pass/Sht): T1 (${(stats1.attributes.control + stats1.attributes.passing + stats1.attributes.shooting).toFixed(1)}) vs T2 (${(stats2.attributes.control + stats2.attributes.passing + stats2.attributes.shooting).toFixed(1)}) -> Diff: ${Math.abs((stats1.attributes.control + stats1.attributes.passing + stats1.attributes.shooting) - (stats2.attributes.control + stats2.attributes.passing + stats2.attributes.shooting)).toFixed(1)}
+- Defense: T1 (${stats1.attributes.defense.toFixed(1)}) vs T2 (${stats2.attributes.defense.toFixed(1)}) -> Diff: ${defDiff.toFixed(1)}
+- Mental (Vis/Grit): T1 (${(stats1.attributes.vision + stats1.attributes.grit).toFixed(1)}) vs T2 (${(stats2.attributes.vision + stats2.attributes.grit).toFixed(1)}) -> Diff: ${Math.abs((stats1.attributes.vision + stats1.attributes.grit) - (stats2.attributes.vision + stats2.attributes.grit)).toFixed(1)}
+- Social Satisfaction: ${socialSat.percentage}% (${socialSat.met}/${socialSat.total} desires met)
+  - Met links: ${socialMetLinks}
   - T1: ${socialDetails1}
   - T2: ${socialDetails2}`,
         isFallback: false
@@ -273,7 +275,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     bestResult = {
       team1: { players: t1, totalRating: calculateTeamStats(t1).rating },
       team2: { players: t2, totalRating: calculateTeamStats(t2).rating },
-      relationshipScore: calculateRelationshipScore(t1, t2),
+      socialSatisfactionPct: calculateSocialSatisfaction(t1, t2).percentage,
       explanation: `FALLBACK USED: Strict constraints could not be met.
 - Social Conflicts: ${socialPct}%
 - Role Issues: ${rolePct}%
@@ -317,6 +319,42 @@ function calculateSocialSatisfaction(team1: Person[], team2: Person[]): { met: n
     };
 }
 
+
+function getMetRelationshipDetails(team1: Person[], team2: Person[]): string {
+    const allPlayers = [...team1, ...team2];
+    const byId = new Map(allPlayers.map(player => [player.id, player]));
+    const metLinks: string[] = [];
+    const processed = new Set<string>();
+
+    const inSameTeam = (id1: string, id2: string) => {
+        const inT1 = team1.some(p => p.id === id1) && team1.some(p => p.id === id2);
+        const inT2 = team2.some(p => p.id === id1) && team2.some(p => p.id === id2);
+        return inT1 || inT2;
+    };
+
+    for (const source of allPlayers) {
+        for (const targetId of source.wantsWith) {
+            const target = byId.get(targetId);
+            if (!target) continue;
+            if (!inSameTeam(source.id, targetId)) continue;
+
+            const isMutual = target.wantsWith.includes(source.id);
+            if (isMutual) {
+                const pairKey = [source.id, targetId].sort().join('|');
+                if (processed.has(pairKey)) continue;
+                processed.add(pairKey);
+                metLinks.push(`${source.nickname} <-> ${target.nickname}`);
+            } else {
+                const pairKey = `${source.id}->${targetId}`;
+                if (processed.has(pairKey)) continue;
+                processed.add(pairKey);
+                metLinks.push(`${source.nickname} -> ${target.nickname}`);
+            }
+        }
+    }
+
+    return metLinks.length > 0 ? metLinks.join(', ') : 'No met links';
+}
 function getRelationshipDetails(players: Person[]): string {
     let double = 0;
     let single = 0;

@@ -1,9 +1,7 @@
-
 import { useState } from 'react';
 import type { GeneratedTeams } from '../types';
 import useAppStore from '../store/useAppStore';
 import './TeamResult.css';
-
 
 interface TeamResultProps {
     result: GeneratedTeams;
@@ -13,7 +11,7 @@ export function TeamResult({ result }: TeamResultProps) {
     const { privacyMode } = useAppStore();
     const [copied, setCopied] = useState(false);
 
-    const rolePriority: Record<string, number> = { 'GK': 0, 'DEF': 1, 'MID': 2, 'ATT': 3, 'FLEX': 4 };
+    const rolePriority: Record<string, number> = { GK: 0, DEF: 1, MID: 2, ATT: 3, FLEX: 4 };
 
     const sortPlayers = (players: typeof result.team1.players) => {
         return [...players].sort((a, b) => {
@@ -26,32 +24,31 @@ export function TeamResult({ result }: TeamResultProps) {
     const team1Sorted = sortPlayers(result.team1.players);
     const team2Sorted = sortPlayers(result.team2.players);
 
-    // Just names separated by spaces, one team per line
     const team1Text = team1Sorted.map(p => p.nickname).join(' ');
     const team2Text = team2Sorted.map(p => p.nickname).join(' ');
     const fullText = `${team1Text}\n${team2Text}`;
 
+    const analysisLines = (result.explanation ?? '')
+        .split('\n')
+        .map(line => line.trimEnd())
+        .filter(line => line.trim().length > 0);
+
     const handleCopy = async () => {
         try {
-            // INTENTO 1: API Moderna (funciona en HTTPS y localhost)
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(fullText);
                 setCopied(true);
             } else {
                 throw new Error('Clipboard API not available');
             }
-        } catch (err) {
-            // INTENTO 2: Fallback para HTTP/Mobile (crea un textarea invisible)
+        } catch {
             try {
-                const textArea = document.createElement("textarea");
+                const textArea = document.createElement('textarea');
                 textArea.value = fullText;
-
-                // Asegurar que no sea visible pero sea parte del DOM
-                textArea.style.position = "fixed";
-                textArea.style.left = "-9999px";
-                textArea.style.top = "0";
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-9999px';
+                textArea.style.top = '0';
                 document.body.appendChild(textArea);
-
                 textArea.focus();
                 textArea.select();
 
@@ -79,7 +76,7 @@ export function TeamResult({ result }: TeamResultProps) {
                 <h3>Generated Teams</h3>
                 <div className="result-stats">
                     {!privacyMode && <span>Rating Diff: {ratingDiff}</span>}
-                    <span>Relationship Score: {result.relationshipScore}</span>
+                    <span>Social Satisfaction: {result.socialSatisfactionPct}%</span>
                 </div>
             </div>
 
@@ -87,7 +84,7 @@ export function TeamResult({ result }: TeamResultProps) {
                 <div className="team-box">
                     <div className="team-header">
                         <span className="team-name">Team 1</span>
-                        {!privacyMode && <span className="team-rating">★ {result.team1.totalRating}</span>}
+                        {!privacyMode && <span className="team-rating">* {result.team1.totalRating}</span>}
                     </div>
                     <div className="team-players">
                         {team1Sorted.map(p => (
@@ -101,7 +98,7 @@ export function TeamResult({ result }: TeamResultProps) {
                 <div className="team-box">
                     <div className="team-header">
                         <span className="team-name">Team 2</span>
-                        {!privacyMode && <span className="team-rating">★ {result.team2.totalRating}</span>}
+                        {!privacyMode && <span className="team-rating">* {result.team2.totalRating}</span>}
                     </div>
                     <div className="team-players">
                         {team2Sorted.map(p => (
@@ -113,32 +110,24 @@ export function TeamResult({ result }: TeamResultProps) {
                 </div>
             </div>
 
-            {result.explanation && (
-                <div className="explanation-box" style={{
-                    margin: '20px 0',
-                    padding: '12px',
-                    backgroundColor: '#1a1a1a',
-                    color: result.isFallback ? '#ff4d4d' : '#cccccc',
-                    fontSize: '0.85rem',
-                    whiteSpace: 'pre-line',
-                    textAlign: 'left',
-                    borderRadius: '4px',
-                    fontFamily: 'monospace',
-                    border: '1px solid #333'
-                }}>
-                    {result.explanation}
-                </div>
-            )}
-
-
-
             <button className="btn btn-primary copy-btn" onClick={handleCopy}>
-                {copied ? '✓ Copied!' : 'Copy Teams'}
+                {copied ? 'Copied!' : 'Copy Teams'}
             </button>
 
-            <div className="raw-output">
-                <pre>{fullText}</pre>
-            </div>
+            {result.explanation && (
+                <div className={`explanation-box ${result.isFallback ? 'fallback' : ''}`}>
+                    <div className="analysis-grid">
+                        {analysisLines.map((line, index) => (
+                            <div
+                                key={`${index}-${line}`}
+                                className={`analysis-line ${line.startsWith('  - ') ? 'analysis-subline' : ''}`}
+                            >
+                                {line}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

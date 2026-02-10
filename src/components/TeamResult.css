@@ -81,17 +81,41 @@
   margin-bottom: 1rem;
 }
 
-.raw-output {
-  background: var(--bg-primary);
+.explanation-box {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #1a1a1a;
+  border: 1px solid #333;
   border-radius: 6px;
-  padding: 1rem;
-  overflow-x: auto;
 }
 
-.raw-output pre {
+.analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem 1rem;
+}
+
+@media (min-width: 900px) {
+  .analysis-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.analysis-line {
   margin: 0;
   font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  white-space: pre-wrap;
+  font-size: 0.85rem;
+  color: #cccccc;
+  line-height: 1.45;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.analysis-subline {
+  opacity: 0.9;
+  padding-left: 0.5rem;
+}
+
+.explanation-box.fallback .analysis-line {
+  color: #ff4d4d;
 }
