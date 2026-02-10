@@ -68,7 +68,7 @@ export function TeamResult({ result }: TeamResultProps) {
     const { privacyMode } = useAppStore();
     const [copied, setCopied] = useState(false);
 
-    const rolePriority: Record<string, number> = { GK: 0, DEF: 1, MID: 2, ATT: 3, FLEX: 4 };
+    const rolePriority: Record<string, number> = { GK: 0, FLEX: 1, DEF: 2, MID: 3, ATT: 4 };
 
     const sortPlayers = (players: typeof result.team1.players) => {
         return [...players].sort((a, b) => {

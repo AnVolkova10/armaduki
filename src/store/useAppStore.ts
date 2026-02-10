@@ -119,7 +119,7 @@ function parsePersonRow(row: unknown, index: number): Person | null {
 }
 
 function validateRole(value: string | undefined): Role {
-  const validRoles: Role[] = ['GK', 'DEF', 'MID', 'ATT', 'FLEX'];
+  const validRoles: Role[] = ['GK', 'FLEX', 'DEF', 'MID', 'ATT'];
   const normalized = (value || '').toUpperCase() as Role;
   return validRoles.includes(normalized) ? normalized : 'FLEX';
 }

@@ -6,15 +6,16 @@ import { ActionButton } from '../components/ActionButton';
 import { DropdownMenuSelect } from '../components/DropdownMenuSelect';
 import { generateTeams } from '../services/teamGenerator';
 import { matchesWordPrefix, normalizeSearch } from '../utils/search';
+import type { Person } from '../types';
 import './MatchPage.css';
 
 const ROLE_FILTER_OPTIONS = [
     { value: 'all', label: 'Filter: all roles' },
     { value: 'GK', label: 'Filter: GK' },
+    { value: 'FLEX', label: 'Filter: FLEX' },
     { value: 'DEF', label: 'Filter: DEF' },
     { value: 'MID', label: 'Filter: MID' },
     { value: 'ATT', label: 'Filter: ATT' },
-    { value: 'FLEX', label: 'Filter: FLEX' },
 ];
 
 const SORT_OPTIONS = [
@@ -22,6 +23,14 @@ const SORT_OPTIONS = [
     { value: 'score', label: 'Sort: score' },
     { value: 'position', label: 'Sort: position' },
 ];
+
+const ROLE_SORT_PRIORITY: Record<Person['role'], number> = {
+    GK: 0,
+    FLEX: 1,
+    DEF: 2,
+    MID: 3,
+    ATT: 4,
+};
 
 export function MatchPage() {
     const {
@@ -77,7 +86,16 @@ export function MatchPage() {
             return sorted;
         }
 
-        return searchedPeople;
+        if (uiSortMode === 'position') {
+            sorted.sort((a, b) => {
+                const roleDiff = ROLE_SORT_PRIORITY[a.role] - ROLE_SORT_PRIORITY[b.role];
+                if (roleDiff !== 0) return roleDiff;
+                return a.nickname.localeCompare(b.nickname);
+            });
+            return sorted;
+        }
+
+        return sorted;
     }, [searchedPeople, uiScoreSortDirection, uiSortMode]);
 
     const handleGenerate = () => {

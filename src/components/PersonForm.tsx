@@ -9,7 +9,7 @@ interface PersonFormProps {
     onCancel: () => void;
 }
 
-const roles: Role[] = ['GK', 'DEF', 'MID', 'ATT', 'FLEX'];
+const roles: Role[] = ['GK', 'FLEX', 'DEF', 'MID', 'ATT'];
 const gkOptions: { value: GKWillingness; label: string }[] = [
     { value: 'yes', label: 'Yes' },
     { value: 'low', label: 'Low' },

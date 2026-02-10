@@ -80,7 +80,7 @@ Expected fields from `action=read` response:
 - `id`
 - `name`
 - `nickname`
-- `role` (`GK | DEF | MID | ATT | FLEX`)
+- `role` (`GK | FLEX | DEF | MID | ATT`)
 - `rating` (`1..10`)
 - `avatar`
 - `gkWillingness` (`yes | low | no`)
