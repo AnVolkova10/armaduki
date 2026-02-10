@@ -82,7 +82,6 @@ export function MatchPage() {
 
     const [localError, setLocalError] = useState<string | null>(null);
     const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
-    const [isConfirming, setIsConfirming] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [uiRoleFilter, setUiRoleFilter] = useState<'all' | Person['role']>('all');
     const [uiScoreFilter, setUiScoreFilter] = useState<'all' | `${number}`>('all');
@@ -213,19 +212,20 @@ export function MatchPage() {
     };
 
     const handleConfirmCancel = () => {
-        if (isConfirming) return;
         setConfirmState(null);
     };
 
-    const handleConfirmAccept = async () => {
+    const handleConfirmAccept = () => {
         if (!confirmState) return;
-        setIsConfirming(true);
-        try {
-            await confirmState.onConfirm();
-        } finally {
-            setIsConfirming(false);
-            setConfirmState(null);
-        }
+
+        const confirmAction = confirmState.onConfirm;
+        setConfirmState(null);
+
+        void Promise.resolve()
+            .then(() => confirmAction())
+            .catch((confirmError) => {
+                console.error('Confirm action failed:', confirmError);
+            });
     };
 
     const handleClearAllRelationships = () => {
@@ -470,7 +470,6 @@ export function MatchPage() {
                 message={confirmState?.message || ''}
                 confirmLabel={confirmState?.confirmLabel || 'Confirm'}
                 tone={confirmState?.tone || 'default'}
-                loading={isConfirming}
                 onCancel={handleConfirmCancel}
                 onConfirm={handleConfirmAccept}
             />
