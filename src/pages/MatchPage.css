@@ -31,7 +31,7 @@
 
 .match-page .match-controls-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.4rem;
 }
 
@@ -76,16 +76,46 @@
   stroke-linejoin: round;
 }
 
-.match-page .match-search-input {
+.match-page .match-search-field {
   grid-column: 1 / -1;
+  position: relative;
   width: 100%;
-  min-height: 38px;
-  padding: 0.5rem 0.75rem;
+}
+
+.match-page .match-search-icon {
+  position: absolute;
+  left: 0.72rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.match-page .match-search-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.match-page .match-search-input {
+  width: 100%;
+  min-height: 34px;
+  padding: 0.5rem 0.75rem 0.5rem 2rem;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--bg-secondary);
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.84rem;
 }
 
 .match-page .match-search-input::placeholder {
@@ -137,11 +167,11 @@
 
 @media (min-width: 640px) {
   .match-page .match-controls-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 170px) minmax(0, 170px);
+    grid-template-columns: minmax(0, 1fr) repeat(3, minmax(0, 150px));
     gap: 0.35rem;
   }
 
-  .match-page .match-search-input {
+  .match-page .match-search-field {
     grid-column: auto;
   }
 

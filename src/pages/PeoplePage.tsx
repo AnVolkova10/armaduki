@@ -32,6 +32,20 @@ const SORT_OPTIONS = [
     { value: 'position', label: 'Sort: position' },
 ];
 
+const SCORE_FILTER_OPTIONS = [
+    { value: 'all', label: 'Score: all' },
+    { value: '1', label: 'Score: 1' },
+    { value: '2', label: 'Score: 2' },
+    { value: '3', label: 'Score: 3' },
+    { value: '4', label: 'Score: 4' },
+    { value: '5', label: 'Score: 5' },
+    { value: '6', label: 'Score: 6' },
+    { value: '7', label: 'Score: 7' },
+    { value: '8', label: 'Score: 8' },
+    { value: '9', label: 'Score: 9' },
+    { value: '10', label: 'Score: 10' },
+];
+
 const ROLE_SORT_PRIORITY: Record<Person['role'], number> = {
     GK: 0,
     FLEX: 1,
@@ -62,6 +76,7 @@ export function PeoplePage() {
     const [isConfirming, setIsConfirming] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [uiRoleFilter, setUiRoleFilter] = useState<'all' | Person['role']>('all');
+    const [uiScoreFilter, setUiScoreFilter] = useState<'all' | `${number}`>('all');
     const [uiSortMode, setUiSortMode] = useState('none');
     const [uiScoreSortDirection, setUiScoreSortDirection] = useState<'desc' | 'asc'>('desc');
     const [showClearLinksMenu, setShowClearLinksMenu] = useState(false);
@@ -100,10 +115,16 @@ export function PeoplePage() {
         });
     }, [normalizedQuery, people]);
 
-    const filteredPeople = useMemo(() => {
+    const roleFilteredPeople = useMemo(() => {
         if (uiRoleFilter === 'all') return searchedPeople;
         return searchedPeople.filter((person) => person.role === uiRoleFilter);
     }, [searchedPeople, uiRoleFilter]);
+
+    const filteredPeople = useMemo(() => {
+        if (uiScoreFilter === 'all') return roleFilteredPeople;
+        const targetScore = Number(uiScoreFilter);
+        return roleFilteredPeople.filter((person) => person.rating === targetScore);
+    }, [roleFilteredPeople, uiScoreFilter]);
 
     const visiblePeople = useMemo(() => {
         if (uiSortMode === 'none') return filteredPeople;
@@ -131,7 +152,8 @@ export function PeoplePage() {
         return sorted;
     }, [filteredPeople, uiScoreSortDirection, uiSortMode]);
 
-    const hasActiveSearchOrFilter = Boolean(normalizedQuery) || uiRoleFilter !== 'all';
+    const hasActiveSearchOrFilter =
+        Boolean(normalizedQuery) || uiRoleFilter !== 'all' || uiScoreFilter !== 'all';
 
     const handleSave = (person: Person) => {
         if (editingPerson) {
@@ -211,6 +233,15 @@ export function PeoplePage() {
         });
     };
 
+    const handleClearFilters = () => {
+        setShowClearLinksMenu(false);
+        setSearchQuery('');
+        setUiRoleFilter('all');
+        setUiScoreFilter('all');
+        setUiSortMode('none');
+        setUiScoreSortDirection('desc');
+    };
+
     return (
         <div className="people-page">
             <div className="page-header">
@@ -226,7 +257,7 @@ export function PeoplePage() {
                             aria-expanded={showClearLinksMenu}
                             aria-haspopup="menu"
                         >
-                            Clear Links
+                            Clear
                             <span className="clear-links-caret" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
                                     <path d="M6 9l6 6 6-6" />
@@ -236,6 +267,13 @@ export function PeoplePage() {
 
                         {showClearLinksMenu && (
                             <div className="clear-links-menu" role="menu">
+                                <button
+                                    type="button"
+                                    className="clear-links-option clear-links-option--light"
+                                    onClick={handleClearFilters}
+                                >
+                                    Clear Filters
+                                </button>
                                 <button
                                     type="button"
                                     className="clear-links-option clear-links-option--positive"
@@ -268,20 +306,35 @@ export function PeoplePage() {
 
             <div className="people-controls">
                 <div className="people-controls-grid">
-                    <input
-                        type="text"
-                        className="people-search-input"
-                        placeholder="Search players..."
-                        value={searchQuery}
-                        onChange={(event) => setSearchQuery(event.target.value)}
-                        aria-label="Search players by nickname or name"
-                    />
+                    <div className="people-search-field">
+                        <span className="people-search-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                <circle cx="11" cy="11" r="7" />
+                                <path d="M20 20l-4-4" />
+                            </svg>
+                        </span>
+                        <input
+                            type="text"
+                            className="people-search-input"
+                            placeholder=""
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            aria-label="Search players by nickname or name"
+                        />
+                    </div>
 
                     <DropdownMenuSelect
                         value={uiRoleFilter}
                         options={ROLE_FILTER_OPTIONS}
                         onChange={(value) => setUiRoleFilter(value as 'all' | Person['role'])}
                         ariaLabel="Filter by role"
+                    />
+
+                    <DropdownMenuSelect
+                        value={uiScoreFilter}
+                        options={SCORE_FILTER_OPTIONS}
+                        onChange={(value) => setUiScoreFilter(value as 'all' | `${number}`)}
+                        ariaLabel="Filter by score"
                     />
 
                     <div
@@ -349,7 +402,7 @@ export function PeoplePage() {
                     <p>No players match current controls.</p>
                     <p className="hint">
                         {hasActiveSearchOrFilter
-                            ? 'Try another search prefix or role filter.'
+                            ? 'Try another search prefix or role/score filter.'
                             : 'Try adjusting search, filter, or sort.'}
                     </p>
                 </div>
@@ -369,7 +422,7 @@ export function PeoplePage() {
             )}
 
             <div className="people-count">
-                {normalizedQuery || uiRoleFilter !== 'all'
+                {normalizedQuery || uiRoleFilter !== 'all' || uiScoreFilter !== 'all'
                     ? `Showing ${visiblePeople.length} of ${people.length} players`
                     : `Total: ${people.length} players`}
             </div>

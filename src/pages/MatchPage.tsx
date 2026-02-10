@@ -24,6 +24,20 @@ const SORT_OPTIONS = [
     { value: 'position', label: 'Sort: position' },
 ];
 
+const SCORE_FILTER_OPTIONS = [
+    { value: 'all', label: 'Score: all' },
+    { value: '1', label: 'Score: 1' },
+    { value: '2', label: 'Score: 2' },
+    { value: '3', label: 'Score: 3' },
+    { value: '4', label: 'Score: 4' },
+    { value: '5', label: 'Score: 5' },
+    { value: '6', label: 'Score: 6' },
+    { value: '7', label: 'Score: 7' },
+    { value: '8', label: 'Score: 8' },
+    { value: '9', label: 'Score: 9' },
+    { value: '10', label: 'Score: 10' },
+];
+
 const ROLE_SORT_PRIORITY: Record<Person['role'], number> = {
     GK: 0,
     FLEX: 1,
@@ -48,6 +62,7 @@ export function MatchPage() {
     const [localError, setLocalError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [uiRoleFilter, setUiRoleFilter] = useState<'all' | Person['role']>('all');
+    const [uiScoreFilter, setUiScoreFilter] = useState<'all' | `${number}`>('all');
     const [uiSortMode, setUiSortMode] = useState('none');
     const [uiScoreSortDirection, setUiScoreSortDirection] = useState<'desc' | 'asc'>('desc');
 
@@ -73,10 +88,16 @@ export function MatchPage() {
         });
     }, [normalizedQuery, people]);
 
-    const filteredPeople = useMemo(() => {
+    const roleFilteredPeople = useMemo(() => {
         if (uiRoleFilter === 'all') return searchedPeople;
         return searchedPeople.filter((person) => person.role === uiRoleFilter);
     }, [searchedPeople, uiRoleFilter]);
+
+    const filteredPeople = useMemo(() => {
+        if (uiScoreFilter === 'all') return roleFilteredPeople;
+        const targetScore = Number(uiScoreFilter);
+        return roleFilteredPeople.filter((person) => person.rating === targetScore);
+    }, [roleFilteredPeople, uiScoreFilter]);
 
     const visiblePeople = useMemo(() => {
         if (uiSortMode === 'none') return filteredPeople;
@@ -103,7 +124,8 @@ export function MatchPage() {
         return sorted;
     }, [filteredPeople, uiScoreSortDirection, uiSortMode]);
 
-    const hasActiveSearchOrFilter = Boolean(normalizedQuery) || uiRoleFilter !== 'all';
+    const hasActiveSearchOrFilter =
+        Boolean(normalizedQuery) || uiRoleFilter !== 'all' || uiScoreFilter !== 'all';
 
     const handleGenerate = () => {
         setLocalError(null);
@@ -153,20 +175,35 @@ export function MatchPage() {
 
             <div className="match-controls">
                 <div className="match-controls-grid">
-                    <input
-                        type="text"
-                        className="match-search-input"
-                        placeholder="Search players..."
-                        value={searchQuery}
-                        onChange={(event) => setSearchQuery(event.target.value)}
-                        aria-label="Search players by nickname or name"
-                    />
+                    <div className="match-search-field">
+                        <span className="match-search-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                <circle cx="11" cy="11" r="7" />
+                                <path d="M20 20l-4-4" />
+                            </svg>
+                        </span>
+                        <input
+                            type="text"
+                            className="match-search-input"
+                            placeholder=""
+                            value={searchQuery}
+                            onChange={(event) => setSearchQuery(event.target.value)}
+                            aria-label="Search players by nickname or name"
+                        />
+                    </div>
 
                     <DropdownMenuSelect
                         value={uiRoleFilter}
                         options={ROLE_FILTER_OPTIONS}
                         onChange={(value) => setUiRoleFilter(value as 'all' | Person['role'])}
                         ariaLabel="Filter by role"
+                    />
+
+                    <DropdownMenuSelect
+                        value={uiScoreFilter}
+                        options={SCORE_FILTER_OPTIONS}
+                        onChange={(value) => setUiScoreFilter(value as 'all' | `${number}`)}
+                        ariaLabel="Filter by score"
                     />
 
                     <div
@@ -223,7 +260,7 @@ export function MatchPage() {
                     <p>No players match current controls.</p>
                     <p>
                         {hasActiveSearchOrFilter
-                            ? 'Try another search prefix or role filter.'
+                            ? 'Try another search prefix or role/score filter.'
                             : 'Try adjusting search, filter, or sort.'}
                     </p>
                 </div>
@@ -245,7 +282,7 @@ export function MatchPage() {
 
             {!isLoading && people.length > 0 && (
                 <div className="match-count">
-                    {normalizedQuery || uiRoleFilter !== 'all'
+                    {normalizedQuery || uiRoleFilter !== 'all' || uiScoreFilter !== 'all'
                         ? `Showing ${visiblePeople.length} of ${people.length} players`
                         : `Total: ${people.length} players`}
                 </div>
