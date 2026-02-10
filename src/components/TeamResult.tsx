@@ -7,6 +7,63 @@ interface TeamResultProps {
     result: GeneratedTeams;
 }
 
+interface AnalysisSection {
+    title: string;
+    lines: string[];
+}
+
+function parseAnalysis(explanation: string): { headline: string | null; sections: AnalysisSection[] } {
+    const rawLines = explanation
+        .split('\n')
+        .map(line => line.trimEnd())
+        .filter(line => line.trim().length > 0);
+
+    const sections: AnalysisSection[] = [];
+    let headline: string | null = null;
+    let currentSection: AnalysisSection | null = null;
+
+    const pushCurrent = () => {
+        if (currentSection && currentSection.lines.length > 0) {
+            sections.push(currentSection);
+        }
+    };
+
+    for (const rawLine of rawLines) {
+        const trimmed = rawLine.trim();
+        if (trimmed.startsWith('Analysis (Score:')) {
+            headline = trimmed;
+            continue;
+        }
+
+        const sectionMatch = trimmed.match(/^\[(.+)\]$/);
+        if (sectionMatch) {
+            pushCurrent();
+            currentSection = { title: sectionMatch[1], lines: [] };
+            continue;
+        }
+
+        if (!currentSection) {
+            currentSection = { title: 'Details', lines: [] };
+        }
+
+        currentSection.lines.push(rawLine);
+    }
+
+    pushCurrent();
+
+    if (sections.length === 0 && rawLines.length > 0) {
+        const fallbackLines = headline
+            ? rawLines.filter(line => line.trim() !== headline)
+            : rawLines;
+
+        if (fallbackLines.length > 0) {
+            sections.push({ title: 'Details', lines: fallbackLines });
+        }
+    }
+
+    return { headline, sections };
+}
+
 export function TeamResult({ result }: TeamResultProps) {
     const { privacyMode } = useAppStore();
     const [copied, setCopied] = useState(false);
@@ -28,10 +85,7 @@ export function TeamResult({ result }: TeamResultProps) {
     const team2Text = team2Sorted.map(p => p.nickname).join(' ');
     const fullText = `${team1Text}\n${team2Text}`;
 
-    const analysisLines = (result.explanation ?? '')
-        .split('\n')
-        .map(line => line.trimEnd())
-        .filter(line => line.trim().length > 0);
+    const analysis = parseAnalysis(result.explanation ?? '');
 
     const handleCopy = async () => {
         try {
@@ -116,14 +170,32 @@ export function TeamResult({ result }: TeamResultProps) {
 
             {result.explanation && (
                 <div className={`explanation-box ${result.isFallback ? 'fallback' : ''}`}>
-                    <div className="analysis-grid">
-                        {analysisLines.map((line, index) => (
-                            <div
-                                key={`${index}-${line}`}
-                                className={`analysis-line ${line.startsWith('  - ') ? 'analysis-subline' : ''}`}
-                            >
-                                {line}
-                            </div>
+                    {analysis.headline && (
+                        <div className="analysis-headline">{analysis.headline}</div>
+                    )}
+                    <div className="analysis-sections">
+                        {analysis.sections.map((section, sectionIndex) => (
+                            <section key={`${section.title}-${sectionIndex}`} className="analysis-section">
+                                <div className="analysis-section-title">{section.title}</div>
+                                <div className="analysis-lines">
+                                    {section.lines.map((line, lineIndex) => {
+                                        const trimmed = line.trimStart();
+                                        const isSubline = line.startsWith('  - ');
+                                        const displayLine = trimmed.startsWith('- ')
+                                            ? trimmed.slice(2)
+                                            : trimmed;
+
+                                        return (
+                                            <div
+                                                key={`${section.title}-${lineIndex}-${displayLine}`}
+                                                className={`analysis-line ${isSubline ? 'analysis-subline' : ''}`}
+                                            >
+                                                {displayLine}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </section>
                         ))}
                     </div>
                 </div>

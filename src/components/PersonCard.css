@@ -114,6 +114,28 @@
   color: #fbbf24;
 }
 
+.match-selected-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  color: #ef4444;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 640px) {
+  .match-selected-badge {
+    right: 30px;
+    bottom: 6px;
+    font-size: 10px;
+  }
+}
+
 .actions {
   position: absolute;
   top: 8px;
@@ -206,6 +228,9 @@
   color: #fff;
 }
 
-.actions button.delete:hover {
+.actions .delete-btn:hover,
+.actions .delete-btn:focus-visible {
+  background: rgba(239, 68, 68, 0.16);
   color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.55);
 }

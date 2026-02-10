@@ -228,21 +228,27 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
       const socialDetails2 = getRelationshipDetails(team2Players);
       const socialSat = calculateSocialSatisfaction(team1Players, team2Players);
       const socialMetLinks = getMetRelationshipDetails(team1Players, team2Players);
+      const socialMetDislikes = getMetDislikeDetails(team1Players, team2Players);
       
       bestResult = {
         team1: { players: team1Players, totalRating: stats1.rating },
         team2: { players: team2Players, totalRating: stats2.rating },
         socialSatisfactionPct: socialSat.percentage,
-        explanation: `Analysis (Score: ${Math.round(score)}):
+        explanation: `Analysis (Score: ${Math.round(score)})
+
+[Balance]
 - Rating: T1 (${stats1.rating}) vs T2 (${stats2.rating}) -> Diff: ${ratingDiff}
 - Physical (Pace/Stamina): T1 (${(stats1.attributes.pace + stats1.attributes.stamina).toFixed(1)}) vs T2 (${(stats2.attributes.pace + stats2.attributes.stamina).toFixed(1)}) -> Diff: ${(paceDiff + staminaDiff).toFixed(1)}
 - Technical (Ctrl/Pass/Sht): T1 (${(stats1.attributes.control + stats1.attributes.passing + stats1.attributes.shooting).toFixed(1)}) vs T2 (${(stats2.attributes.control + stats2.attributes.passing + stats2.attributes.shooting).toFixed(1)}) -> Diff: ${Math.abs((stats1.attributes.control + stats1.attributes.passing + stats1.attributes.shooting) - (stats2.attributes.control + stats2.attributes.passing + stats2.attributes.shooting)).toFixed(1)}
 - Defense: T1 (${stats1.attributes.defense.toFixed(1)}) vs T2 (${stats2.attributes.defense.toFixed(1)}) -> Diff: ${defDiff.toFixed(1)}
 - Mental (Vis/Grit): T1 (${(stats1.attributes.vision + stats1.attributes.grit).toFixed(1)}) vs T2 (${(stats2.attributes.vision + stats2.attributes.grit).toFixed(1)}) -> Diff: ${Math.abs((stats1.attributes.vision + stats1.attributes.grit) - (stats2.attributes.vision + stats2.attributes.grit)).toFixed(1)}
-- Social Satisfaction: ${socialSat.percentage}% (${socialSat.met}/${socialSat.total} desires met)
-  - Met links: ${socialMetLinks}
-  - T1: ${socialDetails1}
-  - T2: ${socialDetails2}`,
+
+[Social]
+- Social Satisfaction: ${socialSat.percentage}% (Wants: ${socialSat.wantsMet}/${socialSat.wantsTotal}, Dislikes: ${socialSat.dislikesMet}/${socialSat.dislikesTotal})
+- Met wants links: ${socialMetLinks}
+- Met dislikes links: ${socialMetDislikes}
+- T1 links: ${socialDetails1}
+- T2 links: ${socialDetails2}`,
         isFallback: false
       };
     }
@@ -288,11 +294,24 @@ Teams generated using Power Rating (Best Fit, ignoring constraints).`,
   return bestResult;
 }
 
-function calculateSocialSatisfaction(team1: Person[], team2: Person[]): { met: number, total: number, percentage: number } {
+function calculateSocialSatisfaction(
+  team1: Person[],
+  team2: Person[],
+): {
+  wantsMet: number;
+  wantsTotal: number;
+  dislikesMet: number;
+  dislikesTotal: number;
+  met: number;
+  total: number;
+  percentage: number;
+} {
     const allPlayers = [...team1, ...team2];
     const allIds = new Set(allPlayers.map(p => p.id));
     let totalWants = 0;
     let metWants = 0;
+    let totalDislikes = 0;
+    let metDislikes = 0;
 
     // Helper to check if two players are in the same team
     const inSameTeam = (id1: string, id2: string) => {
@@ -310,12 +329,28 @@ function calculateSocialSatisfaction(team1: Person[], team2: Person[]): { met: n
                 }
             }
         });
+
+        p.avoidsWith.forEach(targetId => {
+            if (allIds.has(targetId)) {
+                totalDislikes++;
+                if (!inSameTeam(p.id, targetId)) {
+                    metDislikes++;
+                }
+            }
+        });
     });
 
+    const total = totalWants + totalDislikes;
+    const met = metWants + metDislikes;
+
     return {
-        met: metWants,
-        total: totalWants,
-        percentage: totalWants === 0 ? 100 : Math.round((metWants / totalWants) * 100)
+        wantsMet: metWants,
+        wantsTotal: totalWants,
+        dislikesMet: metDislikes,
+        dislikesTotal: totalDislikes,
+        met,
+        total,
+        percentage: total === 0 ? 100 : Math.round((met / total) * 100),
     };
 }
 
@@ -355,6 +390,43 @@ function getMetRelationshipDetails(team1: Person[], team2: Person[]): string {
 
     return metLinks.length > 0 ? metLinks.join(', ') : 'No met links';
 }
+
+function getMetDislikeDetails(team1: Person[], team2: Person[]): string {
+    const allPlayers = [...team1, ...team2];
+    const byId = new Map(allPlayers.map(player => [player.id, player]));
+    const metDislikes: string[] = [];
+    const processed = new Set<string>();
+
+    const inSameTeam = (id1: string, id2: string) => {
+        const inT1 = team1.some(p => p.id === id1) && team1.some(p => p.id === id2);
+        const inT2 = team2.some(p => p.id === id1) && team2.some(p => p.id === id2);
+        return inT1 || inT2;
+    };
+
+    for (const source of allPlayers) {
+        for (const targetId of source.avoidsWith) {
+            const target = byId.get(targetId);
+            if (!target) continue;
+            if (inSameTeam(source.id, targetId)) continue;
+
+            const isMutual = target.avoidsWith.includes(source.id);
+            if (isMutual) {
+                const pairKey = [source.id, targetId].sort().join('|');
+                if (processed.has(pairKey)) continue;
+                processed.add(pairKey);
+                metDislikes.push(`${source.nickname} <!> ${target.nickname}`);
+            } else {
+                const pairKey = `${source.id}->${targetId}`;
+                if (processed.has(pairKey)) continue;
+                processed.add(pairKey);
+                metDislikes.push(`${source.nickname} !> ${target.nickname}`);
+            }
+        }
+    }
+
+    return metDislikes.length > 0 ? metDislikes.join(', ') : 'No met dislikes';
+}
+
 function getRelationshipDetails(players: Person[]): string {
     let double = 0;
     let single = 0;

@@ -9,6 +9,7 @@ interface PersonCardProps {
     onSelect?: () => void;
     selected?: boolean;
     selectable?: boolean;
+    showMatchBadge?: boolean;
 }
 
 export function PersonCard({
@@ -17,7 +18,8 @@ export function PersonCard({
     onDelete,
     onSelect,
     selected,
-    selectable
+    selectable,
+    showMatchBadge,
 }: PersonCardProps) {
     const { privacyMode } = useAppStore();
 
@@ -45,6 +47,10 @@ export function PersonCard({
                     </div>
                 </div>
             </div>
+
+            {showMatchBadge && selected && (
+                <div className="match-selected-badge">selected</div>
+            )}
 
             {!selectable && (
                 <div className="actions">

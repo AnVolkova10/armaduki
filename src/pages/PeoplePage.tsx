@@ -8,6 +8,7 @@ import './PeoplePage.css';
 export function PeoplePage() {
     const {
         people,
+        selectedIds,
         isLoading,
         error,
         fetchPeople,
@@ -80,6 +81,8 @@ export function PeoplePage() {
                         <PersonCard
                             key={person.id}
                             person={person}
+                            selected={selectedIds.has(person.id)}
+                            showMatchBadge
                             onEdit={() => handleEdit(person)}
                             onDelete={() => handleDelete(person.id)}
                         />

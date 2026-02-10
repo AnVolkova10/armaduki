@@ -89,16 +89,46 @@
   border-radius: 6px;
 }
 
-.analysis-grid {
+.analysis-headline {
+  margin: 0 0 0.65rem 0;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  color: #cccccc;
+}
+
+.analysis-sections {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.5rem 1rem;
+  gap: 0.65rem;
 }
 
 @media (min-width: 900px) {
-  .analysis-grid {
+  .analysis-sections {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+.analysis-section {
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 0.55rem 0.65rem;
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.analysis-section-title {
+  margin: 0 0 0.45rem 0;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #2a2a2a;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.analysis-lines {
+  display: grid;
+  gap: 0.35rem;
 }
 
 .analysis-line {
@@ -113,7 +143,7 @@
 
 .analysis-subline {
   opacity: 0.9;
-  padding-left: 0.5rem;
+  padding-left: 0.6rem;
 }
 
 .explanation-box.fallback .analysis-line {

@@ -12,9 +12,11 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [x] F1-01 Quitar "Relationship Score" del resultado y mostrar solo Social Satisfaction (%).
 - [x] F1-01b En el Analysis, detallar Social Satisfaction con nombres (quien con quien).
 - [x] F1-01c Mover Analysis debajo de Copy Teams y mostrarlo en 2 columnas en desktop (mobile-first).
-- [ ] F1-02 En Social Satisfaction mostrar tambien dislikes cumplidos (met dislikes / total dislikes).
-- [ ] F1-03 En `People` mostrar quienes estan seleccionados en `Match`.
-- [ ] F1-04 Cambiar label del modal: "Name" -> "Name or description".
+- [x] F1-02 En Social Satisfaction mostrar tambien dislikes cumplidos (met dislikes / total dislikes).
+- [x] F1-02b Agregar met dislikes links y separar el Analysis en bloques visuales claros.
+- [x] F1-03 En `People` mostrar quienes estan seleccionados en `Match`.
+- [x] F1-04 Cambiar label del modal: "Name" -> "Name or description".
+- [x] F1-04b Hover de delete: icono + fondo en rojo.
 - [ ] F1-05 Agregar botones en modal: limpiar todas las relaciones, limpiar positivas, limpiar negativas.
 - [ ] F1-06 Reemplazar `confirm/alert` de borrado por modal de confirmacion simple.
 - [ ] F1-07 Mejorar el titulo "Attributes" (ocultarlo o version mas compacta).
