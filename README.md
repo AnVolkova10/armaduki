@@ -21,13 +21,17 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
   - if no GK in a team, it needs at least `3` players with `gkWillingness: yes`
 - Social hard constraint:
   - players that avoid each other cannot be in the same team
-- Social scoring:
-  - mutual wants and one-way wants add score
-  - social satisfaction includes met wants and met dislikes
+- Wants constraints (staged):
+  - `STRICT`: unilateral + mutual wants must stay together
+  - `RELAXED_UNILATERAL`: only mutual wants must stay together
+  - `RELAXED_MUTUAL`: wants can be split if needed
+- Scoring model:
+  - numeric score uses only rating + attribute balance
+  - social satisfaction is analysis-only (met wants + met dislikes), no social points
 - Owner bias:
   - player ID from `VITE_OWNER_ID` is forced into the weaker/equal team
   - default owner ID is `10` if env var is missing/empty
-- If strict constraints fail, a fallback split is generated.
+- If staged constraints fail, a fallback split is generated.
 
 ## Stack
 

@@ -12,6 +12,30 @@ interface AnalysisSection {
     lines: string[];
 }
 
+function renderAnalysisLine(line: string) {
+    const parts = line.split(/(T1|T2)/g);
+
+    return parts.map((part, index) => {
+        if (part === 'T1') {
+            return (
+                <span key={`t1-${index}`} className="analysis-token-t1">
+                    {part}
+                </span>
+            );
+        }
+
+        if (part === 'T2') {
+            return (
+                <span key={`t2-${index}`} className="analysis-token-t2">
+                    {part}
+                </span>
+            );
+        }
+
+        return <span key={`text-${index}`}>{part}</span>;
+    });
+}
+
 function parseAnalysis(explanation: string): { headline: string | null; sections: AnalysisSection[] } {
     const rawLines = explanation
         .split('\n')
@@ -30,7 +54,7 @@ function parseAnalysis(explanation: string): { headline: string | null; sections
 
     for (const rawLine of rawLines) {
         const trimmed = rawLine.trim();
-        if (trimmed.startsWith('Analysis (Score:')) {
+        if (/^Analysis(?:\s+\[[A-Z_]+\])?\s+\(Score:/.test(trimmed)) {
             headline = trimmed;
             continue;
         }
@@ -190,7 +214,7 @@ export function TeamResult({ result }: TeamResultProps) {
                                                 key={`${section.title}-${lineIndex}-${displayLine}`}
                                                 className={`analysis-line ${isSubline ? 'analysis-subline' : ''}`}
                                             >
-                                                {displayLine}
+                                                {renderAnalysisLine(displayLine)}
                                             </div>
                                         );
                                     })}

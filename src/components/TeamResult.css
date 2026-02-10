@@ -146,6 +146,28 @@
   padding-left: 0.6rem;
 }
 
+.analysis-token-t2 {
+  display: inline-block;
+  padding: 0 0.26rem;
+  margin: 0 0.08rem;
+  border-radius: 3px;
+  color: #ffffff;
+  background: #ff2a2a;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.analysis-token-t1 {
+  display: inline-block;
+  padding: 0 0.26rem;
+  margin: 0 0.08rem;
+  border-radius: 3px;
+  color: #ffffff;
+  background: #0b0b0b;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .explanation-box.fallback .analysis-line {
   color: #ff4d4d;
 }

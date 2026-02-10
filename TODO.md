@@ -48,7 +48,7 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 ## Fase 3 - Dificil
 
 - [x] F3-01 Balance tactico DEF/ATT: si hay 2 DEF o 2 ATT, intentar 1 por equipo como regla fuerte.
-- [x] F3-03b Regla dura de likes: si dos personas se eligen mutuamente (want mutuo), deben ir juntas.
+- [x] F3-03b Wants por etapas: strict (unilateral+mutuo), relaxed_unilateral (solo mutuo), relaxed_mutual (sin wants), sin puntaje social.
 - [ ] F3-04 En modal, mostrar relaciones inversas (quien te quiere / quien te evita) con estilo de baja opacidad.
 - [ ] F3-05 Generar segunda opcion de armado (Plan B) con explicacion completa y UI debajo de `Copy Teams`.
 - [ ] F3-06 Permitir partidos con tamano variable sin romper balanceador (con y sin suplentes).
