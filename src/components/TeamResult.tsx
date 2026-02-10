@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { GeneratedTeams } from '../types';
+import type { GeneratedTeams, GeneratedTeamOption, Person } from '../types';
 import useAppStore from '../store/useAppStore';
 import './TeamResult.css';
 
@@ -39,8 +39,8 @@ function renderAnalysisLine(line: string) {
 function parseAnalysis(explanation: string): { headline: string | null; sections: AnalysisSection[] } {
     const rawLines = explanation
         .split('\n')
-        .map(line => line.trimEnd())
-        .filter(line => line.trim().length > 0);
+        .map((line) => line.trimEnd())
+        .filter((line) => line.trim().length > 0);
 
     const sections: AnalysisSection[] = [];
     let headline: string | null = null;
@@ -76,9 +76,7 @@ function parseAnalysis(explanation: string): { headline: string | null; sections
     pushCurrent();
 
     if (sections.length === 0 && rawLines.length > 0) {
-        const fallbackLines = headline
-            ? rawLines.filter(line => line.trim() !== headline)
-            : rawLines;
+        const fallbackLines = headline ? rawLines.filter((line) => line.trim() !== headline) : rawLines;
 
         if (fallbackLines.length > 0) {
             sections.push({ title: 'Details', lines: fallbackLines });
@@ -88,13 +86,28 @@ function parseAnalysis(explanation: string): { headline: string | null; sections
     return { headline, sections };
 }
 
+function formatValue(value: number): string {
+    return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function formatDelta(value: number): string {
+    const formatted = formatValue(value);
+    return value > 0 ? `+${formatted}` : formatted;
+}
+
+function formatStageLabel(stage: GeneratedTeamOption['stage']): string {
+    return stage.toLowerCase().replace(/_/g, ' ');
+}
+
 export function TeamResult({ result }: TeamResultProps) {
     const { privacyMode } = useAppStore();
-    const [copied, setCopied] = useState(false);
+    const [copiedPrimary, setCopiedPrimary] = useState(false);
+    const [copiedSecondary, setCopiedSecondary] = useState(false);
+    const [showPlanB, setShowPlanB] = useState(false);
 
     const rolePriority: Record<string, number> = { GK: 0, FLEX: 1, DEF: 2, MID: 3, ATT: 4 };
 
-    const sortPlayers = (players: typeof result.team1.players) => {
+    const sortPlayers = (players: Person[]) => {
         return [...players].sort((a, b) => {
             const pA = rolePriority[a.role] ?? 99;
             const pB = rolePriority[b.role] ?? 99;
@@ -102,27 +115,39 @@ export function TeamResult({ result }: TeamResultProps) {
         });
     };
 
-    const team1Sorted = sortPlayers(result.team1.players);
-    const team2Sorted = sortPlayers(result.team2.players);
+    const buildCopyText = (option: GeneratedTeamOption): string => {
+        const team1Sorted = sortPlayers(option.team1.players);
+        const team2Sorted = sortPlayers(option.team2.players);
+        const team1Text = team1Sorted.map((player) => player.nickname).join(' ');
+        const team2Text = team2Sorted.map((player) => player.nickname).join(' ');
+        return `${team1Text}\n${team2Text}`;
+    };
 
-    const team1Text = team1Sorted.map(p => p.nickname).join(' ');
-    const team2Text = team2Sorted.map(p => p.nickname).join(' ');
-    const fullText = `${team1Text}\n${team2Text}`;
+    const primary = result.primary;
+    const secondary = result.secondary;
+    const comparison = result.comparison;
 
-    const analysis = parseAnalysis(result.explanation ?? '');
+    const primaryTeam1Sorted = sortPlayers(primary.team1.players);
+    const primaryTeam2Sorted = sortPlayers(primary.team2.players);
+    const primaryCopyText = buildCopyText(primary);
+    const primaryAnalysis = parseAnalysis(primary.explanation ?? '');
 
-    const handleCopy = async () => {
+    const secondaryTeam1Sorted = secondary ? sortPlayers(secondary.team1.players) : [];
+    const secondaryTeam2Sorted = secondary ? sortPlayers(secondary.team2.players) : [];
+    const secondaryCopyText = secondary ? buildCopyText(secondary) : '';
+
+    const handleCopy = async (text: string, onCopied: (value: boolean) => void) => {
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
-                await navigator.clipboard.writeText(fullText);
-                setCopied(true);
+                await navigator.clipboard.writeText(text);
+                onCopied(true);
             } else {
                 throw new Error('Clipboard API not available');
             }
         } catch {
             try {
                 const textArea = document.createElement('textarea');
-                textArea.value = fullText;
+                textArea.value = text;
                 textArea.style.position = 'fixed';
                 textArea.style.left = '-9999px';
                 textArea.style.top = '0';
@@ -134,7 +159,7 @@ export function TeamResult({ result }: TeamResultProps) {
                 document.body.removeChild(textArea);
 
                 if (successful) {
-                    setCopied(true);
+                    onCopied(true);
                 } else {
                     console.error('Fallback copy failed.');
                 }
@@ -143,18 +168,18 @@ export function TeamResult({ result }: TeamResultProps) {
             }
         }
 
-        setTimeout(() => setCopied(false), 2000);
+        setTimeout(() => onCopied(false), 2000);
     };
 
-    const ratingDiff = Math.abs(result.team1.totalRating - result.team2.totalRating);
+    const primaryRatingDiff = Math.abs(primary.team1.totalRating - primary.team2.totalRating);
 
     return (
         <div className="team-result">
             <div className="result-header">
                 <h3>Generated Teams</h3>
                 <div className="result-stats">
-                    {!privacyMode && <span>Rating Diff: {ratingDiff}</span>}
-                    <span>Social Satisfaction: {result.socialSatisfactionPct}%</span>
+                    {!privacyMode && <span>Rating Diff: {primaryRatingDiff}</span>}
+                    <span>Social Satisfaction: {primary.socialSatisfactionPct}%</span>
                 </div>
             </div>
 
@@ -162,12 +187,12 @@ export function TeamResult({ result }: TeamResultProps) {
                 <div className="team-box">
                     <div className="team-header">
                         <span className="team-name">Team 1</span>
-                        {!privacyMode && <span className="team-rating">* {result.team1.totalRating}</span>}
+                        {!privacyMode && <span className="team-rating">* {primary.team1.totalRating}</span>}
                     </div>
                     <div className="team-players">
-                        {team1Sorted.map(p => (
-                            <span key={p.id} style={{ marginRight: '8px', display: 'inline-block' }}>
-                                {p.nickname}
+                        {primaryTeam1Sorted.map((player) => (
+                            <span key={player.id} style={{ marginRight: '8px', display: 'inline-block' }}>
+                                {player.nickname}
                             </span>
                         ))}
                     </div>
@@ -176,29 +201,30 @@ export function TeamResult({ result }: TeamResultProps) {
                 <div className="team-box">
                     <div className="team-header">
                         <span className="team-name">Team 2</span>
-                        {!privacyMode && <span className="team-rating">* {result.team2.totalRating}</span>}
+                        {!privacyMode && <span className="team-rating">* {primary.team2.totalRating}</span>}
                     </div>
                     <div className="team-players">
-                        {team2Sorted.map(p => (
-                            <span key={p.id} style={{ marginRight: '8px', display: 'inline-block' }}>
-                                {p.nickname}
+                        {primaryTeam2Sorted.map((player) => (
+                            <span key={player.id} style={{ marginRight: '8px', display: 'inline-block' }}>
+                                {player.nickname}
                             </span>
                         ))}
                     </div>
                 </div>
             </div>
 
-            <button className="btn btn-primary copy-btn" onClick={handleCopy}>
-                {copied ? 'Copied!' : 'Copy Teams'}
+            <button
+                className="btn btn-primary copy-btn"
+                onClick={() => handleCopy(primaryCopyText, setCopiedPrimary)}
+            >
+                {copiedPrimary ? 'Copied!' : 'Copy Teams'}
             </button>
 
-            {result.explanation && (
-                <div className={`explanation-box ${result.isFallback ? 'fallback' : ''}`}>
-                    {analysis.headline && (
-                        <div className="analysis-headline">{analysis.headline}</div>
-                    )}
+            {primary.explanation && (
+                <div className={`explanation-box ${primary.isFallback ? 'fallback' : ''}`}>
+                    {primaryAnalysis.headline && <div className="analysis-headline">{primaryAnalysis.headline}</div>}
                     <div className="analysis-sections">
-                        {analysis.sections.map((section, sectionIndex) => (
+                        {primaryAnalysis.sections.map((section, sectionIndex) => (
                             <section key={`${section.title}-${sectionIndex}`} className="analysis-section">
                                 <div className="analysis-section-title">{section.title}</div>
                                 <div className="analysis-lines">
@@ -222,6 +248,94 @@ export function TeamResult({ result }: TeamResultProps) {
                             </section>
                         ))}
                     </div>
+                </div>
+            )}
+
+            <button
+                type="button"
+                className="planb-toggle-btn"
+                onClick={() => setShowPlanB((prev) => !prev)}
+                aria-expanded={showPlanB}
+                aria-controls="planb-panel"
+            >
+                {showPlanB ? 'Hide Second Option' : 'Show Second Option'}
+            </button>
+
+            {showPlanB && (
+                <div id="planb-panel" className="planb-panel">
+                    <div className="planb-header">Second Option</div>
+                    <div className="planb-reason">{comparison?.reason ?? result.secondaryReason}</div>
+
+                    {secondary ? (
+                        <>
+                            <div className="planb-meta">
+                                <span>Score: {formatValue(secondary.score)}</span>
+                                <span>Stage: {formatStageLabel(secondary.stage)}</span>
+                                <span>Social: {secondary.socialSatisfactionPct}%</span>
+                            </div>
+
+                            {comparison && (
+                                <div className="planb-diff-grid">
+                                    <div className="planb-diff-item">
+                                        <span className="planb-diff-label">Score Delta</span>
+                                        <span className="planb-diff-value">{formatDelta(comparison.scoreDelta)}</span>
+                                    </div>
+                                    <div className="planb-diff-item">
+                                        <span className="planb-diff-label">Rating Diff Delta</span>
+                                        <span className="planb-diff-value">{formatDelta(comparison.ratingDiffDelta)}</span>
+                                    </div>
+                                    <div className="planb-diff-item">
+                                        <span className="planb-diff-label">Social Delta</span>
+                                        <span className="planb-diff-value">{formatDelta(comparison.socialDelta)}</span>
+                                    </div>
+                                    <div className="planb-diff-item planb-diff-item-full">
+                                        <span className="planb-diff-label">Moved to T1</span>
+                                        <span className="planb-diff-value planb-diff-list">
+                                            {comparison.movedToTeam1.length > 0
+                                                ? comparison.movedToTeam1.join(', ')
+                                                : 'No swaps'}
+                                        </span>
+                                    </div>
+                                    <div className="planb-diff-item planb-diff-item-full">
+                                        <span className="planb-diff-label">Moved to T2</span>
+                                        <span className="planb-diff-value planb-diff-list">
+                                            {comparison.movedToTeam2.length > 0
+                                                ? comparison.movedToTeam2.join(', ')
+                                                : 'No swaps'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="planb-teams">
+                                <div className="planb-team-box">
+                                    <div className="planb-team-title">Team 1</div>
+                                    <div className="planb-team-players">
+                                        {secondaryTeam1Sorted.map((player) => (
+                                            <span key={`planb-t1-${player.id}`}>{player.nickname}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="planb-team-box">
+                                    <div className="planb-team-title">Team 2</div>
+                                    <div className="planb-team-players">
+                                        {secondaryTeam2Sorted.map((player) => (
+                                            <span key={`planb-t2-${player.id}`}>{player.nickname}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                className="btn btn-secondary planb-copy-btn"
+                                onClick={() => handleCopy(secondaryCopyText, setCopiedSecondary)}
+                            >
+                                {copiedSecondary ? 'Copied Second Option!' : 'Copy Second Option'}
+                            </button>
+                        </>
+                    ) : (
+                        <div className="planb-empty">No second option available under current constraints.</div>
+                    )}
                 </div>
             )}
         </div>

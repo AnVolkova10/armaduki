@@ -32,10 +32,30 @@ export interface Team {
   totalRating: number;
 }
 
-export interface GeneratedTeams {
+export type GenerationStage = 'STRICT' | 'RELAXED_UNILATERAL' | 'RELAXED_MUTUAL' | 'FALLBACK';
+
+export interface GeneratedTeamOption {
   team1: Team;
   team2: Team;
   socialSatisfactionPct: number;
   explanation?: string;
   isFallback?: boolean;
+  score: number;
+  stage: GenerationStage;
+}
+
+export interface TeamOptionComparison {
+  reason: string;
+  scoreDelta: number;
+  ratingDiffDelta: number;
+  socialDelta: number;
+  movedToTeam1: string[];
+  movedToTeam2: string[];
+}
+
+export interface GeneratedTeams {
+  primary: GeneratedTeamOption;
+  secondary: GeneratedTeamOption | null;
+  secondaryReason: string | null;
+  comparison: TeamOptionComparison | null;
 }

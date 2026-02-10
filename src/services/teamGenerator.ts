@@ -1,4 +1,12 @@
-﻿import type { Person, GeneratedTeams, AttributeLevel, Attributes } from '../types';
+import type {
+  Person,
+  GeneratedTeams,
+  AttributeLevel,
+  Attributes,
+  GeneratedTeamOption,
+  TeamOptionComparison,
+  GenerationStage,
+} from '../types';
 
 // Points configuration
 const POINTS = {
@@ -10,6 +18,10 @@ const MAX_GK = 1;
 const MAX_DEF = 2;
 const MAX_ATT = 2;
 const REQUIRED_GK_WILLINGNESS = 3; // If no main GK
+
+const SECONDARY_OPTION_REASON =
+  'Second option has lower balance score than Option 1 under the same constraint stage.';
+const NO_SECONDARY_OPTION_REASON = 'No second option available under current constraints.';
 
 function resolveOwnerId(value: unknown): string {
   if (typeof value === 'string' && value.trim() !== '') {
@@ -39,6 +51,13 @@ interface FailureStats {
   ownerBias: number;
 }
 
+interface RankedCandidate {
+  option: GeneratedTeamOption;
+  ratingDiff: number;
+  canonicalKey: string;
+  displayKey: string;
+}
+
 // Attribute Weights Configuration
 const WEIGHTS = {
   PHYSICAL: { HIGH: 2, MID: 0, LOW: -2 }, // Critical: Pace, Stamina
@@ -56,14 +75,20 @@ function getAttrValue(level: AttributeLevel | undefined, type: keyof typeof WEIG
 
 function calculateTeamStats(players: Person[]): TeamStats {
   const rating = players.reduce((sum, p) => sum + p.rating, 0);
-  
+
   const attributes: Record<keyof Attributes, number> = {
-    shooting: 0, control: 0, passing: 0, defense: 0,
-    pace: 0, vision: 0, grit: 0, stamina: 0
+    shooting: 0,
+    control: 0,
+    passing: 0,
+    defense: 0,
+    pace: 0,
+    vision: 0,
+    grit: 0,
+    stamina: 0,
   };
 
   const keys = Object.keys(attributes) as (keyof Attributes)[];
-  
+
   for (const key of keys) {
     let type: keyof typeof WEIGHTS = 'TECHNICAL'; // Default
     if (['pace', 'stamina'].includes(key)) type = 'PHYSICAL';
@@ -76,7 +101,7 @@ function calculateTeamStats(players: Person[]): TeamStats {
 }
 
 function hasSocialConflict(players: Person[]): boolean {
-  const ids = new Set(players.map(p => p.id));
+  const ids = new Set(players.map((p) => p.id));
   for (const p of players) {
     for (const avoidId of p.avoidsWith) {
       if (ids.has(avoidId)) return true; // Hard constraint: Avoid means NO
@@ -106,7 +131,9 @@ function validateTeam(players: Person[]): { valid: boolean; reason?: TeamValidat
   if (attCount > MAX_ATT) return { valid: false, reason: 'roles' };
 
   // Emergency GK Rule
-  if (gkCount === 0 && gkWillingCount < REQUIRED_GK_WILLINGNESS) return { valid: false, reason: 'emergencyGK' };
+  if (gkCount === 0 && gkWillingCount < REQUIRED_GK_WILLINGNESS) {
+    return { valid: false, reason: 'emergencyGK' };
+  }
 
   return { valid: true };
 }
@@ -175,19 +202,28 @@ function validateWantsConstraint(
 
 function getCombinations<T>(arr: T[], k: number): T[][] {
   const result: T[][] = [];
+
   function backtrack(start: number, current: T[]) {
     if (current.length === k) {
       result.push([...current]);
       return;
     }
+
     for (let i = start; i < arr.length; i++) {
       current.push(arr[i]);
       backtrack(i + 1, current);
       current.pop();
     }
   }
+
   backtrack(0, []);
   return result;
+}
+
+function stageFromMode(mode: WantsConstraintMode): GenerationStage {
+  if (mode === 'strict') return 'STRICT';
+  if (mode === 'relaxed_unilateral') return 'RELAXED_UNILATERAL';
+  return 'RELAXED_MUTUAL';
 }
 
 function calculateBalanceScore(stats1: TeamStats, stats2: TeamStats): number {
@@ -318,79 +354,191 @@ function createAnalysisExplanation(
 - Met dislikes links: ${socialMetDislikes}`;
 }
 
-function findBestResultForMode(
+function getSortedTeamKey(players: Person[]): string {
+  return players
+    .map((player) => player.id)
+    .sort((a, b) => a.localeCompare(b))
+    .join(',');
+}
+
+function canonicalizeTeams(
+  teamAPlayers: Person[],
+  teamBPlayers: Person[],
+  statsA: TeamStats,
+  statsB: TeamStats,
+): {
+  team1Players: Person[];
+  team2Players: Person[];
+  stats1: TeamStats;
+  stats2: TeamStats;
+  canonicalKey: string;
+  displayKey: string;
+} {
+  const teamAKey = getSortedTeamKey(teamAPlayers);
+  const teamBKey = getSortedTeamKey(teamBPlayers);
+
+  if (teamAKey <= teamBKey) {
+    return {
+      team1Players: teamAPlayers,
+      team2Players: teamBPlayers,
+      stats1: statsA,
+      stats2: statsB,
+      canonicalKey: `${teamAKey}||${teamBKey}`,
+      displayKey: `${teamAKey}|${teamBKey}`,
+    };
+  }
+
+  return {
+    team1Players: teamBPlayers,
+    team2Players: teamAPlayers,
+    stats1: statsB,
+    stats2: statsA,
+    canonicalKey: `${teamBKey}||${teamAKey}`,
+    displayKey: `${teamBKey}|${teamAKey}`,
+  };
+}
+
+function isCandidateBetter(candidate: RankedCandidate, existing: RankedCandidate): boolean {
+  if (candidate.option.score !== existing.option.score) {
+    return candidate.option.score > existing.option.score;
+  }
+
+  if (candidate.ratingDiff !== existing.ratingDiff) {
+    return candidate.ratingDiff < existing.ratingDiff;
+  }
+
+  return candidate.displayKey < existing.displayKey;
+}
+
+function compareCandidates(a: RankedCandidate, b: RankedCandidate): number {
+  if (a.option.score !== b.option.score) {
+    return b.option.score - a.option.score;
+  }
+
+  if (a.ratingDiff !== b.ratingDiff) {
+    return a.ratingDiff - b.ratingDiff;
+  }
+
+  return a.displayKey.localeCompare(b.displayKey);
+}
+
+function getTeamRatingDiff(option: GeneratedTeamOption): number {
+  return Math.abs(option.team1.totalRating - option.team2.totalRating);
+}
+
+function buildComparison(
+  primary: GeneratedTeamOption,
+  secondary: GeneratedTeamOption,
+  reason: string,
+): TeamOptionComparison {
+  const primaryTeam1Ids = new Set(primary.team1.players.map((player) => player.id));
+
+  const movedToTeam1 = secondary.team1.players
+    .filter((player) => !primaryTeam1Ids.has(player.id))
+    .map((player) => player.nickname)
+    .sort((a, b) => a.localeCompare(b));
+
+  const movedToTeam2 = secondary.team2.players
+    .filter((player) => primaryTeam1Ids.has(player.id))
+    .map((player) => player.nickname)
+    .sort((a, b) => a.localeCompare(b));
+
+  return {
+    reason,
+    scoreDelta: secondary.score - primary.score,
+    ratingDiffDelta: getTeamRatingDiff(secondary) - getTeamRatingDiff(primary),
+    socialDelta: secondary.socialSatisfactionPct - primary.socialSatisfactionPct,
+    movedToTeam1,
+    movedToTeam2,
+  };
+}
+
+function findRankedResultsForMode(
   players: Person[],
   allCombinations: Person[][],
   mode: WantsConstraintMode,
   failureStats: FailureStats,
-): GeneratedTeams | null {
-  let bestResult: GeneratedTeams | null = null;
-  let bestScore = -Infinity;
+): RankedCandidate[] {
+  const stage = stageFromMode(mode);
   const owner = players.find((player) => player.id === OWNER_ID);
+  const candidatesByPartition = new Map<string, RankedCandidate>();
 
-  for (const team1Players of allCombinations) {
-    const team1Ids = new Set(team1Players.map((player) => player.id));
-    const team2Players = players.filter((player) => !team1Ids.has(player.id));
+  for (const team1PlayersRaw of allCombinations) {
+    const team1IdsRaw = new Set(team1PlayersRaw.map((player) => player.id));
+    const team2PlayersRaw = players.filter((player) => !team1IdsRaw.has(player.id));
 
-    const v1 = validateTeam(team1Players);
-    const v2 = validateTeam(team2Players);
+    const v1 = validateTeam(team1PlayersRaw);
+    const v2 = validateTeam(team2PlayersRaw);
     if (!v1.valid || !v2.valid) {
       if (v1.reason) failureStats[v1.reason]++;
       if (v2.reason) failureStats[v2.reason]++;
       continue;
     }
 
-    const roleSplitValidation = validateRoleSplitWhenExactlyTwo(team1Players, team2Players, players);
+    const roleSplitValidation = validateRoleSplitWhenExactlyTwo(team1PlayersRaw, team2PlayersRaw, players);
     if (!roleSplitValidation.valid) {
       failureStats.roleSplit++;
       continue;
     }
 
-    const wantsValidation = validateWantsConstraint(team1Players, team2Players, mode);
+    const wantsValidation = validateWantsConstraint(team1PlayersRaw, team2PlayersRaw, mode);
     if (!wantsValidation.valid) {
       if (wantsValidation.reason) failureStats[wantsValidation.reason]++;
       continue;
     }
 
-    const stats1 = calculateTeamStats(team1Players);
-    const stats2 = calculateTeamStats(team2Players);
-    const ratingDiff = Math.abs(stats1.rating - stats2.rating);
+    const stats1Raw = calculateTeamStats(team1PlayersRaw);
+    const stats2Raw = calculateTeamStats(team2PlayersRaw);
+    const ratingDiffRaw = Math.abs(stats1Raw.rating - stats2Raw.rating);
 
     // Owner bias: owner must stay in weaker/equal team.
-    if (owner && ratingDiff > 0) {
-      const ownerInTeam1 = team1Ids.has(OWNER_ID);
-      const team1IsStronger = stats1.rating > stats2.rating;
-      if ((ownerInTeam1 && team1IsStronger) || (!ownerInTeam1 && !team1IsStronger)) {
+    if (owner && ratingDiffRaw > 0) {
+      const ownerInTeam1Raw = team1IdsRaw.has(OWNER_ID);
+      const team1RawIsStronger = stats1Raw.rating > stats2Raw.rating;
+      if ((ownerInTeam1Raw && team1RawIsStronger) || (!ownerInTeam1Raw && !team1RawIsStronger)) {
         failureStats.ownerBias++;
         continue;
       }
     }
 
-    const score = calculateBalanceScore(stats1, stats2);
-    if (score <= bestScore) continue;
+    const canonical = canonicalizeTeams(team1PlayersRaw, team2PlayersRaw, stats1Raw, stats2Raw);
+    const score = calculateBalanceScore(canonical.stats1, canonical.stats2);
 
-    const socialSat = calculateSocialSatisfaction(team1Players, team2Players);
-    const socialMetLinks = getMetRelationshipDetails(team1Players, team2Players);
-    const socialMetDislikes = getMetDislikeDetails(team1Players, team2Players);
+    const socialSat = calculateSocialSatisfaction(canonical.team1Players, canonical.team2Players);
+    const socialMetLinks = getMetRelationshipDetails(canonical.team1Players, canonical.team2Players);
+    const socialMetDislikes = getMetDislikeDetails(canonical.team1Players, canonical.team2Players);
 
-    bestScore = score;
-    bestResult = {
-      team1: { players: team1Players, totalRating: stats1.rating },
-      team2: { players: team2Players, totalRating: stats2.rating },
+    const option: GeneratedTeamOption = {
+      team1: { players: canonical.team1Players, totalRating: canonical.stats1.rating },
+      team2: { players: canonical.team2Players, totalRating: canonical.stats2.rating },
       socialSatisfactionPct: socialSat.percentage,
       explanation: createAnalysisExplanation(
         score,
-        stats1,
-        stats2,
+        canonical.stats1,
+        canonical.stats2,
         socialSat,
         socialMetLinks,
         socialMetDislikes,
       ),
       isFallback: false,
+      score,
+      stage,
     };
+
+    const candidate: RankedCandidate = {
+      option,
+      ratingDiff: Math.abs(canonical.stats1.rating - canonical.stats2.rating),
+      canonicalKey: canonical.canonicalKey,
+      displayKey: canonical.displayKey,
+    };
+
+    const existing = candidatesByPartition.get(candidate.canonicalKey);
+    if (!existing || isCandidateBetter(candidate, existing)) {
+      candidatesByPartition.set(candidate.canonicalKey, candidate);
+    }
   }
 
-  return bestResult;
+  return [...candidatesByPartition.values()].sort(compareCandidates);
 }
 
 export function generateTeams(players: Person[]): GeneratedTeams | null {
@@ -408,11 +556,21 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
   };
 
   const stageModes: WantsConstraintMode[] = ['strict', 'relaxed_unilateral', 'relaxed_mutual'];
+
   for (const stageMode of stageModes) {
-    const stageResult = findBestResultForMode(players, allCombinations, stageMode, failureStats);
-    if (stageResult) {
-      return stageResult;
-    }
+    const ranked = findRankedResultsForMode(players, allCombinations, stageMode, failureStats);
+    if (ranked.length === 0) continue;
+
+    const primary = ranked[0].option;
+    const secondary = ranked.length > 1 ? ranked[1].option : null;
+    const secondaryReason = secondary ? SECONDARY_OPTION_REASON : NO_SECONDARY_OPTION_REASON;
+
+    return {
+      primary,
+      secondary,
+      secondaryReason,
+      comparison: secondary ? buildComparison(primary, secondary, SECONDARY_OPTION_REASON) : null,
+    };
   }
 
   // Final fallback: snake split best-fit as last resort.
@@ -439,18 +597,23 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     return getPower(b) - getPower(a);
   });
 
-  const t1: Person[] = [];
-  const t2: Person[] = [];
+  const team1Players: Person[] = [];
+  const team2Players: Person[] = [];
+
   // Balanced distribution (1-2-2-1 snake)
   sortedPlayers.forEach((player, index) => {
-    if (index % 4 === 0 || index % 4 === 3) t1.push(player);
-    else t2.push(player);
+    if (index % 4 === 0 || index % 4 === 3) team1Players.push(player);
+    else team2Players.push(player);
   });
 
-  return {
-    team1: { players: t1, totalRating: calculateTeamStats(t1).rating },
-    team2: { players: t2, totalRating: calculateTeamStats(t2).rating },
-    socialSatisfactionPct: calculateSocialSatisfaction(t1, t2).percentage,
+  const stats1 = calculateTeamStats(team1Players);
+  const stats2 = calculateTeamStats(team2Players);
+  const socialSat = calculateSocialSatisfaction(team1Players, team2Players);
+
+  const primaryFallback: GeneratedTeamOption = {
+    team1: { players: team1Players, totalRating: stats1.rating },
+    team2: { players: team2Players, totalRating: stats2.rating },
+    socialSatisfactionPct: socialSat.percentage,
     explanation: `FALLBACK USED: staged constraints could not be met.
 - Social Conflicts: ${socialPct}%
 - Role Issues: ${rolePct}%
@@ -460,6 +623,15 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
 - Owner Bias (Too strong): ${biasPct}%
 Teams generated using Power Rating (Best Fit, ignoring constraints).`,
     isFallback: true,
+    score: calculateBalanceScore(stats1, stats2),
+    stage: 'FALLBACK',
+  };
+
+  return {
+    primary: primaryFallback,
+    secondary: null,
+    secondaryReason: NO_SECONDARY_OPTION_REASON,
+    comparison: null,
   };
 }
 
@@ -475,123 +647,122 @@ function calculateSocialSatisfaction(
   total: number;
   percentage: number;
 } {
-    const allPlayers = [...team1, ...team2];
-    const allIds = new Set(allPlayers.map(p => p.id));
-    let totalWants = 0;
-    let metWants = 0;
-    let totalDislikes = 0;
-    let metDislikes = 0;
+  const allPlayers = [...team1, ...team2];
+  const allIds = new Set(allPlayers.map((p) => p.id));
+  let totalWants = 0;
+  let metWants = 0;
+  let totalDislikes = 0;
+  let metDislikes = 0;
 
-    // Helper to check if two players are in the same team
-    const inSameTeam = (id1: string, id2: string) => {
-        const inT1 = team1.some(p => p.id === id1) && team1.some(p => p.id === id2);
-        const inT2 = team2.some(p => p.id === id1) && team2.some(p => p.id === id2);
-        return inT1 || inT2;
-    };
+  // Helper to check if two players are in the same team
+  const inSameTeam = (id1: string, id2: string) => {
+    const inT1 = team1.some((p) => p.id === id1) && team1.some((p) => p.id === id2);
+    const inT2 = team2.some((p) => p.id === id1) && team2.some((p) => p.id === id2);
+    return inT1 || inT2;
+  };
 
-    allPlayers.forEach(p => {
-        p.wantsWith.forEach(targetId => {
-            if (allIds.has(targetId)) {
-                totalWants++;
-                if (inSameTeam(p.id, targetId)) {
-                    metWants++;
-                }
-            }
-        });
-
-        p.avoidsWith.forEach(targetId => {
-            if (allIds.has(targetId)) {
-                totalDislikes++;
-                if (!inSameTeam(p.id, targetId)) {
-                    metDislikes++;
-                }
-            }
-        });
+  allPlayers.forEach((p) => {
+    p.wantsWith.forEach((targetId) => {
+      if (allIds.has(targetId)) {
+        totalWants++;
+        if (inSameTeam(p.id, targetId)) {
+          metWants++;
+        }
+      }
     });
 
-    const total = totalWants + totalDislikes;
-    const met = metWants + metDislikes;
+    p.avoidsWith.forEach((targetId) => {
+      if (allIds.has(targetId)) {
+        totalDislikes++;
+        if (!inSameTeam(p.id, targetId)) {
+          metDislikes++;
+        }
+      }
+    });
+  });
 
-    return {
-        wantsMet: metWants,
-        wantsTotal: totalWants,
-        dislikesMet: metDislikes,
-        dislikesTotal: totalDislikes,
-        met,
-        total,
-        percentage: total === 0 ? 100 : Math.round((met / total) * 100),
-    };
+  const totalRelationships = totalWants + totalDislikes;
+  const totalMet = metWants + metDislikes;
+
+  return {
+    wantsMet: metWants,
+    wantsTotal: totalWants,
+    dislikesMet: metDislikes,
+    dislikesTotal: totalDislikes,
+    met: totalMet,
+    total: totalRelationships,
+    percentage: totalRelationships === 0 ? 100 : Math.round((totalMet / totalRelationships) * 100),
+  };
 }
 
-
 function getMetRelationshipDetails(team1: Person[], team2: Person[]): string {
-    const allPlayers = [...team1, ...team2];
-    const byId = new Map(allPlayers.map(player => [player.id, player]));
-    const metLinks: string[] = [];
-    const processed = new Set<string>();
+  const allPlayers = [...team1, ...team2];
+  const byId = new Map(allPlayers.map((player) => [player.id, player]));
+  const metLinks: string[] = [];
+  const processed = new Set<string>();
 
-    const inSameTeam = (id1: string, id2: string) => {
-        const inT1 = team1.some(p => p.id === id1) && team1.some(p => p.id === id2);
-        const inT2 = team2.some(p => p.id === id1) && team2.some(p => p.id === id2);
-        return inT1 || inT2;
-    };
+  const inSameTeam = (id1: string, id2: string) => {
+    const inT1 = team1.some((p) => p.id === id1) && team1.some((p) => p.id === id2);
+    const inT2 = team2.some((p) => p.id === id1) && team2.some((p) => p.id === id2);
+    return inT1 || inT2;
+  };
 
-    for (const source of allPlayers) {
-        for (const targetId of source.wantsWith) {
-            const target = byId.get(targetId);
-            if (!target) continue;
-            if (!inSameTeam(source.id, targetId)) continue;
+  for (const source of allPlayers) {
+    for (const targetId of source.wantsWith) {
+      const target = byId.get(targetId);
+      if (!target) continue;
+      if (!inSameTeam(source.id, targetId)) continue;
 
-            const isMutual = target.wantsWith.includes(source.id);
-            if (isMutual) {
-                const pairKey = [source.id, targetId].sort().join('|');
-                if (processed.has(pairKey)) continue;
-                processed.add(pairKey);
-                metLinks.push(`${source.nickname} <-> ${target.nickname}`);
-            } else {
-                const pairKey = `${source.id}->${targetId}`;
-                if (processed.has(pairKey)) continue;
-                processed.add(pairKey);
-                metLinks.push(`${source.nickname} -> ${target.nickname}`);
-            }
-        }
+      const isMutual = target.wantsWith.includes(source.id);
+      if (isMutual) {
+        const pairKey = [source.id, targetId].sort().join('|');
+        if (processed.has(pairKey)) continue;
+        processed.add(pairKey);
+        metLinks.push(`${source.nickname} <-> ${target.nickname}`);
+      } else {
+        const pairKey = `${source.id}->${targetId}`;
+        if (processed.has(pairKey)) continue;
+        processed.add(pairKey);
+        metLinks.push(`${source.nickname} -> ${target.nickname}`);
+      }
     }
+  }
 
-    return metLinks.length > 0 ? metLinks.join(', ') : 'No met links';
+  return metLinks.length > 0 ? metLinks.join(', ') : 'No met links';
 }
 
 function getMetDislikeDetails(team1: Person[], team2: Person[]): string {
-    const allPlayers = [...team1, ...team2];
-    const byId = new Map(allPlayers.map(player => [player.id, player]));
-    const metDislikes: string[] = [];
-    const processed = new Set<string>();
+  const allPlayers = [...team1, ...team2];
+  const byId = new Map(allPlayers.map((player) => [player.id, player]));
+  const metDislikes: string[] = [];
+  const processed = new Set<string>();
 
-    const inSameTeam = (id1: string, id2: string) => {
-        const inT1 = team1.some(p => p.id === id1) && team1.some(p => p.id === id2);
-        const inT2 = team2.some(p => p.id === id1) && team2.some(p => p.id === id2);
-        return inT1 || inT2;
-    };
+  const inSameTeam = (id1: string, id2: string) => {
+    const inT1 = team1.some((p) => p.id === id1) && team1.some((p) => p.id === id2);
+    const inT2 = team2.some((p) => p.id === id1) && team2.some((p) => p.id === id2);
+    return inT1 || inT2;
+  };
 
-    for (const source of allPlayers) {
-        for (const targetId of source.avoidsWith) {
-            const target = byId.get(targetId);
-            if (!target) continue;
-            if (inSameTeam(source.id, targetId)) continue;
+  for (const source of allPlayers) {
+    for (const targetId of source.avoidsWith) {
+      const target = byId.get(targetId);
+      if (!target) continue;
+      if (inSameTeam(source.id, targetId)) continue;
 
-            const isMutual = target.avoidsWith.includes(source.id);
-            if (isMutual) {
-                const pairKey = [source.id, targetId].sort().join('|');
-                if (processed.has(pairKey)) continue;
-                processed.add(pairKey);
-                metDislikes.push(`${source.nickname} <!> ${target.nickname}`);
-            } else {
-                const pairKey = `${source.id}->${targetId}`;
-                if (processed.has(pairKey)) continue;
-                processed.add(pairKey);
-                metDislikes.push(`${source.nickname} !> ${target.nickname}`);
-            }
-        }
+      const isMutual = target.avoidsWith.includes(source.id);
+      if (isMutual) {
+        const pairKey = [source.id, targetId].sort().join('|');
+        if (processed.has(pairKey)) continue;
+        processed.add(pairKey);
+        metDislikes.push(`${source.nickname} <!> ${target.nickname}`);
+      } else {
+        const pairKey = `${source.id}->${targetId}`;
+        if (processed.has(pairKey)) continue;
+        processed.add(pairKey);
+        metDislikes.push(`${source.nickname} !> ${target.nickname}`);
+      }
     }
+  }
 
-    return metDislikes.length > 0 ? metDislikes.join(', ') : 'No met dislikes';
+  return metDislikes.length > 0 ? metDislikes.join(', ') : 'No met dislikes';
 }

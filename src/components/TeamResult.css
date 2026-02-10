@@ -81,6 +81,154 @@
   margin-bottom: 1rem;
 }
 
+.planb-toggle-btn {
+  width: 100%;
+  margin-bottom: 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #2f2f2f;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  color: #a8a8a8;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.planb-toggle-btn:hover {
+  border-color: #4a4a4a;
+  color: #d3d3d3;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.planb-panel {
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  padding: 0.7rem;
+  background: rgba(255, 255, 255, 0.015);
+  margin-bottom: 0.5rem;
+  opacity: 0.88;
+}
+
+.planb-header {
+  margin: 0 0 0.35rem 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #c9c9c9;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.planb-reason {
+  margin-bottom: 0.55rem;
+  font-size: 0.75rem;
+  color: #9a9a9a;
+  line-height: 1.35;
+}
+
+.planb-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.9rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.72rem;
+  color: #b0b0b0;
+}
+
+.planb-diff-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+@media (min-width: 720px) {
+  .planb-diff-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.planb-diff-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid #262626;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.planb-diff-item-full {
+  grid-column: 1 / -1;
+}
+
+.planb-diff-label {
+  font-size: 0.7rem;
+  color: #8e8e8e;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.planb-diff-value {
+  font-size: 0.74rem;
+  color: #d5d5d5;
+}
+
+.planb-diff-list {
+  text-align: right;
+  max-width: 72%;
+}
+
+.planb-teams {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+@media (min-width: 720px) {
+  .planb-teams {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.planb-team-box {
+  border: 1px solid #262626;
+  border-radius: 6px;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.planb-team-title {
+  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  color: #969696;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.planb-team-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  font-size: 0.82rem;
+  color: #d4d4d4;
+}
+
+.planb-copy-btn {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.82rem;
+  border: 1px solid #2d2d2d;
+  border-radius: 6px;
+}
+
+.planb-empty {
+  font-size: 0.78rem;
+  color: #9a9a9a;
+  padding: 0.4rem 0.2rem 0.15rem 0.2rem;
+}
+
 .explanation-box {
   margin-bottom: 1rem;
   padding: 0.75rem;
