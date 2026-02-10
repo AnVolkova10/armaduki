@@ -25,7 +25,8 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
   - mutual wants and one-way wants add score
   - social satisfaction includes met wants and met dislikes
 - Owner bias:
-  - player ID `10` is forced into the weaker/equal team
+  - player ID from `VITE_OWNER_ID` is forced into the weaker/equal team
+  - default owner ID is `10` if env var is missing/empty
 - If strict constraints fail, a fallback split is generated.
 
 ## Stack
@@ -58,6 +59,7 @@ npm install
 
 ```env
 VITE_APPS_SCRIPT_URL=your_google_apps_script_web_app_url
+VITE_OWNER_ID=10
 ```
 
 3. Start dev server:

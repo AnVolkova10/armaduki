@@ -16,7 +16,15 @@ const MAX_GK = 1;
 const MAX_DEF = 2;
 const MAX_ATT = 2;
 const REQUIRED_GK_WILLINGNESS = 3; // If no main GK
-const OWNER_ID = '10';
+
+function resolveOwnerId(value: unknown): string {
+  if (typeof value === 'string' && value.trim() !== '') {
+    return value.trim();
+  }
+  return '10';
+}
+
+const OWNER_ID = resolveOwnerId(import.meta.env.VITE_OWNER_ID);
 
 interface TeamStats {
   rating: number;
