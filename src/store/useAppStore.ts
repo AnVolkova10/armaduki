@@ -36,6 +36,33 @@ function validateRating(value: string | undefined): number {
   return Math.max(1, Math.min(10, num));
 }
 
+function buildUpdatePayload(person: Person) {
+  return {
+    action: 'update',
+    id: person.id,
+    name: person.name,
+    nickname: person.nickname,
+    role: person.role,
+    rating: person.rating,
+    avatar: person.avatar,
+    gkWillingness: person.gkWillingness,
+    wantsWith: person.wantsWith.join('|'),
+    avoidsWith: person.avoidsWith.join('|'),
+    attributes: JSON.stringify(person.attributes || {}),
+  };
+}
+
+async function postPersonUpdate(person: Person): Promise<void> {
+  await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'text/plain',
+    },
+    body: JSON.stringify(buildUpdatePayload(person)),
+  });
+}
+
 interface AppStore {
   // Data
   people: Person[];
@@ -54,6 +81,9 @@ interface AppStore {
   addPerson: (person: Person) => void;
   updatePerson: (person: Person) => void;
   deletePerson: (id: string) => void;
+  clearAllRelationships: () => Promise<void>;
+  clearWantsRelationships: () => Promise<void>;
+  clearAvoidsRelationships: () => Promise<void>;
   
   // Actions - Selection
   toggleSelection: (id: string) => void;
@@ -71,7 +101,7 @@ interface AppStore {
   togglePrivacyMode: () => void;
 }
 
-const useAppStore = create<AppStore>()((set) => ({
+const useAppStore = create<AppStore>()((set, get) => ({
   // Initial state
   people: [],
   selectedIds: new Set(),
@@ -180,31 +210,13 @@ const useAppStore = create<AppStore>()((set) => ({
       people: state.people.map(p => p.id === person.id ? person : p)
     }));
 
-    const payload = {
-      action: 'update',
-      id: person.id,
-      name: person.name,
-      nickname: person.nickname,
-      role: person.role,
-      rating: person.rating,
-      avatar: person.avatar,
-      gkWillingness: person.gkWillingness,
-      wantsWith: person.wantsWith.join('|'),
-      avoidsWith: person.avoidsWith.join('|'),
-      attributes: JSON.stringify(person.attributes || {}),
-    };
+    const payload = buildUpdatePayload(person);
 
     console.log('[DEBUG] updatePerson payload:', payload);
 
     try {
-      const response = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors', 
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-        body: JSON.stringify(payload),
-      });
+      await postPersonUpdate(person);
+      const response = { type: 'opaque', status: 0 };
       console.log('[DEBUG] updatePerson response:', response.type, response.status);
     } catch (error) {
       console.error('[DEBUG] updatePerson ERROR:', error);
@@ -239,6 +251,64 @@ const useAppStore = create<AppStore>()((set) => ({
     } catch (error) {
       console.error('Error deleting person from sheet:', error);
       set({ error: 'Error deleting player from Excel (deleted locally)' });
+    }
+  },
+
+  clearAllRelationships: async () => {
+    const currentPeople = get().people;
+    if (currentPeople.length === 0) return;
+
+    const updatedPeople = currentPeople.map(person => ({
+      ...person,
+      wantsWith: [],
+      avoidsWith: [],
+    }));
+
+    set({ people: updatedPeople });
+
+    try {
+      await Promise.all(updatedPeople.map(person => postPersonUpdate(person)));
+    } catch (error) {
+      console.error('Error clearing all relationships in sheet:', error);
+      set({ error: 'Error clearing relationships in Excel (cleared locally)' });
+    }
+  },
+
+  clearWantsRelationships: async () => {
+    const currentPeople = get().people;
+    if (currentPeople.length === 0) return;
+
+    const updatedPeople = currentPeople.map(person => ({
+      ...person,
+      wantsWith: [],
+    }));
+
+    set({ people: updatedPeople });
+
+    try {
+      await Promise.all(updatedPeople.map(person => postPersonUpdate(person)));
+    } catch (error) {
+      console.error('Error clearing positive relationships in sheet:', error);
+      set({ error: 'Error clearing positive links in Excel (cleared locally)' });
+    }
+  },
+
+  clearAvoidsRelationships: async () => {
+    const currentPeople = get().people;
+    if (currentPeople.length === 0) return;
+
+    const updatedPeople = currentPeople.map(person => ({
+      ...person,
+      avoidsWith: [],
+    }));
+
+    set({ people: updatedPeople });
+
+    try {
+      await Promise.all(updatedPeople.map(person => postPersonUpdate(person)));
+    } catch (error) {
+      console.error('Error clearing negative relationships in sheet:', error);
+      set({ error: 'Error clearing negative links in Excel (cleared locally)' });
     }
   },
 

@@ -17,7 +17,7 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [x] F1-03 En `People` mostrar quienes estan seleccionados en `Match`.
 - [x] F1-04 Cambiar label del modal: "Name" -> "Name or description".
 - [x] F1-04b Hover de delete: icono + fondo en rojo.
-- [ ] F1-05 Agregar botones en modal: limpiar todas las relaciones, limpiar positivas, limpiar negativas.
+- [x] F1-05 En People: agregar botones para limpiar todas las relaciones, solo positivas y solo negativas.
 - [ ] F1-06 Reemplazar `confirm/alert` de borrado por modal de confirmacion simple.
 - [ ] F1-07 Mejorar el titulo "Attributes" (ocultarlo o version mas compacta).
 - [ ] F1-08 Aumentar glow debajo de los emojis de atributos.

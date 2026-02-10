@@ -15,6 +15,9 @@ export function PeoplePage() {
         addPerson,
         updatePerson,
         deletePerson,
+        clearAllRelationships,
+        clearWantsRelationships,
+        clearAvoidsRelationships,
         setError,
     } = useAppStore();
 
@@ -49,11 +52,49 @@ export function PeoplePage() {
         }
     };
 
+    const handleClearAllRelationships = async () => {
+        if (!confirm('Are you sure you want to clear ALL links (positive and negative) for every player?')) return;
+        await clearAllRelationships();
+    };
+
+    const handleClearWantsRelationships = async () => {
+        if (!confirm('Are you sure you want to clear all positive links (wants) for every player?')) return;
+        await clearWantsRelationships();
+    };
+
+    const handleClearAvoidsRelationships = async () => {
+        if (!confirm('Are you sure you want to clear all negative links (avoids) for every player?')) return;
+        await clearAvoidsRelationships();
+    };
+
     return (
         <div className="people-page">
             <div className="page-header">
                 <h2>Players</h2>
                 <div className="header-actions">
+                    <div className="relationship-actions">
+                        <button
+                            className="btn btn-secondary relationship-btn relationship-btn-positive"
+                            onClick={handleClearWantsRelationships}
+                            disabled={people.length === 0}
+                        >
+                            Clear Wants
+                        </button>
+                        <button
+                            className="btn btn-secondary relationship-btn relationship-btn-negative"
+                            onClick={handleClearAvoidsRelationships}
+                            disabled={people.length === 0}
+                        >
+                            Clear Avoids
+                        </button>
+                        <button
+                            className="btn btn-secondary relationship-btn relationship-btn-all"
+                            onClick={handleClearAllRelationships}
+                            disabled={people.length === 0}
+                        >
+                            Clear All Links
+                        </button>
+                    </div>
                     <button className="btn btn-primary" onClick={() => setShowForm(true)}>
                         + Add Player
                     </button>

@@ -71,10 +71,6 @@ export function MatchPage() {
                 </div>
             ) : (
                 <>
-                    <div className="instructions">
-                        Select exactly 10 players to generate balanced teams.
-                    </div>
-
                     <div className="people-grid">
                         {people.map(person => (
                             <PersonCard
