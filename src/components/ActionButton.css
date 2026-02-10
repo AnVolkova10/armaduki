@@ -25,9 +25,11 @@
   border-color: var(--accent);
 }
 
-.action-btn--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+.action-btn--primary:hover:not(:disabled),
+.action-btn--primary:focus-visible:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.75);
 }
 
 .action-btn--neutral {
@@ -36,19 +38,19 @@
   border-color: var(--border);
 }
 
-.action-btn--tone-default:hover:not(:disabled),
-.action-btn--tone-light:hover:not(:disabled) {
+.action-btn--neutral.action-btn--tone-default:hover:not(:disabled),
+.action-btn--neutral.action-btn--tone-light:hover:not(:disabled) {
   color: #fff;
   border-color: rgba(255, 255, 255, 0.65);
   background: rgba(255, 255, 255, 0.04);
 }
 
-.action-btn--tone-positive:hover:not(:disabled) {
+.action-btn--neutral.action-btn--tone-positive:hover:not(:disabled) {
   color: #22c55e;
   border-color: rgba(34, 197, 94, 0.65);
 }
 
-.action-btn--tone-negative:hover:not(:disabled) {
+.action-btn--neutral.action-btn--tone-negative:hover:not(:disabled) {
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.65);
 }

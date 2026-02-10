@@ -27,7 +27,7 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [x] F1-12 Robustecer parseo de filas de Sheets para que un dato malformado no rompa toda la carga.
 
 ## Fase 2 - Media
-- [ ] F2-01 Si la app abre en `/match`, cargar jugadores desde Sheets tambien (local y deploy).
+- [x] F2-01 Si la app abre en `/match`, cargar jugadores desde Sheets tambien (local y deploy).
 - [ ] F2-02 Arreglar bug 404 en Vercel para rutas SPA (`/match`) con rewrites.
 - [ ] F2-03 Agregar metadatos para compartir (Open Graph + Twitter): icono, titulo y descripcion.
 - [ ] F2-04 Agregar `pronombres` en modal, store, sheet y tarjeta.

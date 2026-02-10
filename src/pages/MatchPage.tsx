@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { PersonCard } from '../components/PersonCard';
 import { TeamResult } from '../components/TeamResult';
@@ -10,6 +10,9 @@ export function MatchPage() {
     const {
         people,
         selectedIds,
+        isLoading,
+        error,
+        fetchPeople,
         toggleSelection,
         clearSelection,
         generatedTeams,
@@ -20,6 +23,12 @@ export function MatchPage() {
 
     const selectedCount = selectedIds.size;
     const canGenerate = selectedCount === 10;
+
+    useEffect(() => {
+        if (people.length === 0) {
+            fetchPeople();
+        }
+    }, [fetchPeople, people.length]);
 
     const handleGenerate = () => {
         setLocalError(null);
@@ -67,7 +76,9 @@ export function MatchPage() {
                 </div>
             </div>
 
-            {people.length === 0 ? (
+            {isLoading ? (
+                <div className="loading">Loading from Google Sheets...</div>
+            ) : people.length === 0 ? (
                 <div className="empty-state">
                     <p>No players available. Go to the Players page to add some.</p>
                 </div>
@@ -87,6 +98,7 @@ export function MatchPage() {
                 </>
             )}
 
+            {error && <div className="error">{error}</div>}
             {localError && <div className="error">{localError}</div>}
             {generatedTeams && <TeamResult result={generatedTeams} />}
         </div>
