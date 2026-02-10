@@ -40,6 +40,7 @@ export function MatchPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [uiRoleFilter, setUiRoleFilter] = useState('all');
     const [uiSortMode, setUiSortMode] = useState('none');
+    const [uiScoreSortDirection, setUiScoreSortDirection] = useState<'desc' | 'asc'>('desc');
 
     const selectedCount = selectedIds.size;
     const canGenerate = selectedCount === 10;
@@ -52,7 +53,7 @@ export function MatchPage() {
 
     const normalizedQuery = normalizeSearch(searchQuery);
 
-    const filteredPeople = useMemo(() => {
+    const searchedPeople = useMemo(() => {
         if (!normalizedQuery) return people;
 
         return people.filter((person) => {
@@ -62,6 +63,22 @@ export function MatchPage() {
             );
         });
     }, [normalizedQuery, people]);
+
+    const visiblePeople = useMemo(() => {
+        if (uiSortMode === 'none') return searchedPeople;
+
+        const sorted = [...searchedPeople];
+        if (uiSortMode === 'score') {
+            if (uiScoreSortDirection === 'desc') {
+                sorted.sort((a, b) => (b.rating - a.rating) || a.nickname.localeCompare(b.nickname));
+                return sorted;
+            }
+            sorted.sort((a, b) => (a.rating - b.rating) || a.nickname.localeCompare(b.nickname));
+            return sorted;
+        }
+
+        return searchedPeople;
+    }, [searchedPeople, uiScoreSortDirection, uiSortMode]);
 
     const handleGenerate = () => {
         setLocalError(null);
@@ -127,12 +144,42 @@ export function MatchPage() {
                         ariaLabel="Filter by role"
                     />
 
-                    <DropdownMenuSelect
-                        value={uiSortMode}
-                        options={SORT_OPTIONS}
-                        onChange={setUiSortMode}
-                        ariaLabel="Sort players"
-                    />
+                    <div className="match-sort-group">
+                        <DropdownMenuSelect
+                            value={uiSortMode}
+                            options={SORT_OPTIONS}
+                            onChange={setUiSortMode}
+                            ariaLabel="Sort players"
+                        />
+
+                        {uiSortMode === 'score' && (
+                            <button
+                                type="button"
+                                className="match-sort-direction-toggle"
+                                onClick={() =>
+                                    setUiScoreSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'))
+                                }
+                                aria-label={
+                                    uiScoreSortDirection === 'desc'
+                                        ? 'Score direction: high to low'
+                                        : 'Score direction: low to high'
+                                }
+                                title={
+                                    uiScoreSortDirection === 'desc'
+                                        ? 'Score: high -> low'
+                                        : 'Score: low -> high'
+                                }
+                            >
+                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                    {uiScoreSortDirection === 'desc' ? (
+                                        <path d="M12 5v14m0 0l5-5m-5 5l-5-5" />
+                                    ) : (
+                                        <path d="M12 19V5m0 0l5 5m-5-5l-5 5" />
+                                    )}
+                                </svg>
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -142,7 +189,7 @@ export function MatchPage() {
                 <div className="empty-state">
                     <p>No players available. Go to the Players page to add some.</p>
                 </div>
-            ) : filteredPeople.length === 0 ? (
+            ) : visiblePeople.length === 0 ? (
                 <div className="empty-state">
                     <p>No players match this search.</p>
                     <p>Try another prefix (for example: a, an, ma).</p>
@@ -150,7 +197,7 @@ export function MatchPage() {
             ) : (
                 <>
                     <div className="people-grid">
-                        {filteredPeople.map(person => (
+                        {visiblePeople.map(person => (
                             <PersonCard
                                 key={person.id}
                                 person={person}
@@ -166,7 +213,7 @@ export function MatchPage() {
             {!isLoading && people.length > 0 && (
                 <div className="match-count">
                     {normalizedQuery
-                        ? `Showing ${filteredPeople.length} of ${people.length} players`
+                        ? `Showing ${visiblePeople.length} of ${people.length} players`
                         : `Total: ${people.length} players`}
                 </div>
             )}

@@ -35,7 +35,7 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [x] F2-03 Agregar metadatos para compartir (Open Graph + Twitter): icono, titulo y descripcion.
 - [x] F2-04A Buscador prefijo por `nickname/name` en People + Match (`a`, `ab`, etc), case-insensitive.
 - [x] F2-04B UI base mobile-first de controles (search + filter + sort), minimalista y compacta.
-- [ ] F2-04C Ordenar por score (`asc/desc`).
+- [x] F2-04C Ordenar por score (`asc/desc`).
 - [ ] F2-04D Ordenar por posicion (`GK > DEF > MID > ATT > FLEX`).
 - [ ] F2-04E Filtrar por posicion (single-select + opcion `all`).
 - [ ] F2-04F Filtrar por score (modo inicial simple: `min score`).

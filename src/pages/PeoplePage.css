@@ -120,6 +120,43 @@
   gap: 0.4rem;
 }
 
+.people-page .people-sort-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+}
+
+.people-page .people-sort-direction-toggle {
+  min-height: 34px;
+  width: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.people-page .people-sort-direction-toggle:hover,
+.people-page .people-sort-direction-toggle:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.people-page .people-sort-direction-toggle svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .people-page .people-search-input {
   width: 100%;
   min-height: 38px;
