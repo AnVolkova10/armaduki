@@ -1,73 +1,104 @@
-# React + TypeScript + Vite
+# armaduki
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Team generator for 5v5 matches with social constraints, role balancing, and Google Sheets sync.
 
-Currently, two official plugins are available:
+## What it does
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Manage players in `People` (name, nickname, role, rating, attributes, wants, avoids, avatar).
+- Select exactly 10 players in `Match`.
+- Generate 2 balanced teams using tactical + social rules.
+- Show analysis with balance metrics and social satisfaction.
+- Copy team output in one click.
 
-## React Compiler
+## Core generation rules
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Input must be exactly 10 players.
+- Teams are 5 vs 5.
+- Hard constraints per team:
+  - max `1` GK
+  - max `2` DEF
+  - max `2` ATT
+  - if no GK in a team, it needs at least `3` players with `gkWillingness: yes`
+- Social hard constraint:
+  - players that avoid each other cannot be in the same team
+- Social scoring:
+  - mutual wants and one-way wants add score
+  - social satisfaction includes met wants and met dislikes
+- Owner bias:
+  - player ID `10` is forced into the weaker/equal team
+- If strict constraints fail, a fallback split is generated.
 
-## Expanding the ESLint configuration
+## Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- React 19 + TypeScript + Vite
+- Zustand for app state
+- React Router for `People` and `Match`
+- Google Apps Script endpoint for read/write to Sheets
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Project structure
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```text
+src/
+  components/   # UI pieces (cards, form, result, buttons, modal)
+  pages/        # PeoplePage, MatchPage
+  services/     # team generation logic
+  store/        # Zustand store + Sheets integration
+  types/        # shared TypeScript types
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Local setup
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+1. Install dependencies:
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
+
+2. Create `.env` in project root:
+
+```env
+VITE_APPS_SCRIPT_URL=your_google_apps_script_web_app_url
+```
+
+3. Start dev server:
+
+```bash
+npm run dev
+```
+
+## Scripts
+
+- `npm run dev` - run Vite dev server
+- `npm run build` - type-check + production build
+- `npm run preview` - preview production build
+- `npm run lint` - run ESLint
+
+## Data contract (Sheets/App Script)
+
+Expected fields from `action=read` response:
+
+- `id`
+- `name`
+- `nickname`
+- `role` (`GK | DEF | MID | ATT | FLEX`)
+- `rating` (`1..10`)
+- `avatar`
+- `gkWillingness` (`yes | low | no`)
+- `wantsWith` (pipe-separated IDs: `1|3|8`)
+- `avoidsWith` (pipe-separated IDs)
+- `attributes` (JSON string/object)
+
+Write actions used by the app:
+
+- `add`
+- `update`
+- `delete`
+
+## UX notes
+
+- UI is intentionally minimal and dark.
+- Mobile-first behavior is required for all new changes.
+
+## Roadmap
+
+Current work is tracked in `TODO.md` and implemented in small, isolated iterations.

@@ -19,11 +19,11 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [x] F1-04b Hover de delete: icono + fondo en rojo.
 - [x] F1-05 En People: agregar botones para limpiar todas las relaciones, solo positivas y solo negativas.
 - [x] F1-06 Reemplazar `confirm/alert` por modal de confirmacion simple reutilizable (accept/cancel).
-- [ ] F1-07 Mejorar el titulo "Attributes" (ocultarlo o version mas compacta).
-- [ ] F1-08 Aumentar glow debajo de los emojis de atributos.
-- [ ] F1-09 Mantener triple click de privacidad, pero quitar pistas visuales (sin opacidad hover y sin cursor pointer).
-- [ ] F1-10 Limpiar dependencias no usadas (`papaparse`, `xlsx`) si no se usan en runtime.
-- [ ] F1-11 Reemplazar README template por README propio del proyecto.
+- [x] F1-07 Mejorar el titulo "Attributes" (ocultarlo o version mas compacta).
+- [x] F1-08 Aumentar glow debajo de los emojis de atributos.
+- [x] F1-09 Mantener triple click de privacidad, pero quitar pistas visuales (sin opacidad hover y sin cursor pointer).
+- [x] F1-10 Limpiar dependencias no usadas (`papaparse`, `xlsx`) si no se usan en runtime.
+- [x] F1-11 Reemplazar README template por README propio del proyecto.
 - [ ] F1-12 Robustecer parseo de filas de Sheets para que un dato malformado no rompa toda la carga.
 
 ## Fase 2 - Media

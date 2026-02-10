@@ -88,17 +88,10 @@
   background: transparent;
   border: none;
   color: #ef4444;
-  cursor: pointer;
   padding: 4px;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
   opacity: 0.2;
-}
-
-.privacy-toggle-mini:hover {
-  opacity: 0.6;
-  background: rgba(239, 68, 68, 0.1);
 }

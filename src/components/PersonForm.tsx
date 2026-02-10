@@ -267,7 +267,6 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
 
                     {/* Attributes Grid */}
                     <div className="stats-section">
-                        <label style={{ marginBottom: '1rem' }}>Attributes</label>
                         <div className="attributes-grid">
                             {attributesList.map(attr => renderAttributeRow(attr.key, attr.label))}
                         </div>
