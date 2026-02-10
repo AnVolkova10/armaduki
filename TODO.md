@@ -1,0 +1,53 @@
+# MEGA TODO - armaduki
+
+Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cascada.
+
+## Regla de ejecucion
+- [ ] Tomar solo 1 item por iteracion.
+- [ ] No tocar otros modulos salvo dependencias directas del item.
+- [ ] Al cerrar un item, probar en local antes de pasar al siguiente.
+
+## Fase 1 - Facil
+- [ ] F1-01 Quitar "Relationship Score" del resultado y mostrar solo Social Satisfaction (%).
+- [ ] F1-02 En Social Satisfaction mostrar tambien dislikes cumplidos (met dislikes / total dislikes).
+- [ ] F1-03 En `People` mostrar quienes estan seleccionados en `Match`.
+- [ ] F1-04 Cambiar label del modal: "Name" -> "Name or description".
+- [ ] F1-05 Agregar botones en modal: limpiar todas las relaciones, limpiar positivas, limpiar negativas.
+- [ ] F1-06 Reemplazar `confirm/alert` de borrado por modal de confirmacion simple.
+- [ ] F1-07 Mejorar el titulo "Attributes" (ocultarlo o version mas compacta).
+- [ ] F1-08 Aumentar glow debajo de los emojis de atributos.
+- [ ] F1-09 Mantener triple click de privacidad, pero quitar pistas visuales (sin opacidad hover y sin cursor pointer).
+- [ ] F1-10 Limpiar dependencias no usadas (`papaparse`, `xlsx`) si no se usan en runtime.
+- [ ] F1-11 Reemplazar README template por README propio del proyecto.
+- [ ] F1-12 Robustecer parseo de filas de Sheets para que un dato malformado no rompa toda la carga.
+
+## Fase 2 - Media
+- [ ] F2-01 Si la app abre en `/match`, cargar jugadores desde Sheets tambien (local y deploy).
+- [ ] F2-02 Arreglar bug 404 en Vercel para rutas SPA (`/match`) con rewrites.
+- [ ] F2-03 Agregar metadatos para compartir (Open Graph + Twitter): icono, titulo y descripcion.
+- [ ] F2-04 Agregar `pronombres` en modal, store, sheet y tarjeta.
+- [ ] F2-05 Agregar `numero de camiseta` en modal, store, sheet y tarjeta.
+- [ ] F2-06 Agregar `equipo` + `dia/lugar` (multiples valores) en modal, store, sheet y tarjeta.
+- [ ] F2-07 En la tarjeta, mostrar `equipo` con circulo de dos colores.
+- [ ] F2-08 Ordenar por score, equipo, posicion (`GK > DEF > MID > ATT > FLEX`) y dia/lugar.
+- [ ] F2-09 Filtrar por equipo, score, posicion y dia/lugar.
+- [ ] F2-10 Mejorar guardado optimista: estado de sync, error claro y opcion de reintento cuando falle Apps Script.
+- [ ] F2-11 Rating default automatico desde atributos cuando el rating manual no fue editado (definir puntos y restas).
+- [ ] F2-12 Hacer variable el sesgo de owner (`OWNER_ID`) para que no quede hardcodeado.
+
+## Fase 3 - Dificil
+- [ ] F3-01 Balance tactico DEF/ATT: si hay 2 DEF o 2 ATT, intentar 1 por equipo como regla fuerte.
+- [ ] F3-02 Soporte de suplentes: 10 titulares + 1 o 2 suplentes (en gris) y salida/copia clara.
+- [ ] F3-03 Regla social avanzada: avoid mutuo = restriccion dura, avoid unilateral = penalizacion blanda.
+- [ ] F3-04 En modal, mostrar relaciones inversas (quien te quiere / quien te evita) con estilo de baja opacidad.
+- [ ] F3-05 Generar segunda opcion de armado (Plan B) con explicacion completa y UI debajo de `Copy Teams`.
+- [ ] F3-06 Permitir partidos con tamano variable sin romper balanceador (con y sin suplentes).
+- [ ] F3-07 Guardar historial de equipos/partidos en otra pestana del Sheet (investigar complejidad tecnica).
+
+## Backlog (low priority)
+- [ ] B-01 Auth/roles para edicion (por ahora no prioritario).
+- [ ] B-02 Tests automaticos del generador/store (por ahora backlog).
+- [ ] B-03 Preparar app para multi-grupo/multi-liga (hoy uso personal).
+- [ ] B-04 Definir alcance a mediano plazo (seguir personal o abrir a mas grupos).
+- [ ] B-05 Aclarar requisito pendiente "sugerencia #1 no entendida" y convertirlo en item tecnico concreto.
+- [ ] B-06 Aclarar requisito pendiente "pregunta #10 no entendida" y convertirlo en item tecnico concreto.
