@@ -29,6 +29,12 @@
   width: 100%;
 }
 
+.match-page .match-controls-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.4rem;
+}
+
 .match-page .match-search-input {
   width: 100%;
   min-height: 38px;
@@ -88,6 +94,11 @@
 }
 
 @media (min-width: 640px) {
+  .match-page .match-controls-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 170px) minmax(0, 170px);
+    gap: 0.35rem;
+  }
+
   .match-page .people-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 1rem;

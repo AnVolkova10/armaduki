@@ -3,9 +3,25 @@ import useAppStore from '../store/useAppStore';
 import { PersonCard } from '../components/PersonCard';
 import { TeamResult } from '../components/TeamResult';
 import { ActionButton } from '../components/ActionButton';
+import { DropdownMenuSelect } from '../components/DropdownMenuSelect';
 import { generateTeams } from '../services/teamGenerator';
 import { matchesWordPrefix, normalizeSearch } from '../utils/search';
 import './MatchPage.css';
+
+const ROLE_FILTER_OPTIONS = [
+    { value: 'all', label: 'Filter: all roles' },
+    { value: 'GK', label: 'Filter: GK' },
+    { value: 'DEF', label: 'Filter: DEF' },
+    { value: 'MID', label: 'Filter: MID' },
+    { value: 'ATT', label: 'Filter: ATT' },
+    { value: 'FLEX', label: 'Filter: FLEX' },
+];
+
+const SORT_OPTIONS = [
+    { value: 'none', label: 'Sort: none' },
+    { value: 'score', label: 'Sort: score' },
+    { value: 'position', label: 'Sort: position' },
+];
 
 export function MatchPage() {
     const {
@@ -22,6 +38,8 @@ export function MatchPage() {
 
     const [localError, setLocalError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [uiRoleFilter, setUiRoleFilter] = useState('all');
+    const [uiSortMode, setUiSortMode] = useState('none');
 
     const selectedCount = selectedIds.size;
     const canGenerate = selectedCount === 10;
@@ -92,14 +110,30 @@ export function MatchPage() {
             </div>
 
             <div className="match-controls">
-                <input
-                    type="text"
-                    className="match-search-input"
-                    placeholder="Search players (prefix)..."
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    aria-label="Search players by nickname or name"
-                />
+                <div className="match-controls-grid">
+                    <input
+                        type="text"
+                        className="match-search-input"
+                        placeholder="Search players..."
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        aria-label="Search players by nickname or name"
+                    />
+
+                    <DropdownMenuSelect
+                        value={uiRoleFilter}
+                        options={ROLE_FILTER_OPTIONS}
+                        onChange={setUiRoleFilter}
+                        ariaLabel="Filter by role"
+                    />
+
+                    <DropdownMenuSelect
+                        value={uiSortMode}
+                        options={SORT_OPTIONS}
+                        onChange={setUiSortMode}
+                        ariaLabel="Sort players"
+                    />
+                </div>
             </div>
 
             {isLoading ? (

@@ -1,0 +1,108 @@
+.dropdown-select {
+  width: 100%;
+  position: relative;
+}
+
+.dropdown-select-trigger {
+  width: 100%;
+  min-height: 34px;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.dropdown-select-trigger:hover:not(:disabled),
+.dropdown-select-trigger:focus-visible:not(:disabled) {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+.dropdown-select-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dropdown-select-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dropdown-select-caret {
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  color: var(--text-secondary);
+  pointer-events: none;
+  transition: transform 0.18s ease;
+}
+
+.dropdown-select.is-open .dropdown-select-caret {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.dropdown-select-caret svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dropdown-select-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.3rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  display: grid;
+  gap: 0.25rem;
+  z-index: 30;
+}
+
+.dropdown-select-option {
+  min-height: 34px;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.dropdown-select-option:hover,
+.dropdown-select-option:focus-visible {
+  outline: none;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dropdown-select-option.is-active {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.02);
+}

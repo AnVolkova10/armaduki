@@ -4,6 +4,7 @@ import { PersonForm } from '../components/PersonForm';
 import { PersonCard } from '../components/PersonCard';
 import { ActionButton } from '../components/ActionButton';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { DropdownMenuSelect } from '../components/DropdownMenuSelect';
 import type { Person } from '../types';
 import { matchesWordPrefix, normalizeSearch } from '../utils/search';
 import './PeoplePage.css';
@@ -15,6 +16,21 @@ interface ConfirmState {
     tone: 'default' | 'danger';
     onConfirm: () => Promise<void> | void;
 }
+
+const ROLE_FILTER_OPTIONS = [
+    { value: 'all', label: 'Filter: all roles' },
+    { value: 'GK', label: 'Filter: GK' },
+    { value: 'DEF', label: 'Filter: DEF' },
+    { value: 'MID', label: 'Filter: MID' },
+    { value: 'ATT', label: 'Filter: ATT' },
+    { value: 'FLEX', label: 'Filter: FLEX' },
+];
+
+const SORT_OPTIONS = [
+    { value: 'none', label: 'Sort: none' },
+    { value: 'score', label: 'Sort: score' },
+    { value: 'position', label: 'Sort: position' },
+];
 
 export function PeoplePage() {
     const {
@@ -37,6 +53,8 @@ export function PeoplePage() {
     const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [uiRoleFilter, setUiRoleFilter] = useState('all');
+    const [uiSortMode, setUiSortMode] = useState('none');
     const [showClearLinksMenu, setShowClearLinksMenu] = useState(false);
     const clearLinksMenuRef = useRef<HTMLDivElement | null>(null);
 
@@ -207,14 +225,30 @@ export function PeoplePage() {
             </div>
 
             <div className="people-controls">
-                <input
-                    type="text"
-                    className="people-search-input"
-                    placeholder="Search players (prefix)..."
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    aria-label="Search players by nickname or name"
-                />
+                <div className="people-controls-grid">
+                    <input
+                        type="text"
+                        className="people-search-input"
+                        placeholder="Search players..."
+                        value={searchQuery}
+                        onChange={(event) => setSearchQuery(event.target.value)}
+                        aria-label="Search players by nickname or name"
+                    />
+
+                    <DropdownMenuSelect
+                        value={uiRoleFilter}
+                        options={ROLE_FILTER_OPTIONS}
+                        onChange={setUiRoleFilter}
+                        ariaLabel="Filter by role"
+                    />
+
+                    <DropdownMenuSelect
+                        value={uiSortMode}
+                        options={SORT_OPTIONS}
+                        onChange={setUiSortMode}
+                        ariaLabel="Sort players"
+                    />
+                </div>
             </div>
 
             {isLoading && <div className="loading">Loading from Google Sheets...</div>}
