@@ -24,7 +24,7 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [x] F1-09 Mantener triple click de privacidad, pero quitar pistas visuales (sin opacidad hover y sin cursor pointer).
 - [x] F1-10 Limpiar dependencias no usadas (`papaparse`, `xlsx`) si no se usan en runtime.
 - [x] F1-11 Reemplazar README template por README propio del proyecto.
-- [ ] F1-12 Robustecer parseo de filas de Sheets para que un dato malformado no rompa toda la carga.
+- [x] F1-12 Robustecer parseo de filas de Sheets para que un dato malformado no rompa toda la carga.
 
 ## Fase 2 - Media
 - [ ] F2-01 Si la app abre en `/match`, cargar jugadores desde Sheets tambien (local y deploy).

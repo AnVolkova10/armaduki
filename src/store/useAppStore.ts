@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Person, Role, GKWillingness, GeneratedTeams } from '../types';
+import type { Attributes, AttributeLevel, GeneratedTeams, GKWillingness, Person, Role } from '../types';
 
 // Google Apps Script Web App URL
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
@@ -16,6 +16,106 @@ function parseArrayField(value: string | number | undefined): string[] {
   const str = String(value).trim();
   if (str === '') return [];
   return str.split('|').map(s => s.trim()).filter(Boolean);
+}
+
+const ATTRIBUTE_KEYS: (keyof Attributes)[] = [
+  'shooting',
+  'control',
+  'passing',
+  'defense',
+  'pace',
+  'vision',
+  'grit',
+  'stamina',
+];
+
+const DEFAULT_ATTRIBUTES: Attributes = {
+  shooting: 'mid',
+  control: 'mid',
+  passing: 'mid',
+  defense: 'mid',
+  pace: 'mid',
+  vision: 'mid',
+  grit: 'mid',
+  stamina: 'mid',
+};
+
+function isAttributeLevel(value: unknown): value is AttributeLevel {
+  return value === 'high' || value === 'mid' || value === 'low';
+}
+
+function parseAttributes(value: unknown): Attributes {
+  if (value === undefined || value === null || value === '') {
+    return { ...DEFAULT_ATTRIBUTES };
+  }
+
+  let parsed: unknown = value;
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return { ...DEFAULT_ATTRIBUTES };
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    return { ...DEFAULT_ATTRIBUTES };
+  }
+
+  const raw = parsed as Partial<Record<keyof Attributes, unknown>>;
+  const normalized: Attributes = { ...DEFAULT_ATTRIBUTES };
+
+  for (const key of ATTRIBUTE_KEYS) {
+    const maybeLevel = raw[key];
+    if (isAttributeLevel(maybeLevel)) {
+      normalized[key] = maybeLevel;
+    }
+  }
+
+  return normalized;
+}
+
+function normalizeKey(key: string): string {
+  return key.toLowerCase().replace(/\s/g, '');
+}
+
+function parsePersonRow(row: unknown, index: number): Person | null {
+  if (!row || typeof row !== 'object') return null;
+
+  const rowRecord = row as Record<string, unknown>;
+  const normalizedRow = new Map<string, unknown>();
+
+  for (const [key, value] of Object.entries(rowRecord)) {
+    normalizedRow.set(normalizeKey(key), value);
+  }
+
+  const getValue = (targetKey: string): unknown => normalizedRow.get(normalizeKey(targetKey));
+
+  const nickname = getValue('nickname')?.toString().trim() || '';
+  if (!nickname || nickname.toLowerCase() === 'unknown') return null;
+
+  const id = getValue('id')?.toString().trim() || String(index + 1);
+  const name = getValue('name')?.toString().trim() || '';
+  const role = validateRole(getValue('role')?.toString());
+  const rating = validateRating(getValue('rating')?.toString());
+  const avatar = getValue('avatar')?.toString().trim() || '';
+  const gkWillingness = validateGKWillingness(getValue('gkwillingness')?.toString());
+  const wantsWith = parseArrayField(getValue('wantswith') as string | number | undefined);
+  const avoidsWith = parseArrayField(getValue('avoidswith') as string | number | undefined);
+  const attributes = parseAttributes(getValue('attributes'));
+
+  return {
+    id,
+    name,
+    nickname,
+    role,
+    rating,
+    avatar,
+    gkWillingness,
+    wantsWith,
+    avoidsWith,
+    attributes,
+  };
 }
 
 function validateRole(value: string | undefined): Role {
@@ -126,34 +226,33 @@ const useAppStore = create<AppStore>()((set, get) => ({
         throw new Error('Incorrect data format: not an array');
       }
 
-      const people: Person[] = rawData
-        .map((row: any) => {
-          // Helper to find key ignoring case and spaces
-          const getValue = (targetKey: string) => {
-            const key = Object.keys(row).find(k => k.toLowerCase().replace(/\s/g, '') === targetKey.toLowerCase());
-            return key ? row[key] : undefined;
-          };
+      let skippedRows = 0;
+      const people: Person[] = [];
 
-          return {
-            id: getValue('id')?.toString().trim() || '0',
-            name: getValue('name')?.toString().trim() || '',
-            nickname: getValue('nickname')?.toString().trim() || 'Unknown',
-            role: validateRole(getValue('role')),
-            rating: validateRating(getValue('rating')),
-            avatar: getValue('avatar')?.toString().trim() || '',
-            gkWillingness: validateGKWillingness(getValue('gkwillingness')),
-            wantsWith: parseArrayField(getValue('wantswith')),
-            avoidsWith: parseArrayField(getValue('avoidswith')),
-            attributes: getValue('attributes') ? (typeof getValue('attributes') === 'string' ? JSON.parse(getValue('attributes')) : getValue('attributes')) : {
-              shooting: 'mid', control: 'mid', passing: 'mid', defense: 'mid',
-              pace: 'mid', vision: 'mid', grit: 'mid', stamina: 'mid'
-            }
-          };
-        }).filter((p: Person) => p.nickname !== 'Unknown' && p.nickname !== '');
+      rawData.forEach((row: unknown, index: number) => {
+        try {
+          const parsed = parsePersonRow(row, index);
+          if (parsed) {
+            people.push(parsed);
+          } else {
+            skippedRows++;
+          }
+        } catch (rowError) {
+          skippedRows++;
+          console.warn(`Skipped malformed row ${index + 1}:`, rowError);
+        }
+      });
 
+      if (skippedRows > 0) {
+        console.warn(`Skipped ${skippedRows} malformed row(s) while loading players.`);
+      }
 
       console.log('Parsed People:', people);
-      set({ people, isLoading: false });
+      set({
+        people,
+        isLoading: false,
+        error: people.length === 0 && skippedRows > 0 ? 'No valid players found in Google Sheets' : null,
+      });
     } catch (error) {
       console.error('Error fetching people data:', error);
       set({ 
