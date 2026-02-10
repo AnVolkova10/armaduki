@@ -4,6 +4,14 @@ import type { Attributes, AttributeLevel, GeneratedTeams, GKWillingness, Person,
 // Google Apps Script Web App URL
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
 
+type SyncStatus = 'idle' | 'saving' | 'synced' | 'error';
+
+interface FailedSyncOperation {
+  label: string;
+  errorMessage: string;
+  run: () => Promise<void>;
+}
+
 // Helper to get next sequential ID
 function getNextId(people: Person[]): string {
   if (people.length === 0) return '0';
@@ -152,15 +160,42 @@ function buildUpdatePayload(person: Person) {
   };
 }
 
-async function postPersonUpdate(person: Person): Promise<void> {
+function buildAddPayload(person: Person) {
+  return {
+    action: 'add',
+    id: person.id,
+    name: person.name,
+    nickname: person.nickname,
+    role: person.role,
+    rating: person.rating,
+    avatar: person.avatar,
+    gkWillingness: person.gkWillingness,
+    wantsWith: person.wantsWith.join('|'),
+    avoidsWith: person.avoidsWith.join('|'),
+    attributes: JSON.stringify(person.attributes || {}),
+  };
+}
+
+function buildDeletePayload(id: string) {
+  return {
+    action: 'delete',
+    id,
+  };
+}
+
+async function postAppsScriptPayload(payload: Record<string, unknown>): Promise<void> {
   await fetch(APPS_SCRIPT_URL, {
     method: 'POST',
     mode: 'no-cors',
     headers: {
       'Content-Type': 'text/plain',
     },
-    body: JSON.stringify(buildUpdatePayload(person)),
+    body: JSON.stringify(payload),
   });
+}
+
+async function postPersonUpdate(person: Person): Promise<void> {
+  await postAppsScriptPayload(buildUpdatePayload(person));
 }
 
 interface AppStore {
@@ -172,6 +207,12 @@ interface AppStore {
   // Loading state
   isLoading: boolean;
   error: string | null;
+
+  // Sync state
+  syncStatus: SyncStatus;
+  syncMessage: string | null;
+  syncUpdatedAt: number | null;
+  lastFailedSyncOperation: FailedSyncOperation | null;
   
   // Actions - Data fetching
   fetchPeople: () => Promise<void>;
@@ -195,239 +236,280 @@ interface AppStore {
   
   // Actions - Error handling
   setError: (error: string | null) => void;
+  retryLastSync: () => Promise<void>;
+  clearSyncState: () => void;
 
   // App State
   privacyMode: boolean;
   togglePrivacyMode: () => void;
 }
 
-const useAppStore = create<AppStore>()((set, get) => ({
-  // Initial state
-  people: [],
-  selectedIds: new Set(),
-  generatedTeams: null,
-  isLoading: false,
-  error: null,
-  privacyMode: true,
-
-  togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
-
-  // Fetch people from Google Sheets CSV (Read-only)
-  fetchPeople: async () => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      const response = await fetch(`${APPS_SCRIPT_URL}?action=read`);
-      const rawData = await response.json();
-      
-      console.log('Raw Data from Apps Script:', rawData);
-
-      if (!Array.isArray(rawData)) {
-        throw new Error('Incorrect data format: not an array');
-      }
-
-      let skippedRows = 0;
-      const people: Person[] = [];
-
-      rawData.forEach((row: unknown, index: number) => {
-        try {
-          const parsed = parsePersonRow(row, index);
-          if (parsed) {
-            people.push(parsed);
-          } else {
-            skippedRows++;
-          }
-        } catch (rowError) {
-          skippedRows++;
-          console.warn(`Skipped malformed row ${index + 1}:`, rowError);
-        }
-      });
-
-      if (skippedRows > 0) {
-        console.warn(`Skipped ${skippedRows} malformed row(s) while loading players.`);
-      }
-
-      console.log('Parsed People:', people);
-      set({
-        people,
-        isLoading: false,
-        error: people.length === 0 && skippedRows > 0 ? 'No valid players found in Google Sheets' : null,
-      });
-    } catch (error) {
-      console.error('Error fetching people data:', error);
-      set({ 
-        error: 'Error loading data from Google Sheets', 
-        isLoading: false 
-      });
-    }
-  },
-
-  setPeople: (people) => set({ people }),
-
-  addPerson: async (person) => {
-    // Generate sequential ID if not provided
-    const state = useAppStore.getState();
-    const newId = person.id || getNextId(state.people);
-    const personWithId = { ...person, id: newId };
-    
-    // Optimistic update
-    set((state) => ({ 
-      people: [...state.people, personWithId] 
-    }));
-
-    try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors', 
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-        body: JSON.stringify({
-          action: 'add',
-          id: personWithId.id,
-          name: person.name,
-          nickname: person.nickname,
-          role: person.role,
-          rating: person.rating,
-          avatar: person.avatar,
-          gkWillingness: person.gkWillingness,
-          wantsWith: person.wantsWith.join('|'),
-          avoidsWith: person.avoidsWith.join('|'),
-          // New stats columns
-          attributes: JSON.stringify(person.attributes || {}),
-        }),
-      });
-    } catch (error) {
-      console.error('Error adding person to sheet:', error);
-      set({ error: 'Error adding player to Excel (saved locally)' });
-    }
-  },
-
-  updatePerson: async (person) => {
-    // Optimistic update
-    set((state) => ({
-      people: state.people.map(p => p.id === person.id ? person : p)
-    }));
-
-    const payload = buildUpdatePayload(person);
-
-    console.log('[DEBUG] updatePerson payload:', payload);
-
-    try {
-      await postPersonUpdate(person);
-      const response = { type: 'opaque', status: 0 };
-      console.log('[DEBUG] updatePerson response:', response.type, response.status);
-    } catch (error) {
-      console.error('[DEBUG] updatePerson ERROR:', error);
-      set({ error: 'Error updating player in Excel (updated locally)' });
-    }
-  },
-
-
-  deletePerson: async (id) => {
-    // Optimistic update
-    set((state) => {
-      const newSelected = new Set(state.selectedIds);
-      newSelected.delete(id);
-      return {
-        people: state.people.filter(p => p.id !== id),
-        selectedIds: newSelected,
-      };
+const useAppStore = create<AppStore>()((set, get) => {
+  const runSyncOperation = async (params: {
+    label: string;
+    task: () => Promise<void>;
+    errorMessage: string;
+    retryTask?: () => Promise<void>;
+  }) => {
+    console.info(`Sync start: ${params.label}`);
+    set({
+      syncStatus: 'saving',
+      syncMessage: `Syncing ${params.label}...`,
+      syncUpdatedAt: Date.now(),
+      lastFailedSyncOperation: null,
     });
 
     try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors', 
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-        body: JSON.stringify({
-          action: 'delete',
-          id,
-        }),
+      await params.task();
+      console.info(`Sync success: ${params.label}`);
+      set({
+        syncStatus: 'synced',
+        syncMessage: `Synced ${params.label}.`,
+        syncUpdatedAt: Date.now(),
+        lastFailedSyncOperation: null,
       });
-    } catch (error) {
-      console.error('Error deleting person from sheet:', error);
-      set({ error: 'Error deleting player from Excel (deleted locally)' });
+    } catch (syncError) {
+      console.error(`Sync failed (${params.label}):`, syncError);
+      const retryOperation: FailedSyncOperation = {
+        label: params.label,
+        errorMessage: params.errorMessage,
+        run: params.retryTask ?? params.task,
+      };
+
+      set({
+        syncStatus: 'error',
+        syncMessage: params.errorMessage,
+        syncUpdatedAt: Date.now(),
+        lastFailedSyncOperation: retryOperation,
+      });
     }
-  },
+  };
 
-  clearAllRelationships: async () => {
-    const currentPeople = get().people;
-    if (currentPeople.length === 0) return;
+  return {
+    // Initial state
+    people: [],
+    selectedIds: new Set(),
+    generatedTeams: null,
+    isLoading: false,
+    error: null,
+    syncStatus: 'idle',
+    syncMessage: null,
+    syncUpdatedAt: null,
+    lastFailedSyncOperation: null,
+    privacyMode: true,
 
-    const updatedPeople = currentPeople.map(person => ({
-      ...person,
-      wantsWith: [],
-      avoidsWith: [],
-    }));
+    togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
 
-    set({ people: updatedPeople });
+    // Fetch people from Google Sheets CSV (Read-only)
+    fetchPeople: async () => {
+      set({ isLoading: true, error: null });
+      
+      try {
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=read`);
+        const rawData = await response.json();
+        
+        console.log('Raw Data from Apps Script:', rawData);
 
-    try {
-      await Promise.all(updatedPeople.map(person => postPersonUpdate(person)));
-    } catch (error) {
-      console.error('Error clearing all relationships in sheet:', error);
-      set({ error: 'Error clearing relationships in Excel (cleared locally)' });
-    }
-  },
+        if (!Array.isArray(rawData)) {
+          throw new Error('Incorrect data format: not an array');
+        }
 
-  clearWantsRelationships: async () => {
-    const currentPeople = get().people;
-    if (currentPeople.length === 0) return;
+        let skippedRows = 0;
+        const people: Person[] = [];
 
-    const updatedPeople = currentPeople.map(person => ({
-      ...person,
-      wantsWith: [],
-    }));
+        rawData.forEach((row: unknown, index: number) => {
+          try {
+            const parsed = parsePersonRow(row, index);
+            if (parsed) {
+              people.push(parsed);
+            } else {
+              skippedRows++;
+            }
+          } catch (rowError) {
+            skippedRows++;
+            console.warn(`Skipped malformed row ${index + 1}:`, rowError);
+          }
+        });
 
-    set({ people: updatedPeople });
+        if (skippedRows > 0) {
+          console.warn(`Skipped ${skippedRows} malformed row(s) while loading players.`);
+        }
 
-    try {
-      await Promise.all(updatedPeople.map(person => postPersonUpdate(person)));
-    } catch (error) {
-      console.error('Error clearing positive relationships in sheet:', error);
-      set({ error: 'Error clearing positive links in Excel (cleared locally)' });
-    }
-  },
+        console.log('Parsed People:', people);
+        set({
+          people,
+          isLoading: false,
+          error: people.length === 0 && skippedRows > 0 ? 'No valid players found in Google Sheets' : null,
+        });
+      } catch (fetchError) {
+        console.error('Error fetching people data:', fetchError);
+        set({ 
+          error: 'Error loading data from Google Sheets', 
+          isLoading: false 
+        });
+      }
+    },
 
-  clearAvoidsRelationships: async () => {
-    const currentPeople = get().people;
-    if (currentPeople.length === 0) return;
+    setPeople: (people) => set({ people }),
 
-    const updatedPeople = currentPeople.map(person => ({
-      ...person,
-      avoidsWith: [],
-    }));
+    addPerson: async (person) => {
+      const state = get();
+      const newId = person.id || getNextId(state.people);
+      const personWithId = { ...person, id: newId };
 
-    set({ people: updatedPeople });
+      // Optimistic update first
+      set((innerState) => ({
+        people: [...innerState.people, personWithId],
+      }));
 
-    try {
-      await Promise.all(updatedPeople.map(person => postPersonUpdate(person)));
-    } catch (error) {
-      console.error('Error clearing negative relationships in sheet:', error);
-      set({ error: 'Error clearing negative links in Excel (cleared locally)' });
-    }
-  },
+      const syncTask = () => postAppsScriptPayload(buildAddPayload(personWithId));
+      await runSyncOperation({
+        label: `player "${personWithId.nickname}"`,
+        task: syncTask,
+        retryTask: syncTask,
+        errorMessage: `Couldn't sync "${personWithId.nickname}" to Google Sheets. Saved locally.`,
+      });
+    },
 
-  toggleSelection: (id) => set((state) => {
-    const newSelected = new Set(state.selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    return { selectedIds: newSelected };
-  }),
+    updatePerson: async (person) => {
+      // Optimistic update first
+      set((state) => ({
+        people: state.people.map((existing) => (existing.id === person.id ? person : existing)),
+      }));
 
-  clearSelection: () => set({ selectedIds: new Set(), generatedTeams: null }),
+      const syncTask = () => postPersonUpdate(person);
+      await runSyncOperation({
+        label: `player "${person.nickname}"`,
+        task: syncTask,
+        retryTask: syncTask,
+        errorMessage: `Couldn't update "${person.nickname}" in Google Sheets. Updated locally.`,
+      });
+    },
 
-  selectAll: (ids) => set({ selectedIds: new Set(ids) }),
+    deletePerson: async (id) => {
+      const existing = get().people.find((person) => person.id === id);
+      const label = existing?.nickname || `ID ${id}`;
 
-  setGeneratedTeams: (teams) => set({ generatedTeams: teams }),
+      // Optimistic update first
+      set((state) => {
+        const newSelected = new Set(state.selectedIds);
+        newSelected.delete(id);
+        return {
+          people: state.people.filter((person) => person.id !== id),
+          selectedIds: newSelected,
+        };
+      });
 
-  setError: (error) => set({ error }),
-}));
+      const syncTask = () => postAppsScriptPayload(buildDeletePayload(id));
+      await runSyncOperation({
+        label: `delete "${label}"`,
+        task: syncTask,
+        retryTask: syncTask,
+        errorMessage: `Couldn't delete "${label}" in Google Sheets. Removed locally.`,
+      });
+    },
+
+    clearAllRelationships: async () => {
+      const currentPeople = get().people;
+      if (currentPeople.length === 0) return;
+
+      const updatedPeople = currentPeople.map((person) => ({
+        ...person,
+        wantsWith: [],
+        avoidsWith: [],
+      }));
+
+      // Optimistic update first
+      set({ people: updatedPeople });
+
+      const syncTask = () => Promise.all(updatedPeople.map((person) => postPersonUpdate(person))).then(() => undefined);
+      await runSyncOperation({
+        label: 'all links',
+        task: syncTask,
+        retryTask: syncTask,
+        errorMessage: 'Couldn\'t clear all links in Google Sheets. Cleared locally.',
+      });
+    },
+
+    clearWantsRelationships: async () => {
+      const currentPeople = get().people;
+      if (currentPeople.length === 0) return;
+
+      const updatedPeople = currentPeople.map((person) => ({
+        ...person,
+        wantsWith: [],
+      }));
+
+      // Optimistic update first
+      set({ people: updatedPeople });
+
+      const syncTask = () => Promise.all(updatedPeople.map((person) => postPersonUpdate(person))).then(() => undefined);
+      await runSyncOperation({
+        label: 'positive links',
+        task: syncTask,
+        retryTask: syncTask,
+        errorMessage: 'Couldn\'t clear positive links in Google Sheets. Cleared locally.',
+      });
+    },
+
+    clearAvoidsRelationships: async () => {
+      const currentPeople = get().people;
+      if (currentPeople.length === 0) return;
+
+      const updatedPeople = currentPeople.map((person) => ({
+        ...person,
+        avoidsWith: [],
+      }));
+
+      // Optimistic update first
+      set({ people: updatedPeople });
+
+      const syncTask = () => Promise.all(updatedPeople.map((person) => postPersonUpdate(person))).then(() => undefined);
+      await runSyncOperation({
+        label: 'negative links',
+        task: syncTask,
+        retryTask: syncTask,
+        errorMessage: 'Couldn\'t clear negative links in Google Sheets. Cleared locally.',
+      });
+    },
+
+    toggleSelection: (id) => set((state) => {
+      const newSelected = new Set(state.selectedIds);
+      if (newSelected.has(id)) {
+        newSelected.delete(id);
+      } else {
+        newSelected.add(id);
+      }
+      return { selectedIds: newSelected };
+    }),
+
+    clearSelection: () => set({ selectedIds: new Set(), generatedTeams: null }),
+
+    selectAll: (ids) => set({ selectedIds: new Set(ids) }),
+
+    setGeneratedTeams: (teams) => set({ generatedTeams: teams }),
+
+    setError: (error) => set({ error }),
+
+    retryLastSync: async () => {
+      const failed = get().lastFailedSyncOperation;
+      if (!failed) return;
+
+      await runSyncOperation({
+        label: failed.label,
+        task: failed.run,
+        retryTask: failed.run,
+        errorMessage: failed.errorMessage,
+      });
+    },
+
+    clearSyncState: () => set({
+      syncStatus: 'idle',
+      syncMessage: null,
+      syncUpdatedAt: Date.now(),
+      lastFailedSyncOperation: null,
+    }),
+  };
+});
 
 export default useAppStore;

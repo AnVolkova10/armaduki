@@ -74,6 +74,9 @@ export function PeoplePage() {
         clearAvoidsRelationships,
         setError,
         privacyMode,
+        syncStatus,
+        syncMessage,
+        clearSyncState,
     } = useAppStore();
 
     const [showForm, setShowForm] = useState(false);
@@ -401,6 +404,14 @@ export function PeoplePage() {
                 <div className="error">
                     {error}
                     <button className="btn btn-secondary" onClick={() => setError(null)}>
+                        &times;
+                    </button>
+                </div>
+            )}
+            {syncStatus === 'error' && syncMessage && (
+                <div className="error">
+                    {syncMessage}
+                    <button className="btn btn-secondary" onClick={clearSyncState}>
                         &times;
                     </button>
                 </div>

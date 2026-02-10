@@ -41,8 +41,8 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 - [x] F2-04F Filtrar por score (modo inicial simple: `score exacto`, ej. `6`).
 - [x] F2-04G Combinacion estable: aplicar `search -> filters -> sort` sin romper seleccion actual.
 - [x] F2-04H Boton `Reset controls` para limpiar buscador, filtros y orden.
-- [ ] F2-10 Mejorar guardado optimista: estado de sync, error claro y opcion de reintento cuando falle Apps Script.
-- [ ] F2-11 Rating default automatico desde atributos cuando el rating manual no fue editado (definir puntos y restas).
+- [x] F2-10 Mejorar guardado optimista: estado de sync, error claro y opcion de reintento cuando falle Apps Script.
+- [x] F2-11 Sugerencia de rating desde atributos en modal (rating manual no se modifica solo).
 - [ ] F2-12 Hacer variable el sesgo de owner (`OWNER_ID`) para que no quede hardcodeado.
 
 ## Fase 2 - Postergado (cambios en Sheet/App Script)

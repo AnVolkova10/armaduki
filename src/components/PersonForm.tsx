@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useAppStore from '../store/useAppStore';
 import type { Person, Role, GKWillingness, AttributeLevel, Attributes } from '../types';
+import { getSuggestedRating } from '../utils/ratingSuggestion';
 import './PersonForm.css';
 
 interface PersonFormProps {
@@ -43,6 +44,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         shooting: 'mid', control: 'mid', passing: 'mid', defense: 'mid',
         pace: 'mid', vision: 'mid', grit: 'mid', stamina: 'mid'
     });
+    const suggestedRating = useMemo(() => getSuggestedRating(attributes), [attributes]);
 
     const [avatar, setAvatar] = useState(person?.avatar || '');
     const [gkWillingness, setGkWillingness] = useState<GKWillingness>(person?.gkWillingness || 'low');
@@ -209,6 +211,10 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                         {/* Col 3: Rating Manual (Hidden in Privacy Mode) */}
                         {!privacyMode && (
                             <div className="rating-section-header">
+                                <div className="rating-suggested" aria-live="polite">
+                                    <span className="rating-suggested-label">suggested:</span>
+                                    <span className="rating-suggested-value">{suggestedRating}</span>
+                                </div>
                                 {/* Label Removed per request, just grid with Gold accent */}
                                 <div className="rating-grid">
                                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (

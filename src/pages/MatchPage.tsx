@@ -75,6 +75,9 @@ export function MatchPage() {
         clearWantsRelationships,
         clearAvoidsRelationships,
         privacyMode,
+        syncStatus,
+        syncMessage,
+        clearSyncState,
     } = useAppStore();
 
     const [localError, setLocalError] = useState<string | null>(null);
@@ -451,6 +454,14 @@ export function MatchPage() {
 
             {error && <div className="error">{error}</div>}
             {localError && <div className="error">{localError}</div>}
+            {syncStatus === 'error' && syncMessage && (
+                <div className="error">
+                    {syncMessage}
+                    <button className="btn btn-secondary" onClick={clearSyncState}>
+                        &times;
+                    </button>
+                </div>
+            )}
             {generatedTeams && <TeamResult result={generatedTeams} />}
 
             <ConfirmDialog

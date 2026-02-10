@@ -412,6 +412,11 @@
     align-items: center;
     text-align: center;
   }
+
+  .rating-section-header {
+    min-width: 100%;
+    padding-top: 0;
+  }
   
   .relationships-container {
     grid-template-columns: 1fr;
@@ -516,6 +521,27 @@
   min-width: 140px;
   justify-content: center;
   padding-top: 1.2rem; /* Align deeply with inputs */
+}
+
+.rating-suggested {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.rating-suggested-label {
+  text-transform: lowercase;
+}
+
+.rating-suggested-value {
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  font-weight: 700;
+  font-family: monospace;
 }
 
 .rating-grid {
