@@ -29,7 +29,7 @@ Estado: ordenado de facil a dificil para avanzar paso a paso, sin cambios en cas
 ## Fase 2 - Media
 - [x] F2-01 Si la app abre en `/match`, cargar jugadores desde Sheets tambien (local y deploy).
 - [x] F2-02 Arreglar bug 404 en Vercel para rutas SPA (`/match`) con rewrites.
-- [ ] F2-03 Agregar metadatos para compartir (Open Graph + Twitter): icono, titulo y descripcion.
+- [x] F2-03 Agregar metadatos para compartir (Open Graph + Twitter): icono, titulo y descripcion.
 - [ ] F2-04 Agregar `pronombres` en modal, store, sheet y tarjeta.
 - [ ] F2-05 Agregar `numero de camiseta` en modal, store, sheet y tarjeta.
 - [ ] F2-06 Agregar `equipo` + `dia/lugar` (multiples valores) en modal, store, sheet y tarjeta.
