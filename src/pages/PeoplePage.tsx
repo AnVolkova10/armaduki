@@ -260,7 +260,11 @@ export function PeoplePage() {
                         ariaLabel="Filter by role"
                     />
 
-                    <div className="people-sort-group">
+                    <div
+                        className={`people-sort-group ${
+                            uiSortMode === 'score' ? 'people-sort-group--with-toggle' : ''
+                        }`}
+                    >
                         <DropdownMenuSelect
                             value={uiSortMode}
                             options={SORT_OPTIONS}

@@ -144,7 +144,11 @@ export function MatchPage() {
                         ariaLabel="Filter by role"
                     />
 
-                    <div className="match-sort-group">
+                    <div
+                        className={`match-sort-group ${
+                            uiSortMode === 'score' ? 'match-sort-group--with-toggle' : ''
+                        }`}
+                    >
                         <DropdownMenuSelect
                             value={uiSortMode}
                             options={SORT_OPTIONS}
