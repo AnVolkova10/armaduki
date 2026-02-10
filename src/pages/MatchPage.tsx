@@ -1,13 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { PersonCard } from '../components/PersonCard';
 import { TeamResult } from '../components/TeamResult';
 import { ActionButton } from '../components/ActionButton';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { DropdownMenuSelect } from '../components/DropdownMenuSelect';
 import { generateTeams } from '../services/teamGenerator';
 import { matchesWordPrefix, normalizeSearch } from '../utils/search';
 import type { Person } from '../types';
 import './MatchPage.css';
+
+interface ConfirmState {
+    title: string;
+    message: string;
+    confirmLabel: string;
+    tone: 'default' | 'danger';
+    onConfirm: () => Promise<void> | void;
+}
 
 const ROLE_FILTER_OPTIONS = [
     { value: 'all', label: 'Filter: all roles' },
@@ -21,6 +30,11 @@ const ROLE_FILTER_OPTIONS = [
 const SORT_OPTIONS = [
     { value: 'none', label: 'Sort: none' },
     { value: 'score', label: 'Sort: score' },
+    { value: 'position', label: 'Sort: position' },
+];
+
+const SORT_OPTIONS_PRIVACY = [
+    { value: 'none', label: 'Sort: none' },
     { value: 'position', label: 'Sort: position' },
 ];
 
@@ -56,15 +70,23 @@ export function MatchPage() {
         toggleSelection,
         clearSelection,
         generatedTeams,
-        setGeneratedTeams
+        setGeneratedTeams,
+        clearAllRelationships,
+        clearWantsRelationships,
+        clearAvoidsRelationships,
+        privacyMode,
     } = useAppStore();
 
     const [localError, setLocalError] = useState<string | null>(null);
+    const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+    const [isConfirming, setIsConfirming] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [uiRoleFilter, setUiRoleFilter] = useState<'all' | Person['role']>('all');
     const [uiScoreFilter, setUiScoreFilter] = useState<'all' | `${number}`>('all');
     const [uiSortMode, setUiSortMode] = useState('none');
     const [uiScoreSortDirection, setUiScoreSortDirection] = useState<'desc' | 'asc'>('desc');
+    const [showClearMenu, setShowClearMenu] = useState(false);
+    const clearMenuRef = useRef<HTMLDivElement | null>(null);
 
     const selectedCount = selectedIds.size;
     const canGenerate = selectedCount === 10;
@@ -75,7 +97,28 @@ export function MatchPage() {
         }
     }, [fetchPeople, people.length]);
 
+    useEffect(() => {
+        if (!privacyMode) return;
+        if (uiScoreFilter !== 'all') setUiScoreFilter('all');
+        if (uiSortMode === 'score') setUiSortMode('none');
+        if (uiScoreSortDirection !== 'desc') setUiScoreSortDirection('desc');
+    }, [privacyMode, uiScoreFilter, uiScoreSortDirection, uiSortMode]);
+
+    useEffect(() => {
+        const handleDocumentClick = (event: MouseEvent) => {
+            if (!showClearMenu) return;
+            const target = event.target as Node;
+            if (!clearMenuRef.current?.contains(target)) {
+                setShowClearMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleDocumentClick);
+        return () => document.removeEventListener('mousedown', handleDocumentClick);
+    }, [showClearMenu]);
+
     const normalizedQuery = normalizeSearch(searchQuery);
+    const availableSortOptions = privacyMode ? SORT_OPTIONS_PRIVACY : SORT_OPTIONS;
 
     const searchedPeople = useMemo(() => {
         if (!normalizedQuery) return people;
@@ -94,16 +137,16 @@ export function MatchPage() {
     }, [searchedPeople, uiRoleFilter]);
 
     const filteredPeople = useMemo(() => {
-        if (uiScoreFilter === 'all') return roleFilteredPeople;
+        if (privacyMode || uiScoreFilter === 'all') return roleFilteredPeople;
         const targetScore = Number(uiScoreFilter);
         return roleFilteredPeople.filter((person) => person.rating === targetScore);
-    }, [roleFilteredPeople, uiScoreFilter]);
+    }, [privacyMode, roleFilteredPeople, uiScoreFilter]);
 
     const visiblePeople = useMemo(() => {
-        if (uiSortMode === 'none') return filteredPeople;
+        if (uiSortMode === 'none' || (privacyMode && uiSortMode === 'score')) return filteredPeople;
 
         const sorted = [...filteredPeople];
-        if (uiSortMode === 'score') {
+        if (uiSortMode === 'score' && !privacyMode) {
             if (uiScoreSortDirection === 'desc') {
                 sorted.sort((a, b) => (b.rating - a.rating) || a.nickname.localeCompare(b.nickname));
                 return sorted;
@@ -122,10 +165,10 @@ export function MatchPage() {
         }
 
         return sorted;
-    }, [filteredPeople, uiScoreSortDirection, uiSortMode]);
+    }, [filteredPeople, privacyMode, uiScoreSortDirection, uiSortMode]);
 
     const hasActiveSearchOrFilter =
-        Boolean(normalizedQuery) || uiRoleFilter !== 'all' || uiScoreFilter !== 'all';
+        Boolean(normalizedQuery) || uiRoleFilter !== 'all' || (!privacyMode && uiScoreFilter !== 'all');
 
     const handleGenerate = () => {
         setLocalError(null);
@@ -146,9 +189,70 @@ export function MatchPage() {
         }
     };
 
-    const handleClear = () => {
+    const handleClearSelection = () => {
         clearSelection();
         setLocalError(null);
+        setShowClearMenu(false);
+    };
+
+    const handleClearFilters = () => {
+        setShowClearMenu(false);
+        setSearchQuery('');
+        setUiRoleFilter('all');
+        setUiScoreFilter('all');
+        setUiSortMode('none');
+        setUiScoreSortDirection('desc');
+    };
+
+    const requestConfirm = (state: ConfirmState) => {
+        setConfirmState(state);
+        setShowClearMenu(false);
+    };
+
+    const handleConfirmCancel = () => {
+        if (isConfirming) return;
+        setConfirmState(null);
+    };
+
+    const handleConfirmAccept = async () => {
+        if (!confirmState) return;
+        setIsConfirming(true);
+        try {
+            await confirmState.onConfirm();
+        } finally {
+            setIsConfirming(false);
+            setConfirmState(null);
+        }
+    };
+
+    const handleClearAllRelationships = () => {
+        requestConfirm({
+            title: 'Clear all links?',
+            message: 'This will remove every positive and negative relationship for all players.',
+            confirmLabel: 'Clear All',
+            tone: 'danger',
+            onConfirm: () => clearAllRelationships(),
+        });
+    };
+
+    const handleClearWantsRelationships = () => {
+        requestConfirm({
+            title: 'Clear positive links?',
+            message: 'This will remove all wants links for every player.',
+            confirmLabel: 'Clear Wants',
+            tone: 'danger',
+            onConfirm: () => clearWantsRelationships(),
+        });
+    };
+
+    const handleClearAvoidsRelationships = () => {
+        requestConfirm({
+            title: 'Clear negative links?',
+            message: 'This will remove all avoids links for every player.',
+            confirmLabel: 'Clear Avoids',
+            tone: 'danger',
+            onConfirm: () => clearAvoidsRelationships(),
+        });
     };
 
     return (
@@ -159,9 +263,64 @@ export function MatchPage() {
                     <span className="selection-count">
                         {selectedCount}/10 selected
                     </span>
-                    <ActionButton variant="neutral" tone="light" onClick={handleClear}>
-                        Clear Selection
-                    </ActionButton>
+                    <div className="relationship-actions" ref={clearMenuRef}>
+                        <ActionButton
+                            variant="neutral"
+                            tone="light"
+                            className="clear-links-trigger"
+                            onClick={() => setShowClearMenu((prev) => !prev)}
+                            disabled={people.length === 0 && selectedCount === 0}
+                            aria-expanded={showClearMenu}
+                            aria-haspopup="menu"
+                        >
+                            Clear
+                            <span className="clear-links-caret" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                                    <path d="M6 9l6 6 6-6" />
+                                </svg>
+                            </span>
+                        </ActionButton>
+
+                        {showClearMenu && (
+                            <div className="clear-links-menu" role="menu">
+                                <button
+                                    type="button"
+                                    className="clear-links-option clear-links-option--light"
+                                    onClick={handleClearSelection}
+                                >
+                                    Clear Selection
+                                </button>
+                                <button
+                                    type="button"
+                                    className="clear-links-option clear-links-option--light"
+                                    onClick={handleClearFilters}
+                                >
+                                    Clear Filters
+                                </button>
+                                <button
+                                    type="button"
+                                    className="clear-links-option clear-links-option--positive"
+                                    onClick={handleClearWantsRelationships}
+                                >
+                                    Clear Wants
+                                </button>
+                                <button
+                                    type="button"
+                                    className="clear-links-option clear-links-option--negative"
+                                    onClick={handleClearAvoidsRelationships}
+                                >
+                                    Clear Avoids
+                                </button>
+                                <button
+                                    type="button"
+                                    className="clear-links-option clear-links-option--light"
+                                    onClick={handleClearAllRelationships}
+                                >
+                                    Clear All
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <ActionButton
                         variant="primary"
                         className="generate-teams-btn"
@@ -174,7 +333,7 @@ export function MatchPage() {
             </div>
 
             <div className="match-controls">
-                <div className="match-controls-grid">
+                <div className={`match-controls-grid ${privacyMode ? 'match-controls-grid--privacy' : ''}`}>
                     <div className="match-search-field">
                         <span className="match-search-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
@@ -199,26 +358,28 @@ export function MatchPage() {
                         ariaLabel="Filter by role"
                     />
 
-                    <DropdownMenuSelect
-                        value={uiScoreFilter}
-                        options={SCORE_FILTER_OPTIONS}
-                        onChange={(value) => setUiScoreFilter(value as 'all' | `${number}`)}
-                        ariaLabel="Filter by score"
-                    />
+                    {!privacyMode && (
+                        <DropdownMenuSelect
+                            value={uiScoreFilter}
+                            options={SCORE_FILTER_OPTIONS}
+                            onChange={(value) => setUiScoreFilter(value as 'all' | `${number}`)}
+                            ariaLabel="Filter by score"
+                        />
+                    )}
 
                     <div
                         className={`match-sort-group ${
-                            uiSortMode === 'score' ? 'match-sort-group--with-toggle' : ''
+                            !privacyMode && uiSortMode === 'score' ? 'match-sort-group--with-toggle' : ''
                         }`}
                     >
                         <DropdownMenuSelect
                             value={uiSortMode}
-                            options={SORT_OPTIONS}
+                            options={availableSortOptions}
                             onChange={setUiSortMode}
                             ariaLabel="Sort players"
                         />
 
-                        {uiSortMode === 'score' && (
+                        {!privacyMode && uiSortMode === 'score' && (
                             <button
                                 type="button"
                                 className="match-sort-direction-toggle"
@@ -282,7 +443,7 @@ export function MatchPage() {
 
             {!isLoading && people.length > 0 && (
                 <div className="match-count">
-                    {normalizedQuery || uiRoleFilter !== 'all' || uiScoreFilter !== 'all'
+                    {normalizedQuery || uiRoleFilter !== 'all' || (!privacyMode && uiScoreFilter !== 'all')
                         ? `Showing ${visiblePeople.length} of ${people.length} players`
                         : `Total: ${people.length} players`}
                 </div>
@@ -291,6 +452,17 @@ export function MatchPage() {
             {error && <div className="error">{error}</div>}
             {localError && <div className="error">{localError}</div>}
             {generatedTeams && <TeamResult result={generatedTeams} />}
+
+            <ConfirmDialog
+                open={Boolean(confirmState)}
+                title={confirmState?.title || ''}
+                message={confirmState?.message || ''}
+                confirmLabel={confirmState?.confirmLabel || 'Confirm'}
+                tone={confirmState?.tone || 'default'}
+                loading={isConfirming}
+                onCancel={handleConfirmCancel}
+                onConfirm={handleConfirmAccept}
+            />
         </div>
     );
 }

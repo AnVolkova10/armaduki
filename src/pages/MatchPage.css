@@ -25,6 +25,91 @@
   flex-wrap: wrap;
 }
 
+.match-page .relationship-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  align-items: center;
+  position: relative;
+  width: fit-content;
+}
+
+.match-page .clear-links-trigger {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.match-page .clear-links-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  opacity: 0.9;
+}
+
+.match-page .clear-links-caret svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.match-page .clear-links-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  left: 0;
+  right: auto;
+  width: max-content;
+  min-width: 150px;
+  box-sizing: border-box;
+  padding: 0.3rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  display: grid;
+  gap: 0.25rem;
+  z-index: 30;
+}
+
+.match-page .clear-links-option {
+  min-height: 34px;
+  padding: 0.35rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  text-align: left;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.match-page .clear-links-option:hover,
+.match-page .clear-links-option:focus-visible {
+  outline: none;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.match-page .clear-links-option--positive:hover,
+.match-page .clear-links-option--positive:focus-visible {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.65);
+}
+
+.match-page .clear-links-option--negative:hover,
+.match-page .clear-links-option--negative:focus-visible {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.65);
+}
+
 .match-page .match-controls {
   width: 100%;
 }
@@ -33,6 +118,10 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.4rem;
+}
+
+.match-page .match-controls-grid--privacy {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .match-page .match-sort-group {
@@ -169,6 +258,10 @@
   .match-page .match-controls-grid {
     grid-template-columns: minmax(0, 1fr) repeat(3, minmax(0, 150px));
     gap: 0.35rem;
+  }
+
+  .match-page .match-controls-grid--privacy {
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 150px));
   }
 
   .match-page .match-search-field {

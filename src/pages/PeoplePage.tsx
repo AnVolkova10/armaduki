@@ -32,6 +32,11 @@ const SORT_OPTIONS = [
     { value: 'position', label: 'Sort: position' },
 ];
 
+const SORT_OPTIONS_PRIVACY = [
+    { value: 'none', label: 'Sort: none' },
+    { value: 'position', label: 'Sort: position' },
+];
+
 const SCORE_FILTER_OPTIONS = [
     { value: 'all', label: 'Score: all' },
     { value: '1', label: 'Score: 1' },
@@ -68,6 +73,7 @@ export function PeoplePage() {
         clearWantsRelationships,
         clearAvoidsRelationships,
         setError,
+        privacyMode,
     } = useAppStore();
 
     const [showForm, setShowForm] = useState(false);
@@ -102,7 +108,15 @@ export function PeoplePage() {
         return () => document.removeEventListener('mousedown', handleDocumentClick);
     }, [showClearLinksMenu]);
 
+    useEffect(() => {
+        if (!privacyMode) return;
+        if (uiScoreFilter !== 'all') setUiScoreFilter('all');
+        if (uiSortMode === 'score') setUiSortMode('none');
+        if (uiScoreSortDirection !== 'desc') setUiScoreSortDirection('desc');
+    }, [privacyMode, uiScoreFilter, uiScoreSortDirection, uiSortMode]);
+
     const normalizedQuery = normalizeSearch(searchQuery);
+    const availableSortOptions = privacyMode ? SORT_OPTIONS_PRIVACY : SORT_OPTIONS;
 
     const searchedPeople = useMemo(() => {
         if (!normalizedQuery) return people;
@@ -121,16 +135,16 @@ export function PeoplePage() {
     }, [searchedPeople, uiRoleFilter]);
 
     const filteredPeople = useMemo(() => {
-        if (uiScoreFilter === 'all') return roleFilteredPeople;
+        if (privacyMode || uiScoreFilter === 'all') return roleFilteredPeople;
         const targetScore = Number(uiScoreFilter);
         return roleFilteredPeople.filter((person) => person.rating === targetScore);
-    }, [roleFilteredPeople, uiScoreFilter]);
+    }, [privacyMode, roleFilteredPeople, uiScoreFilter]);
 
     const visiblePeople = useMemo(() => {
-        if (uiSortMode === 'none') return filteredPeople;
+        if (uiSortMode === 'none' || (privacyMode && uiSortMode === 'score')) return filteredPeople;
 
         const sorted = [...filteredPeople];
-        if (uiSortMode === 'score') {
+        if (uiSortMode === 'score' && !privacyMode) {
             if (uiScoreSortDirection === 'desc') {
                 sorted.sort((a, b) => (b.rating - a.rating) || a.nickname.localeCompare(b.nickname));
                 return sorted;
@@ -150,10 +164,10 @@ export function PeoplePage() {
         }
 
         return sorted;
-    }, [filteredPeople, uiScoreSortDirection, uiSortMode]);
+    }, [filteredPeople, privacyMode, uiScoreSortDirection, uiSortMode]);
 
     const hasActiveSearchOrFilter =
-        Boolean(normalizedQuery) || uiRoleFilter !== 'all' || uiScoreFilter !== 'all';
+        Boolean(normalizedQuery) || uiRoleFilter !== 'all' || (!privacyMode && uiScoreFilter !== 'all');
 
     const handleSave = (person: Person) => {
         if (editingPerson) {
@@ -305,7 +319,7 @@ export function PeoplePage() {
             </div>
 
             <div className="people-controls">
-                <div className="people-controls-grid">
+                <div className={`people-controls-grid ${privacyMode ? 'people-controls-grid--privacy' : ''}`}>
                     <div className="people-search-field">
                         <span className="people-search-icon" aria-hidden="true">
                             <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
@@ -330,26 +344,28 @@ export function PeoplePage() {
                         ariaLabel="Filter by role"
                     />
 
-                    <DropdownMenuSelect
-                        value={uiScoreFilter}
-                        options={SCORE_FILTER_OPTIONS}
-                        onChange={(value) => setUiScoreFilter(value as 'all' | `${number}`)}
-                        ariaLabel="Filter by score"
-                    />
+                    {!privacyMode && (
+                        <DropdownMenuSelect
+                            value={uiScoreFilter}
+                            options={SCORE_FILTER_OPTIONS}
+                            onChange={(value) => setUiScoreFilter(value as 'all' | `${number}`)}
+                            ariaLabel="Filter by score"
+                        />
+                    )}
 
                     <div
                         className={`people-sort-group ${
-                            uiSortMode === 'score' ? 'people-sort-group--with-toggle' : ''
+                            !privacyMode && uiSortMode === 'score' ? 'people-sort-group--with-toggle' : ''
                         }`}
                     >
                         <DropdownMenuSelect
                             value={uiSortMode}
-                            options={SORT_OPTIONS}
+                            options={availableSortOptions}
                             onChange={setUiSortMode}
                             ariaLabel="Sort players"
                         />
 
-                        {uiSortMode === 'score' && (
+                        {!privacyMode && uiSortMode === 'score' && (
                             <button
                                 type="button"
                                 className="people-sort-direction-toggle"
@@ -422,7 +438,7 @@ export function PeoplePage() {
             )}
 
             <div className="people-count">
-                {normalizedQuery || uiRoleFilter !== 'all' || uiScoreFilter !== 'all'
+                {normalizedQuery || uiRoleFilter !== 'all' || (!privacyMode && uiScoreFilter !== 'all')
                     ? `Showing ${visiblePeople.length} of ${people.length} players`
                     : `Total: ${people.length} players`}
             </div>
