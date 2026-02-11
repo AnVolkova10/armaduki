@@ -261,92 +261,98 @@ export function TeamResult({ result }: TeamResultProps) {
                 </div>
             )}
 
-            <button
-                type="button"
-                className="planb-toggle-btn"
-                onClick={() => setShowPlanB((prev) => !prev)}
-                aria-expanded={showPlanB}
-                aria-controls="planb-panel"
-            >
-                {showPlanB ? 'Hide Second Option' : 'Show Second Option'}
-            </button>
+            {!primary.isFallback && (
+                <>
+                    <button
+                        type="button"
+                        className="planb-toggle-btn"
+                        onClick={() => setShowPlanB((prev) => !prev)}
+                        aria-expanded={showPlanB}
+                        aria-controls="planb-panel"
+                    >
+                        {showPlanB ? 'Hide Second Option' : 'Show Second Option'}
+                    </button>
 
-            {showPlanB && (
-                <div id="planb-panel" className="planb-panel">
-                    <div className="planb-header">Second Option</div>
-                    <div className="planb-reason">{comparison?.reason ?? result.secondaryReason}</div>
+                    {showPlanB && (
+                        <div id="planb-panel" className="planb-panel">
+                            <div className="planb-header">Second Option</div>
+                            {secondary ? (
+                                <>
+                                    <div className="planb-reason">{comparison?.reason ?? result.secondaryReason}</div>
 
-                    {secondary ? (
-                        <>
-                            <div className="planb-meta">
-                                <span>Score: {formatValue(secondary.score)}</span>
-                                <span>Stage: {formatStageLabel(secondary.stage)}</span>
-                                <span>Social: {secondary.socialSatisfactionPct}%</span>
-                            </div>
+                                    <div className="planb-meta">
+                                        <span>Score: {formatValue(secondary.score)}</span>
+                                        <span>Stage: {formatStageLabel(secondary.stage)}</span>
+                                        <span>Social: {secondary.socialSatisfactionPct}%</span>
+                                    </div>
 
-                            {comparison && (
-                                <div className="planb-diff-grid">
-                                    <div className="planb-diff-item">
-                                        <span className="planb-diff-label">Score Delta</span>
-                                        <span className="planb-diff-value">{formatDelta(comparison.scoreDelta)}</span>
+                                    {comparison && (
+                                        <div className="planb-diff-grid">
+                                            <div className="planb-diff-item">
+                                                <span className="planb-diff-label">Score Delta</span>
+                                                <span className="planb-diff-value">{formatDelta(comparison.scoreDelta)}</span>
+                                            </div>
+                                            <div className="planb-diff-item">
+                                                <span className="planb-diff-label">Rating Diff Delta</span>
+                                                <span className="planb-diff-value">{formatDelta(comparison.ratingDiffDelta)}</span>
+                                            </div>
+                                            <div className="planb-diff-item">
+                                                <span className="planb-diff-label">Social Delta</span>
+                                                <span className="planb-diff-value">{formatDelta(comparison.socialDelta)}</span>
+                                            </div>
+                                            <div className="planb-diff-item planb-diff-item-full">
+                                                <span className="planb-diff-label">Moved to T1</span>
+                                                <span className="planb-diff-value planb-diff-list">
+                                                    {comparison.movedToTeam1.length > 0
+                                                        ? comparison.movedToTeam1.join(', ')
+                                                        : 'No swaps'}
+                                                </span>
+                                            </div>
+                                            <div className="planb-diff-item planb-diff-item-full">
+                                                <span className="planb-diff-label">Moved to T2</span>
+                                                <span className="planb-diff-value planb-diff-list">
+                                                    {comparison.movedToTeam2.length > 0
+                                                        ? comparison.movedToTeam2.join(', ')
+                                                        : 'No swaps'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="planb-teams">
+                                        <div className="planb-team-box">
+                                            <div className="planb-team-title">Team 1</div>
+                                            <div className="planb-team-players">
+                                                {secondaryTeam1Sorted.map((player) => (
+                                                    <span key={`planb-t1-${player.id}`}>{player.nickname}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="planb-team-box">
+                                            <div className="planb-team-title">Team 2</div>
+                                            <div className="planb-team-players">
+                                                {secondaryTeam2Sorted.map((player) => (
+                                                    <span key={`planb-t2-${player.id}`}>{player.nickname}</span>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="planb-diff-item">
-                                        <span className="planb-diff-label">Rating Diff Delta</span>
-                                        <span className="planb-diff-value">{formatDelta(comparison.ratingDiffDelta)}</span>
-                                    </div>
-                                    <div className="planb-diff-item">
-                                        <span className="planb-diff-label">Social Delta</span>
-                                        <span className="planb-diff-value">{formatDelta(comparison.socialDelta)}</span>
-                                    </div>
-                                    <div className="planb-diff-item planb-diff-item-full">
-                                        <span className="planb-diff-label">Moved to T1</span>
-                                        <span className="planb-diff-value planb-diff-list">
-                                            {comparison.movedToTeam1.length > 0
-                                                ? comparison.movedToTeam1.join(', ')
-                                                : 'No swaps'}
-                                        </span>
-                                    </div>
-                                    <div className="planb-diff-item planb-diff-item-full">
-                                        <span className="planb-diff-label">Moved to T2</span>
-                                        <span className="planb-diff-value planb-diff-list">
-                                            {comparison.movedToTeam2.length > 0
-                                                ? comparison.movedToTeam2.join(', ')
-                                                : 'No swaps'}
-                                        </span>
-                                    </div>
+
+                                    <button
+                                        className="btn btn-secondary planb-copy-btn"
+                                        onClick={() => handleCopy(secondaryCopyText, setCopiedSecondary)}
+                                    >
+                                        {copiedSecondary ? 'Copied Second Option!' : 'Copy Second Option'}
+                                    </button>
+                                </>
+                            ) : (
+                                <div className="planb-empty">
+                                    {result.secondaryReason ?? 'No second option available under current constraints.'}
                                 </div>
                             )}
-
-                            <div className="planb-teams">
-                                <div className="planb-team-box">
-                                    <div className="planb-team-title">Team 1</div>
-                                    <div className="planb-team-players">
-                                        {secondaryTeam1Sorted.map((player) => (
-                                            <span key={`planb-t1-${player.id}`}>{player.nickname}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="planb-team-box">
-                                    <div className="planb-team-title">Team 2</div>
-                                    <div className="planb-team-players">
-                                        {secondaryTeam2Sorted.map((player) => (
-                                            <span key={`planb-t2-${player.id}`}>{player.nickname}</span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button
-                                className="btn btn-secondary planb-copy-btn"
-                                onClick={() => handleCopy(secondaryCopyText, setCopiedSecondary)}
-                            >
-                                {copiedSecondary ? 'Copied Second Option!' : 'Copy Second Option'}
-                            </button>
-                        </>
-                    ) : (
-                        <div className="planb-empty">No second option available under current constraints.</div>
+                        </div>
                     )}
-                </div>
+                </>
             )}
         </div>
     );
