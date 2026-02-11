@@ -13,7 +13,7 @@ interface AnalysisSection {
 }
 
 function renderAnalysisLine(line: string) {
-    const parts = line.split(/(T1|T2)/g);
+    const parts = line.split(/(T1|T2|\[(?:GK|FLEX|DEF|MID|ATT)\])/g);
 
     return parts.map((part, index) => {
         if (part === 'T1') {
@@ -28,6 +28,16 @@ function renderAnalysisLine(line: string) {
             return (
                 <span key={`t2-${index}`} className="analysis-token-t2">
                     {part}
+                </span>
+            );
+        }
+
+        const roleMatch = part.match(/^\[(GK|FLEX|DEF|MID|ATT)\]$/);
+        if (roleMatch) {
+            const role = roleMatch[1].toLowerCase();
+            return (
+                <span key={`role-${index}`} className={`analysis-token-role analysis-token-role-${role}`}>
+                    {roleMatch[1]}
                 </span>
             );
         }

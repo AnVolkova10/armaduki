@@ -316,6 +316,40 @@
   line-height: 1.2;
 }
 
+.analysis-token-role {
+  display: inline-block;
+  padding: 0.03rem 0.35rem;
+  margin: 0 0.08rem;
+  border-radius: 3px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+}
+
+.analysis-token-role-gk {
+  background: var(--role-gk);
+}
+
+.analysis-token-role-flex {
+  background: var(--role-flex);
+}
+
+.analysis-token-role-def {
+  background: var(--role-def);
+}
+
+.analysis-token-role-mid {
+  background: var(--role-mid);
+  color: #000000;
+}
+
+.analysis-token-role-att {
+  background: var(--role-att);
+}
+
 .explanation-box.fallback .analysis-line {
   color: #ff4d4d;
 }
