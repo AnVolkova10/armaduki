@@ -52,6 +52,7 @@ interface TeamGKProfile {
 }
 
 interface GKPreferenceBreakdown {
+  applies: boolean;
   adjustment: number;
   yesImbalance: number;
   weakerTeam: 'T1' | 'T2' | 'Even';
@@ -83,6 +84,19 @@ interface FailureStats {
 
 interface RankedCandidate {
   option: GeneratedTeamOption;
+  ratingDiff: number;
+  canonicalKey: string;
+  displayKey: string;
+}
+
+interface SocialFallbackCandidate {
+  team1Players: Person[];
+  team2Players: Person[];
+  stats1: TeamStats;
+  stats2: TeamStats;
+  gkPreference: GKPreferenceBreakdown;
+  attPreference: AttPreferenceBreakdown;
+  score: number;
   ratingDiff: number;
   canonicalKey: string;
   displayKey: string;
@@ -180,6 +194,17 @@ function getTeamGKProfile(players: Person[]): TeamGKProfile {
 }
 
 function getGKPreferenceBreakdown(team1Profile: TeamGKProfile, team2Profile: TeamGKProfile): GKPreferenceBreakdown {
+  const applies = team1Profile.gkRoleCount === 0 || team2Profile.gkRoleCount === 0;
+  if (!applies) {
+    return {
+      applies: false,
+      adjustment: 0,
+      yesImbalance: 0,
+      weakerTeam: 'Even',
+      weakerHasLow: null,
+    };
+  }
+
   const yesImbalance = Math.abs(team1Profile.yesCount - team2Profile.yesCount);
   let adjustment = -yesImbalance * YES_IMBALANCE_WEIGHT;
   let weakerTeam: GKPreferenceBreakdown['weakerTeam'] = 'Even';
@@ -193,6 +218,7 @@ function getGKPreferenceBreakdown(team1Profile: TeamGKProfile, team2Profile: Tea
   }
 
   return {
+    applies: true,
     adjustment,
     yesImbalance,
     weakerTeam,
@@ -489,6 +515,7 @@ function createAnalysisExplanation(
     gkPreference.weakerTeam === 'Even'
       ? `- Soft yes balance: yes diff ${gkPreference.yesImbalance}, adjustment ${formatScoreAdjustment(gkPreference.adjustment)}.`
       : `- Soft yes balance: yes diff ${gkPreference.yesImbalance}, weaker side ${gkPreference.weakerTeam}, low support ${gkPreference.weakerHasLow ? 'yes' : 'no'}, adjustment ${formatScoreAdjustment(gkPreference.adjustment)}.`;
+  const gkSoftPreferenceLine = gkPreference.applies ? `\n${softPreferenceLine}` : '';
 
   const attPreferenceLine =
     attPreference.totalAtt >= 5 && attPreference.overloadedTeam !== 'Even'
@@ -498,7 +525,7 @@ function createAnalysisExplanation(
   return `Analysis (Score: ${Math.round(score)})
 
 [Details]
-- Score formula: ${POINTS.RATING_BALANCE_BASE} - rating(${fmt(ratingDiff)}x10=${fmt(ratingPenalty)}) - attrs(${fmt(totalAttrDiff)}x5=${fmt(totalAttrPenalty)}) - pace(${fmt(paceDiff)}x10=${fmt(pacePenalty)}) - stamina(${fmt(staminaDiff)}x8=${fmt(staminaPenalty)}) - defense(${fmt(defDiff)}x5=${fmt(defensePenalty)}) + gkPref(${formatScoreAdjustment(gkPreference.adjustment)}) + attPref(${formatScoreAdjustment(attPreference.adjustment)}) = ${fmt(scoreRebuilt)}.
+- Score formula: ${POINTS.RATING_BALANCE_BASE} - rating(${fmt(ratingDiff)}x10=${fmt(ratingPenalty)}) - attrs(${fmt(totalAttrDiff)}x5=${fmt(totalAttrPenalty)}) - pace(${fmt(paceDiff)}x10=${fmt(pacePenalty)}) - stamina(${fmt(staminaDiff)}x8=${fmt(staminaPenalty)}) - defense(${fmt(defDiff)}x5=${fmt(defensePenalty)})${gkPreference.applies ? ` + gkPref(${formatScoreAdjustment(gkPreference.adjustment)})` : ''} + attPref(${formatScoreAdjustment(attPreference.adjustment)}) = ${fmt(scoreRebuilt)}.
 - Current score status: ${Math.round(score)} (${scoreLabel}).
 - Favors marker: each balance line shows Favors: T1, T2, or Even.
 
@@ -513,12 +540,11 @@ function createAnalysisExplanation(
 - Grit: T1 (${stats1.attributes.grit.toFixed(1)}) vs T2 (${stats2.attributes.grit.toFixed(1)}) -> Diff: ${gritDiff.toFixed(1)} -> Favors: ${gritFavored}
 - Stamina: T1 (${stats1.attributes.stamina.toFixed(1)}) vs T2 (${stats2.attributes.stamina.toFixed(1)}) -> Diff: ${staminaDiff.toFixed(1)} -> Favors: ${staminaFavored}
 
-[Emergency GK]
+[Emergency + ATT]
 - Rule when no GK role: each team needs >= ${REQUIRED_GK_CAPABLE_WHEN_NO_GK} capable keepers (yes + low).
 - T1: GK roles=${team1GK.gkRoleCount}, yes=${team1GK.yesCount}, low=${team1GK.lowCount}, no=${team1GK.noCount}, capable=${team1GK.capableCount}
 - T2: GK roles=${team2GK.gkRoleCount}, yes=${team2GK.yesCount}, low=${team2GK.lowCount}, no=${team2GK.noCount}, capable=${team2GK.capableCount}
-- Status: ${emergencyStatus}
-${softPreferenceLine}
+- Status: ${emergencyStatus}${gkSoftPreferenceLine}
 ${attPreferenceLine}
 
 [Lineups]
@@ -597,6 +623,86 @@ function compareCandidates(a: RankedCandidate, b: RankedCandidate): number {
   }
 
   return a.displayKey.localeCompare(b.displayKey);
+}
+
+function isSocialFallbackCandidateBetter(
+  candidate: SocialFallbackCandidate,
+  existing: SocialFallbackCandidate,
+): boolean {
+  if (candidate.score !== existing.score) {
+    return candidate.score > existing.score;
+  }
+
+  if (candidate.ratingDiff !== existing.ratingDiff) {
+    return candidate.ratingDiff < existing.ratingDiff;
+  }
+
+  return candidate.displayKey < existing.displayKey;
+}
+
+function compareSocialFallbackCandidates(a: SocialFallbackCandidate, b: SocialFallbackCandidate): number {
+  if (a.score !== b.score) {
+    return b.score - a.score;
+  }
+
+  if (a.ratingDiff !== b.ratingDiff) {
+    return a.ratingDiff - b.ratingDiff;
+  }
+
+  return a.displayKey.localeCompare(b.displayKey);
+}
+
+function findBestSocialHardFallback(
+  players: Person[],
+  allCombinations: Person[][],
+): SocialFallbackCandidate | null {
+  const candidatesByPartition = new Map<string, SocialFallbackCandidate>();
+
+  for (const team1PlayersRaw of allCombinations) {
+    const team1IdsRaw = new Set(team1PlayersRaw.map((player) => player.id));
+    const team2PlayersRaw = players.filter((player) => !team1IdsRaw.has(player.id));
+
+    if (hasSocialConflict(team1PlayersRaw) || hasSocialConflict(team2PlayersRaw)) {
+      continue;
+    }
+
+    const wantsValidation = validateWantsConstraint(team1PlayersRaw, team2PlayersRaw, 'strict');
+    if (!wantsValidation.valid) {
+      continue;
+    }
+
+    const stats1Raw = calculateTeamStats(team1PlayersRaw);
+    const stats2Raw = calculateTeamStats(team2PlayersRaw);
+    const canonical = canonicalizeTeams(team1PlayersRaw, team2PlayersRaw, stats1Raw, stats2Raw);
+    const gkPreference = getGKPreferenceBreakdown(
+      getTeamGKProfile(canonical.team1Players),
+      getTeamGKProfile(canonical.team2Players),
+    );
+    const attPreference = getAttPreferenceBreakdown(canonical.team1Players, canonical.team2Players);
+    const score = calculateBalanceScore(canonical.stats1, canonical.stats2) + gkPreference.adjustment + attPreference.adjustment;
+    const ratingDiff = Math.abs(canonical.stats1.rating - canonical.stats2.rating);
+
+    const candidate: SocialFallbackCandidate = {
+      team1Players: canonical.team1Players,
+      team2Players: canonical.team2Players,
+      stats1: canonical.stats1,
+      stats2: canonical.stats2,
+      gkPreference,
+      attPreference,
+      score,
+      ratingDiff,
+      canonicalKey: canonical.canonicalKey,
+      displayKey: canonical.displayKey,
+    };
+
+    const existing = candidatesByPartition.get(candidate.canonicalKey);
+    if (!existing || isSocialFallbackCandidateBetter(candidate, existing)) {
+      candidatesByPartition.set(candidate.canonicalKey, candidate);
+    }
+  }
+
+  const ranked = [...candidatesByPartition.values()].sort(compareSocialFallbackCandidates);
+  return ranked[0] ?? null;
 }
 
 function getTeamRatingDiff(option: GeneratedTeamOption): number {
@@ -743,7 +849,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     ownerBias: 0,
   };
 
-  const stageModes: WantsConstraintMode[] = ['strict', 'relaxed_unilateral', 'relaxed_mutual'];
+  const stageModes: WantsConstraintMode[] = ['strict'];
 
   for (const stageMode of stageModes) {
     const ranked = findRankedResultsForMode(players, allCombinations, stageMode, failureStats);
@@ -775,9 +881,68 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
   const emergencyGKPct = total > 0 ? Math.round((failureStats.emergencyGK / total) * 100) : 0;
   const roleSplitPct = total > 0 ? Math.round((failureStats.roleSplit / total) * 100) : 0;
   const wantsStrictPct = total > 0 ? Math.round((failureStats.wantsStrict / total) * 100) : 0;
-  const wantsMutualPct = total > 0 ? Math.round((failureStats.wantsMutual / total) * 100) : 0;
   const biasPct = total > 0 ? Math.round((failureStats.ownerBias / total) * 100) : 0;
   const selectedGKSummary = getTeamGKProfile(players);
+
+  // First fallback tier: keep social rules hard (avoids + wants), relax non-social constraints.
+  const socialHardFallback = findBestSocialHardFallback(players, allCombinations);
+  if (socialHardFallback) {
+    const fallbackTeam1Profile = getTeamGKProfile(socialHardFallback.team1Players);
+    const fallbackTeam2Profile = getTeamGKProfile(socialHardFallback.team2Players);
+    const fallbackTeam1NeedsEmergency = fallbackTeam1Profile.gkRoleCount === 0;
+    const fallbackTeam2NeedsEmergency = fallbackTeam2Profile.gkRoleCount === 0;
+    const fallbackTeam1Pass =
+      !fallbackTeam1NeedsEmergency || fallbackTeam1Profile.capableCount >= REQUIRED_GK_CAPABLE_WHEN_NO_GK;
+    const fallbackTeam2Pass =
+      !fallbackTeam2NeedsEmergency || fallbackTeam2Profile.capableCount >= REQUIRED_GK_CAPABLE_WHEN_NO_GK;
+    const fallbackEmergencyStatus = fallbackTeam1Pass && fallbackTeam2Pass ? 'PASS' : 'FAIL';
+    const socialSat = calculateSocialSatisfaction(socialHardFallback.team1Players, socialHardFallback.team2Players);
+
+    const primaryFallback: GeneratedTeamOption = {
+      team1: { players: socialHardFallback.team1Players, totalRating: socialHardFallback.stats1.rating },
+      team2: { players: socialHardFallback.team2Players, totalRating: socialHardFallback.stats2.rating },
+      socialSatisfactionPct: socialSat.percentage,
+      explanation: `Analysis (Score: ${Math.round(socialHardFallback.score)})
+
+[Details]
+- FALLBACK USED: strict constraints could not be met.
+- Social-hard fallback applied: avoids + wants stayed hard in final split.
+- Social Conflicts: 0% (enforced in final split)
+- Affinity/Wants Hard Rule: 0% (enforced in final split)
+- Role Issues: ${rolePct}%
+- Emergency GK Rule: ${emergencyGKPct}%
+- DEF/ATT Split Rule: ${roleSplitPct}%
+- Owner Bias (Too strong): ${biasPct}%
+- Teams generated using Balance Score fallback while preserving social hard constraints.
+
+[Emergency + ATT]
+- Selected GK willingness: yes=${selectedGKSummary.yesCount}, low=${selectedGKSummary.lowCount}, no=${selectedGKSummary.noCount}.
+- Rule when no GK role: each team needs >= ${REQUIRED_GK_CAPABLE_WHEN_NO_GK} capable keepers (yes + low).
+- T1: GK roles=${fallbackTeam1Profile.gkRoleCount}, yes=${fallbackTeam1Profile.yesCount}, low=${fallbackTeam1Profile.lowCount}, no=${fallbackTeam1Profile.noCount}, capable=${fallbackTeam1Profile.capableCount}
+- T2: GK roles=${fallbackTeam2Profile.gkRoleCount}, yes=${fallbackTeam2Profile.yesCount}, low=${fallbackTeam2Profile.lowCount}, no=${fallbackTeam2Profile.noCount}, capable=${fallbackTeam2Profile.capableCount}
+- Status in fallback split: ${fallbackEmergencyStatus}
+- Soft ATT spread in fallback: total ATT ${socialHardFallback.attPreference.totalAtt}, split T1 ${socialHardFallback.attPreference.team1Att} / T2 ${socialHardFallback.attPreference.team2Att}, adjustment ${formatScoreAdjustment(socialHardFallback.attPreference.adjustment)}.
+
+[Lineups]
+- T1: ${formatLineup(socialHardFallback.team1Players)}
+- T2: ${formatLineup(socialHardFallback.team2Players)}
+
+[Social]
+- Social Satisfaction: ${socialSat.percentage}% (Wants: ${socialSat.wantsMet}/${socialSat.wantsTotal}, Dislikes: ${socialSat.dislikesMet}/${socialSat.dislikesTotal})
+- Met wants links: ${getMetRelationshipDetails(socialHardFallback.team1Players, socialHardFallback.team2Players)}
+- Met dislikes links: ${getMetDislikeDetails(socialHardFallback.team1Players, socialHardFallback.team2Players)}`,
+      isFallback: true,
+      score: socialHardFallback.score,
+      stage: 'FALLBACK',
+    };
+
+    return {
+      primary: primaryFallback,
+      secondary: null,
+      secondaryReason: NO_SECONDARY_OPTION_REASON,
+      comparison: null,
+    };
+  }
 
   const sortedPlayers = [...players].sort((a, b) => {
     const getPower = (player: Person) =>
@@ -821,17 +986,17 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     explanation: `Analysis (Score: ${Math.round(calculateBalanceScore(stats1, stats2) + fallbackGkPreference.adjustment + fallbackAttPreference.adjustment)})
 
 [Details]
-- FALLBACK USED: staged constraints could not be met.
+- FALLBACK USED: strict constraints could not be met.
+- Social-hard fallback unavailable: no split could keep hard wants/avoids.
 - Social Conflicts: ${socialPct}%
 - Role Issues: ${rolePct}%
 - Emergency GK Rule: ${emergencyGKPct}%
 - DEF/ATT Split Rule: ${roleSplitPct}%
-- Wants Strict Rule: ${wantsStrictPct}%
-- Wants Mutual Rule: ${wantsMutualPct}%
+- Affinity/Wants Hard Rule: ${wantsStrictPct}%
 - Owner Bias (Too strong): ${biasPct}%
 - Teams generated using Power Rating (Best Fit, ignoring constraints).
 
-[Emergency GK]
+[Emergency + ATT]
 - Selected GK willingness: yes=${selectedGKSummary.yesCount}, low=${selectedGKSummary.lowCount}, no=${selectedGKSummary.noCount}.
 - Rule when no GK role: each team needs >= ${REQUIRED_GK_CAPABLE_WHEN_NO_GK} capable keepers (yes + low).
 - T1: GK roles=${fallbackTeam1Profile.gkRoleCount}, yes=${fallbackTeam1Profile.yesCount}, low=${fallbackTeam1Profile.lowCount}, no=${fallbackTeam1Profile.noCount}, capable=${fallbackTeam1Profile.capableCount}
