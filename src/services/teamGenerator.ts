@@ -16,12 +16,14 @@ const POINTS = {
 // Hard Constraints
 const MAX_GK = 1;
 const MAX_DEF = 2;
-const MAX_ATT = 2;
 const REQUIRED_GK_CAPABLE_WHEN_NO_GK = 2; // Capable = yes + low when there is no dedicated GK
 
 const YES_IMBALANCE_WEIGHT = 8;
 const LOW_SUPPORT_REWARD = 6;
 const LOW_SUPPORT_PENALTY = 6;
+const ATT_IMBALANCE_WEIGHT = 6;
+const ATT_OVERLOAD_WITH_DEF_REWARD = 6;
+const ATT_OVERLOAD_WITHOUT_DEF_PENALTY = 8;
 
 const SECONDARY_OPTION_REASON =
   'Second option has lower balance score than Option 1 under the same constraint stage.';
@@ -54,6 +56,15 @@ interface GKPreferenceBreakdown {
   yesImbalance: number;
   weakerTeam: 'T1' | 'T2' | 'Even';
   weakerHasLow: boolean | null;
+}
+
+interface AttPreferenceBreakdown {
+  adjustment: number;
+  totalAtt: number;
+  team1Att: number;
+  team2Att: number;
+  overloadedTeam: 'T1' | 'T2' | 'Even';
+  overloadedDefCount: number | null;
 }
 
 type TeamValidationReason = 'social' | 'roles' | 'emergencyGK';
@@ -189,6 +200,42 @@ function getGKPreferenceBreakdown(team1Profile: TeamGKProfile, team2Profile: Tea
   };
 }
 
+function getAttPreferenceBreakdown(team1Players: Person[], team2Players: Person[]): AttPreferenceBreakdown {
+  const team1Att = countRole(team1Players, 'ATT');
+  const team2Att = countRole(team2Players, 'ATT');
+  const team1Def = countRole(team1Players, 'DEF');
+  const team2Def = countRole(team2Players, 'DEF');
+  const totalAtt = team1Att + team2Att;
+
+  let adjustment = -Math.abs(team1Att - team2Att) * ATT_IMBALANCE_WEIGHT;
+  let overloadedTeam: AttPreferenceBreakdown['overloadedTeam'] = 'Even';
+  let overloadedDefCount: number | null = null;
+
+  if (totalAtt >= 5) {
+    if (team1Att > team2Att) {
+      overloadedTeam = 'T1';
+      overloadedDefCount = team1Def;
+    } else if (team2Att > team1Att) {
+      overloadedTeam = 'T2';
+      overloadedDefCount = team2Def;
+    }
+
+    if (overloadedTeam !== 'Even') {
+      adjustment +=
+        (overloadedDefCount ?? 0) > 0 ? ATT_OVERLOAD_WITH_DEF_REWARD : -ATT_OVERLOAD_WITHOUT_DEF_PENALTY;
+    }
+  }
+
+  return {
+    adjustment,
+    totalAtt,
+    team1Att,
+    team2Att,
+    overloadedTeam,
+    overloadedDefCount,
+  };
+}
+
 function formatScoreAdjustment(value: number): string {
   if (value > 0) return `+${value}`;
   return `${value}`;
@@ -210,16 +257,13 @@ function validateTeam(players: Person[]): { valid: boolean; reason?: TeamValidat
 
   const gkProfile = getTeamGKProfile(players);
   let defCount = 0;
-  let attCount = 0;
 
   for (const p of players) {
     if (p.role === 'DEF') defCount++;
-    if (p.role === 'ATT') attCount++;
   }
 
   if (gkProfile.gkRoleCount > MAX_GK) return { valid: false, reason: 'roles' };
   if (defCount > MAX_DEF) return { valid: false, reason: 'roles' };
-  if (attCount > MAX_ATT) return { valid: false, reason: 'roles' };
 
   // Emergency GK Rule: when there is no dedicated GK role, team needs at least 2 capable keepers (yes + low).
   if (gkProfile.gkRoleCount === 0 && gkProfile.capableCount < REQUIRED_GK_CAPABLE_WHEN_NO_GK) {
@@ -355,6 +399,7 @@ function createAnalysisExplanation(
   socialMetLinks: string,
   socialMetDislikes: string,
   gkPreference: GKPreferenceBreakdown,
+  attPreference: AttPreferenceBreakdown,
 ): string {
   const getFavored = (team1Value: number, team2Value: number): 'T1' | 'T2' | 'Even' => {
     if (team1Value > team2Value) return 'T1';
@@ -410,7 +455,8 @@ function createAnalysisExplanation(
     pacePenalty -
     staminaPenalty -
     defensePenalty +
-    gkPreference.adjustment;
+    gkPreference.adjustment +
+    attPreference.adjustment;
 
   const fmt = (value: number): string => {
     return Number.isInteger(value) ? value.toString() : value.toFixed(1);
@@ -444,10 +490,15 @@ function createAnalysisExplanation(
       ? `- Soft yes balance: yes diff ${gkPreference.yesImbalance}, adjustment ${formatScoreAdjustment(gkPreference.adjustment)}.`
       : `- Soft yes balance: yes diff ${gkPreference.yesImbalance}, weaker side ${gkPreference.weakerTeam}, low support ${gkPreference.weakerHasLow ? 'yes' : 'no'}, adjustment ${formatScoreAdjustment(gkPreference.adjustment)}.`;
 
+  const attPreferenceLine =
+    attPreference.totalAtt >= 5 && attPreference.overloadedTeam !== 'Even'
+      ? `- Soft ATT spread: total ATT ${attPreference.totalAtt}, split T1 ${attPreference.team1Att} / T2 ${attPreference.team2Att}; overloaded side ${attPreference.overloadedTeam} has DEF=${attPreference.overloadedDefCount ?? 0}, adjustment ${formatScoreAdjustment(attPreference.adjustment)}.`
+      : `- Soft ATT spread: total ATT ${attPreference.totalAtt}, split T1 ${attPreference.team1Att} / T2 ${attPreference.team2Att}, adjustment ${formatScoreAdjustment(attPreference.adjustment)}.`;
+
   return `Analysis (Score: ${Math.round(score)})
 
 [Details]
-- Score formula: ${POINTS.RATING_BALANCE_BASE} - rating(${fmt(ratingDiff)}x10=${fmt(ratingPenalty)}) - attrs(${fmt(totalAttrDiff)}x5=${fmt(totalAttrPenalty)}) - pace(${fmt(paceDiff)}x10=${fmt(pacePenalty)}) - stamina(${fmt(staminaDiff)}x8=${fmt(staminaPenalty)}) - defense(${fmt(defDiff)}x5=${fmt(defensePenalty)}) + gkPref(${formatScoreAdjustment(gkPreference.adjustment)}) = ${fmt(scoreRebuilt)}.
+- Score formula: ${POINTS.RATING_BALANCE_BASE} - rating(${fmt(ratingDiff)}x10=${fmt(ratingPenalty)}) - attrs(${fmt(totalAttrDiff)}x5=${fmt(totalAttrPenalty)}) - pace(${fmt(paceDiff)}x10=${fmt(pacePenalty)}) - stamina(${fmt(staminaDiff)}x8=${fmt(staminaPenalty)}) - defense(${fmt(defDiff)}x5=${fmt(defensePenalty)}) + gkPref(${formatScoreAdjustment(gkPreference.adjustment)}) + attPref(${formatScoreAdjustment(attPreference.adjustment)}) = ${fmt(scoreRebuilt)}.
 - Current score status: ${Math.round(score)} (${scoreLabel}).
 - Favors marker: each balance line shows Favors: T1, T2, or Even.
 
@@ -468,6 +519,7 @@ function createAnalysisExplanation(
 - T2: GK roles=${team2GK.gkRoleCount}, yes=${team2GK.yesCount}, low=${team2GK.lowCount}, no=${team2GK.noCount}, capable=${team2GK.capableCount}
 - Status: ${emergencyStatus}
 ${softPreferenceLine}
+${attPreferenceLine}
 
 [Lineups]
 - T1: ${formatLineup(team1Players)}
@@ -630,7 +682,11 @@ function findRankedResultsForMode(
     const team1GKProfile = getTeamGKProfile(canonical.team1Players);
     const team2GKProfile = getTeamGKProfile(canonical.team2Players);
     const gkPreference = getGKPreferenceBreakdown(team1GKProfile, team2GKProfile);
-    const score = calculateBalanceScore(canonical.stats1, canonical.stats2) + gkPreference.adjustment;
+    const attPreference = getAttPreferenceBreakdown(canonical.team1Players, canonical.team2Players);
+    const score =
+      calculateBalanceScore(canonical.stats1, canonical.stats2) +
+      gkPreference.adjustment +
+      attPreference.adjustment;
 
     const socialSat = calculateSocialSatisfaction(canonical.team1Players, canonical.team2Players);
     const socialMetLinks = getMetRelationshipDetails(canonical.team1Players, canonical.team2Players);
@@ -650,6 +706,7 @@ function findRankedResultsForMode(
         socialMetLinks,
         socialMetDislikes,
         gkPreference,
+        attPreference,
       ),
       isFallback: false,
       score,
@@ -745,6 +802,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     getTeamGKProfile(team1Players),
     getTeamGKProfile(team2Players),
   );
+  const fallbackAttPreference = getAttPreferenceBreakdown(team1Players, team2Players);
   const socialSat = calculateSocialSatisfaction(team1Players, team2Players);
   const fallbackTeam1Profile = getTeamGKProfile(team1Players);
   const fallbackTeam2Profile = getTeamGKProfile(team2Players);
@@ -760,7 +818,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
     team1: { players: team1Players, totalRating: stats1.rating },
     team2: { players: team2Players, totalRating: stats2.rating },
     socialSatisfactionPct: socialSat.percentage,
-    explanation: `Analysis (Score: ${Math.round(calculateBalanceScore(stats1, stats2) + fallbackGkPreference.adjustment)})
+    explanation: `Analysis (Score: ${Math.round(calculateBalanceScore(stats1, stats2) + fallbackGkPreference.adjustment + fallbackAttPreference.adjustment)})
 
 [Details]
 - FALLBACK USED: staged constraints could not be met.
@@ -779,6 +837,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
 - T1: GK roles=${fallbackTeam1Profile.gkRoleCount}, yes=${fallbackTeam1Profile.yesCount}, low=${fallbackTeam1Profile.lowCount}, no=${fallbackTeam1Profile.noCount}, capable=${fallbackTeam1Profile.capableCount}
 - T2: GK roles=${fallbackTeam2Profile.gkRoleCount}, yes=${fallbackTeam2Profile.yesCount}, low=${fallbackTeam2Profile.lowCount}, no=${fallbackTeam2Profile.noCount}, capable=${fallbackTeam2Profile.capableCount}
 - Status in fallback split: ${fallbackEmergencyStatus}
+- Soft ATT spread in fallback: total ATT ${fallbackAttPreference.totalAtt}, split T1 ${fallbackAttPreference.team1Att} / T2 ${fallbackAttPreference.team2Att}, adjustment ${formatScoreAdjustment(fallbackAttPreference.adjustment)}.
 
 [Lineups]
 - T1: ${formatLineup(team1Players)}
@@ -789,7 +848,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
 - Met wants links: ${getMetRelationshipDetails(team1Players, team2Players)}
 - Met dislikes links: ${getMetDislikeDetails(team1Players, team2Players)}`,
     isFallback: true,
-    score: calculateBalanceScore(stats1, stats2) + fallbackGkPreference.adjustment,
+    score: calculateBalanceScore(stats1, stats2) + fallbackGkPreference.adjustment + fallbackAttPreference.adjustment,
     stage: 'FALLBACK',
   };
 
