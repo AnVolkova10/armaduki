@@ -25,10 +25,10 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 
 ## Fase 1 - Reglas reales y tests base
 
-- [ ] F2-01.1 Auditar README vs generador: stages de wants, regla emergency GK, max ATT, 3 GK y fallback.
-- [ ] F2-01.2 Decidir y documentar la regla real de emergency GK: cantidad requerida y si cuenta `low`.
-- [ ] F2-01.3 Decidir y documentar la regla real para 3 GK seleccionados.
-- [ ] F2-01.4 Alinear README con el comportamiento real confirmado.
+- [x] F2-01.1 Auditar README vs generador: stages de wants, regla emergency GK, max ATT, 3 GK y fallback.
+- [x] F2-01.2 Decidir y documentar la regla real de emergency GK: cantidad requerida y si cuenta `low`.
+- [x] F2-01.3 Decidir y documentar la regla real para 3 GK seleccionados.
+- [x] F2-01.4 Alinear README con el comportamiento real confirmado.
 - [ ] F2-01.5 Ajustar semantica de goalkeeper: `good` suma plus porque le gusta atajar, `low` ataja pero mal, `no` no ataja.
 - [ ] F2-01.6 Incluir el plus/penalidad de goalkeeper en el score y en el analisis.
 - [ ] F2-02.1 Agregar setup de tests automaticos para `teamGenerator` y parsers/store.
@@ -40,6 +40,29 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [ ] F2-02.7 Test generator: caso 3 GK.
 - [ ] F2-02.8 Test store/parser: campos faltantes deben seguir cargando jugadores existentes.
 - [ ] F2-02.9 Test generator: goalkeeper `good` mejora score, `low` no suma plus y `no` no cuenta como opcion.
+
+### Auditoria F2-01.1 - README vs generador actual
+
+- Wants stages: README describe `STRICT`, `RELAXED_UNILATERAL` y `RELAXED_MUTUAL`, pero `generateTeams` solo ejecuta `strict`; los modos relajados existen en helpers/tipos pero hoy son inalcanzables.
+- Emergency GK: README dice que un team sin GK necesita al menos `3` jugadores con `gkWillingness: yes`; el codigo exige `2` jugadores capaces y cuenta `yes + low`.
+- Max ATT: README declara max `2 ATT` por team; el codigo no tiene hard constraint de max ATT. Solo fuerza split 1/1 cuando hay exactamente 2 ATT seleccionados y aplica ajuste soft cuando hay muchos ATT.
+- 3 GK seleccionados: el codigo valida max `1` GK por team. Con 3 GK de rol no puede existir split estricto valido en 2 equipos, entonces cae a fallback.
+- Fallback: README dice fallback si fallan staged constraints; en codigo hay dos niveles: primero un fallback social-hard que conserva avoids + wants strict y relaja reglas no sociales, despues un snake split por power que ignora constraints si no existe split social-hard.
+- Scoring: README dice que el score numerico usa rating + atributos, pero el codigo tambien suma ajustes soft de GK y ATT.
+
+### Decisiones F2-01.2 / F2-01.3 - Reglas a implementar despues
+
+- Wants queda estricto. Si no hay solucion estricta, el algoritmo no debe relajar wants automaticamente antes de fallback.
+- Emergency GK mantiene el algoritmo actual: si un team no tiene GK real, necesita jugadores capaces de ese lado. `good` y `low` cuentan como capaces; `no` no cuenta.
+- `good`: cuenta como capaz y suma un plus chico porque ademas ataja bien o le gusta atajar.
+- `low`: cuenta como capaz de emergencia, pero no suma plus y por ahora no penaliza.
+- `no`: no cuenta como opcion de arquero.
+- Si un team tiene GK real, la regla de emergency GK no aplica para ese team. En el resumen debe decir algo tipo "GK real presente, emergency keepers not needed" en vez de mezclar o contar posibles innecesariamente.
+- Si un team no tiene GK real, el resumen debe mostrar claramente cuantos capaces tiene y si pasa/falla la regla.
+- Si se seleccionan 3 GK de rol, no bloquear. Generar igual con warning claro porque es raro pero posible, y explicar si se uso fallback.
+- ATT queda como preferencia soft, no como hard max `2 ATT`.
+- Fallback queda como esta: primero social-hard, despues snake split si no hay alternativa.
+- Bonus por mismo equipo queda para mas adelante, despues de tener el campo `teams` cargado y visible.
 
 ## Fase 2 - Limpieza UX inmediata
 
@@ -97,8 +120,9 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [ ] F2-08.7 Mantener hints de relaciones inversas actuales.
 - [ ] F2-08.8 Validar mobile: listas scrolleables y botones legibles.
 
-## Fase 7 - Bonus soft por equipo
+## Fase 7 - Bonus soft por equipo (mas adelante)
 
+- [ ] F2-10.0 No iniciar esta fase hasta tener el campo `teams` cargado, visible y probado con datos reales.
 - [ ] F2-10.1 Agregar scoring soft `+1` por cada pareja del mismo equipo dentro del mismo team.
 - [ ] F2-10.2 No permitir que el bonus rompa avoids ni constraints fuertes.
 - [ ] F2-10.3 Incluir el bonus en el breakdown de analisis.

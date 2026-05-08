@@ -14,24 +14,35 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
 
 - Input must be exactly 10 players.
 - Teams are 5 vs 5.
-- Hard constraints per team:
+- Strict-stage hard constraints per team:
   - max `1` GK
   - max `2` DEF
-  - max `2` ATT
-  - if no GK in a team, it needs at least `3` players with `gkWillingness: yes`
+  - if there are exactly 2 selected DEF, they must be split 1/1
+  - if there are exactly 2 selected ATT, they must be split 1/1
+  - if a team has no GK role, it needs at least `2` capable emergency keepers
+  - capable emergency keepers are `gkWillingness: yes` or `gkWillingness: low`
+  - if a team has a GK role, emergency keeper count does not matter for that team
 - Social hard constraint:
   - players that avoid each other cannot be in the same team
-- Wants constraints (staged):
-  - `STRICT`: unilateral + mutual wants must stay together
-  - `RELAXED_UNILATERAL`: only mutual wants must stay together
-  - `RELAXED_MUTUAL`: wants can be split if needed
+- Wants constraint:
+  - wants are strict: unilateral + mutual wants must stay together
+  - relaxed wants modes exist in code/types, but `generateTeams` currently only runs strict mode
+- ATT handling:
+  - there is no hard max `2 ATT` per team
+  - ATT distribution is handled as a soft scoring preference
+- 3 GK handling:
+  - selection is not blocked
+  - strict mode cannot satisfy max `1` GK per team with 3 GK selected, so fallback is expected
 - Scoring model:
-  - numeric score uses only rating + attribute balance
+  - numeric score uses rating + attribute balance
+  - score also includes soft GK willingness and ATT spread adjustments
   - social satisfaction is analysis-only (met wants + met dislikes), no social points
 - Owner bias:
   - player ID from `VITE_OWNER_ID` is forced into the weaker/equal team
   - default owner ID is `10` if env var is missing/empty
-- If staged constraints fail, a fallback split is generated.
+- Fallbacks:
+  - first fallback keeps social rules hard (`avoids` + strict `wants`) and relaxes non-social constraints
+  - final fallback uses a snake split by power and may ignore constraints if no social-hard split exists
 
 ## Stack
 
