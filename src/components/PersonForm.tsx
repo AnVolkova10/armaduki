@@ -12,7 +12,7 @@ interface PersonFormProps {
 
 const roles: Role[] = ['GK', 'FLEX', 'DEF', 'MID', 'ATT'];
 const gkOptions: { value: GKWillingness; label: string }[] = [
-    { value: 'yes', label: 'Yes' },
+    { value: 'good', label: 'Good' },
     { value: 'low', label: 'Low' },
     { value: 'no', label: 'No' },
 ];
@@ -138,7 +138,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
             rating,
             attributes,
             avatar,
-            gkWillingness: role === 'GK' ? 'yes' : gkWillingness,
+            gkWillingness: role === 'GK' ? 'good' : gkWillingness,
             wantsWith,
             avoidsWith,
         });
@@ -165,7 +165,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const handleRoleChange = (nextRole: Role) => {
         setRole(nextRole);
         if (nextRole === 'GK') {
-            setGkWillingness('yes');
+            setGkWillingness('good');
         }
     };
 
@@ -177,13 +177,19 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                 <div className="attr-buttons">
                     <button type="button"
                         className={`attr-btn low ${val === 'low' ? 'active' : ''}`}
-                        onClick={() => updateAttribute(key, 'low')}>L</button>
+                        aria-label={`${label} low`}
+                        title="Low"
+                        onClick={() => updateAttribute(key, 'low')}>🔴</button>
                     <button type="button"
                         className={`attr-btn mid ${val === 'mid' ? 'active' : ''}`}
-                        onClick={() => updateAttribute(key, 'mid')}>M</button>
+                        aria-label={`${label} mid`}
+                        title="Mid"
+                        onClick={() => updateAttribute(key, 'mid')}>🟡</button>
                     <button type="button"
                         className={`attr-btn high ${val === 'high' ? 'active' : ''}`}
-                        onClick={() => updateAttribute(key, 'high')}>H</button>
+                        aria-label={`${label} high`}
+                        title="High"
+                        onClick={() => updateAttribute(key, 'high')}>🟢</button>
                 </div>
             </div>
         );

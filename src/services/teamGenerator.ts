@@ -16,11 +16,10 @@ const POINTS = {
 // Hard Constraints
 const MAX_GK = 1;
 const MAX_DEF = 2;
-const REQUIRED_GK_CAPABLE_WHEN_NO_GK = 2; // Capable = yes + low when there is no dedicated GK
+const REQUIRED_GK_CAPABLE_WHEN_NO_GK = 2; // Capable = good + low when there is no dedicated GK
 
-const YES_IMBALANCE_WEIGHT = 8;
-const LOW_SUPPORT_REWARD = 6;
-const LOW_SUPPORT_PENALTY = 6;
+const GOOD_GK_EMERGENCY_BONUS = 4;
+const MISSING_GK_CAPABLE_PENALTY = 12;
 const ATT_IMBALANCE_WEIGHT = 6;
 const ATT_OVERLOAD_WITH_DEF_REWARD = 6;
 const ATT_OVERLOAD_WITHOUT_DEF_PENALTY = 8;
@@ -45,18 +44,25 @@ interface TeamStats {
 
 interface TeamGKProfile {
   gkRoleCount: number;
-  yesCount: number;
+  goodCount: number;
   lowCount: number;
   noCount: number;
   capableCount: number;
 }
 
+interface TeamGKScoreBreakdown {
+  needsEmergency: boolean;
+  goodBonus: number;
+  missingCapable: number;
+  shortagePenalty: number;
+  adjustment: number;
+}
+
 interface GKPreferenceBreakdown {
   applies: boolean;
   adjustment: number;
-  yesImbalance: number;
-  weakerTeam: 'T1' | 'T2' | 'Even';
-  weakerHasLow: boolean | null;
+  team1: TeamGKScoreBreakdown;
+  team2: TeamGKScoreBreakdown;
 }
 
 interface AttPreferenceBreakdown {
@@ -164,15 +170,15 @@ function hasSocialConflict(players: Person[]): boolean {
 
 function getTeamGKProfile(players: Person[]): TeamGKProfile {
   let gkRoleCount = 0;
-  let yesCount = 0;
+  let goodCount = 0;
   let lowCount = 0;
   let noCount = 0;
 
   for (const player of players) {
     if (player.role === 'GK') gkRoleCount++;
 
-    if (player.gkWillingness === 'yes') {
-      yesCount++;
+    if (player.gkWillingness === 'good') {
+      goodCount++;
       continue;
     }
 
@@ -186,43 +192,47 @@ function getTeamGKProfile(players: Person[]): TeamGKProfile {
 
   return {
     gkRoleCount,
-    yesCount,
+    goodCount,
     lowCount,
     noCount,
-    capableCount: yesCount + lowCount,
+    capableCount: goodCount + lowCount,
+  };
+}
+
+function getTeamGKScoreBreakdown(profile: TeamGKProfile): TeamGKScoreBreakdown {
+  const needsEmergency = profile.gkRoleCount === 0;
+  if (!needsEmergency) {
+    return {
+      needsEmergency: false,
+      goodBonus: 0,
+      missingCapable: 0,
+      shortagePenalty: 0,
+      adjustment: 0,
+    };
+  }
+
+  const goodBonus = profile.goodCount * GOOD_GK_EMERGENCY_BONUS;
+  const missingCapable = Math.max(0, REQUIRED_GK_CAPABLE_WHEN_NO_GK - profile.capableCount);
+  const shortagePenalty = missingCapable * MISSING_GK_CAPABLE_PENALTY;
+
+  return {
+    needsEmergency: true,
+    goodBonus,
+    missingCapable,
+    shortagePenalty,
+    adjustment: goodBonus - shortagePenalty,
   };
 }
 
 function getGKPreferenceBreakdown(team1Profile: TeamGKProfile, team2Profile: TeamGKProfile): GKPreferenceBreakdown {
-  const applies = team1Profile.gkRoleCount === 0 || team2Profile.gkRoleCount === 0;
-  if (!applies) {
-    return {
-      applies: false,
-      adjustment: 0,
-      yesImbalance: 0,
-      weakerTeam: 'Even',
-      weakerHasLow: null,
-    };
-  }
-
-  const yesImbalance = Math.abs(team1Profile.yesCount - team2Profile.yesCount);
-  let adjustment = -yesImbalance * YES_IMBALANCE_WEIGHT;
-  let weakerTeam: GKPreferenceBreakdown['weakerTeam'] = 'Even';
-  let weakerHasLow: boolean | null = null;
-
-  if (team1Profile.yesCount !== team2Profile.yesCount) {
-    const team1IsWeaker = team1Profile.yesCount < team2Profile.yesCount;
-    weakerTeam = team1IsWeaker ? 'T1' : 'T2';
-    weakerHasLow = team1IsWeaker ? team1Profile.lowCount > 0 : team2Profile.lowCount > 0;
-    adjustment += weakerHasLow ? LOW_SUPPORT_REWARD : -LOW_SUPPORT_PENALTY;
-  }
+  const team1 = getTeamGKScoreBreakdown(team1Profile);
+  const team2 = getTeamGKScoreBreakdown(team2Profile);
 
   return {
-    applies: true,
-    adjustment,
-    yesImbalance,
-    weakerTeam,
-    weakerHasLow,
+    applies: team1.needsEmergency || team2.needsEmergency,
+    adjustment: team1.adjustment + team2.adjustment,
+    team1,
+    team2,
   };
 }
 
@@ -291,7 +301,7 @@ function validateTeam(players: Person[]): { valid: boolean; reason?: TeamValidat
   if (gkProfile.gkRoleCount > MAX_GK) return { valid: false, reason: 'roles' };
   if (defCount > MAX_DEF) return { valid: false, reason: 'roles' };
 
-  // Emergency GK Rule: when there is no dedicated GK role, team needs at least 2 capable keepers (yes + low).
+  // Emergency GK Rule: when there is no dedicated GK role, team needs at least 2 capable keepers (good + low).
   if (gkProfile.gkRoleCount === 0 && gkProfile.capableCount < REQUIRED_GK_CAPABLE_WHEN_NO_GK) {
     return { valid: false, reason: 'emergencyGK' };
   }
@@ -415,6 +425,42 @@ function calculateBalanceScore(stats1: TeamStats, stats2: TeamStats): number {
   return score;
 }
 
+function formatTeamGKEmergencyLine(
+  label: 'T1' | 'T2',
+  profile: TeamGKProfile,
+  scoreBreakdown: TeamGKScoreBreakdown,
+): string {
+  if (!scoreBreakdown.needsEmergency) {
+    return `- ${label} GK: real GK present (${profile.gkRoleCount}); emergency keepers not needed.`;
+  }
+
+  const status =
+    scoreBreakdown.missingCapable === 0
+      ? 'PASS'
+      : `FAIL, missing ${scoreBreakdown.missingCapable} capable keeper${scoreBreakdown.missingCapable === 1 ? '' : 's'}`;
+
+  return `- ${label} emergency GK: no GK role; capable ${profile.capableCount}/${REQUIRED_GK_CAPABLE_WHEN_NO_GK} (good=${profile.goodCount}, low=${profile.lowCount}, no=${profile.noCount}); ${status}; good bonus ${formatScoreAdjustment(scoreBreakdown.goodBonus)}, shortage penalty ${formatScoreAdjustment(-scoreBreakdown.shortagePenalty)}, adjustment ${formatScoreAdjustment(scoreBreakdown.adjustment)}.`;
+}
+
+function createGKEmergencyAnalysisBlock(
+  team1Profile: TeamGKProfile,
+  team2Profile: TeamGKProfile,
+  gkPreference: GKPreferenceBreakdown,
+): string {
+  const emergencyPass = gkPreference.team1.missingCapable === 0 && gkPreference.team2.missingCapable === 0;
+  const status = emergencyPass
+    ? 'PASS (emergency GK condition satisfied).'
+    : `FAIL (teams without GK role must have >= ${REQUIRED_GK_CAPABLE_WHEN_NO_GK} capable keepers).`;
+  const scoreLine = gkPreference.applies
+    ? `\n- GK score adjustment: ${formatScoreAdjustment(gkPreference.adjustment)}.`
+    : '';
+
+  return `- Rule when no GK role: each team needs >= ${REQUIRED_GK_CAPABLE_WHEN_NO_GK} capable keepers (good + low).
+${formatTeamGKEmergencyLine('T1', team1Profile, gkPreference.team1)}
+${formatTeamGKEmergencyLine('T2', team2Profile, gkPreference.team2)}
+- Status: ${status}${scoreLine}`;
+}
+
 function createAnalysisExplanation(
   score: number,
   stats1: TeamStats,
@@ -499,23 +545,7 @@ function createAnalysisExplanation(
 
   const team1GK = getTeamGKProfile(team1Players);
   const team2GK = getTeamGKProfile(team2Players);
-  const team1NeedsEmergency = team1GK.gkRoleCount === 0;
-  const team2NeedsEmergency = team2GK.gkRoleCount === 0;
-  const team1EmergencyPass =
-    !team1NeedsEmergency || team1GK.capableCount >= REQUIRED_GK_CAPABLE_WHEN_NO_GK;
-  const team2EmergencyPass =
-    !team2NeedsEmergency || team2GK.capableCount >= REQUIRED_GK_CAPABLE_WHEN_NO_GK;
-  const emergencyPass = team1EmergencyPass && team2EmergencyPass;
-
-  const emergencyStatus = emergencyPass
-    ? 'PASS (emergency GK condition satisfied).'
-    : `FAIL (teams without GK role must have >= ${REQUIRED_GK_CAPABLE_WHEN_NO_GK} capable keepers).`;
-
-  const softPreferenceLine =
-    gkPreference.weakerTeam === 'Even'
-      ? `- Soft yes balance: yes diff ${gkPreference.yesImbalance}, adjustment ${formatScoreAdjustment(gkPreference.adjustment)}.`
-      : `- Soft yes balance: yes diff ${gkPreference.yesImbalance}, weaker side ${gkPreference.weakerTeam}, low support ${gkPreference.weakerHasLow ? 'yes' : 'no'}, adjustment ${formatScoreAdjustment(gkPreference.adjustment)}.`;
-  const gkSoftPreferenceLine = gkPreference.applies ? `\n${softPreferenceLine}` : '';
+  const gkAnalysisBlock = createGKEmergencyAnalysisBlock(team1GK, team2GK, gkPreference);
 
   const attPreferenceLine =
     attPreference.totalAtt >= 5 && attPreference.overloadedTeam !== 'Even'
@@ -541,10 +571,7 @@ function createAnalysisExplanation(
 - Stamina: T1 (${stats1.attributes.stamina.toFixed(1)}) vs T2 (${stats2.attributes.stamina.toFixed(1)}) -> Diff: ${staminaDiff.toFixed(1)} -> Favors: ${staminaFavored}
 
 [Emergency + ATT]
-- Rule when no GK role: each team needs >= ${REQUIRED_GK_CAPABLE_WHEN_NO_GK} capable keepers (yes + low).
-- T1: GK roles=${team1GK.gkRoleCount}, yes=${team1GK.yesCount}, low=${team1GK.lowCount}, no=${team1GK.noCount}, capable=${team1GK.capableCount}
-- T2: GK roles=${team2GK.gkRoleCount}, yes=${team2GK.yesCount}, low=${team2GK.lowCount}, no=${team2GK.noCount}, capable=${team2GK.capableCount}
-- Status: ${emergencyStatus}${gkSoftPreferenceLine}
+${gkAnalysisBlock}
 ${attPreferenceLine}
 
 [Lineups]
@@ -889,13 +916,11 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
   if (socialHardFallback) {
     const fallbackTeam1Profile = getTeamGKProfile(socialHardFallback.team1Players);
     const fallbackTeam2Profile = getTeamGKProfile(socialHardFallback.team2Players);
-    const fallbackTeam1NeedsEmergency = fallbackTeam1Profile.gkRoleCount === 0;
-    const fallbackTeam2NeedsEmergency = fallbackTeam2Profile.gkRoleCount === 0;
-    const fallbackTeam1Pass =
-      !fallbackTeam1NeedsEmergency || fallbackTeam1Profile.capableCount >= REQUIRED_GK_CAPABLE_WHEN_NO_GK;
-    const fallbackTeam2Pass =
-      !fallbackTeam2NeedsEmergency || fallbackTeam2Profile.capableCount >= REQUIRED_GK_CAPABLE_WHEN_NO_GK;
-    const fallbackEmergencyStatus = fallbackTeam1Pass && fallbackTeam2Pass ? 'PASS' : 'FAIL';
+    const fallbackGkAnalysisBlock = createGKEmergencyAnalysisBlock(
+      fallbackTeam1Profile,
+      fallbackTeam2Profile,
+      socialHardFallback.gkPreference,
+    );
     const socialSat = calculateSocialSatisfaction(socialHardFallback.team1Players, socialHardFallback.team2Players);
 
     const primaryFallback: GeneratedTeamOption = {
@@ -916,11 +941,8 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
 - Teams generated using Balance Score fallback while preserving social hard constraints.
 
 [Emergency + ATT]
-- Selected GK willingness: yes=${selectedGKSummary.yesCount}, low=${selectedGKSummary.lowCount}, no=${selectedGKSummary.noCount}.
-- Rule when no GK role: each team needs >= ${REQUIRED_GK_CAPABLE_WHEN_NO_GK} capable keepers (yes + low).
-- T1: GK roles=${fallbackTeam1Profile.gkRoleCount}, yes=${fallbackTeam1Profile.yesCount}, low=${fallbackTeam1Profile.lowCount}, no=${fallbackTeam1Profile.noCount}, capable=${fallbackTeam1Profile.capableCount}
-- T2: GK roles=${fallbackTeam2Profile.gkRoleCount}, yes=${fallbackTeam2Profile.yesCount}, low=${fallbackTeam2Profile.lowCount}, no=${fallbackTeam2Profile.noCount}, capable=${fallbackTeam2Profile.capableCount}
-- Status in fallback split: ${fallbackEmergencyStatus}
+- Selected GK willingness: good=${selectedGKSummary.goodCount}, low=${selectedGKSummary.lowCount}, no=${selectedGKSummary.noCount}.
+${fallbackGkAnalysisBlock}
 - Soft ATT spread in fallback: total ATT ${socialHardFallback.attPreference.totalAtt}, split T1 ${socialHardFallback.attPreference.team1Att} / T2 ${socialHardFallback.attPreference.team2Att}, adjustment ${formatScoreAdjustment(socialHardFallback.attPreference.adjustment)}.
 
 [Lineups]
@@ -971,13 +993,11 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
   const socialSat = calculateSocialSatisfaction(team1Players, team2Players);
   const fallbackTeam1Profile = getTeamGKProfile(team1Players);
   const fallbackTeam2Profile = getTeamGKProfile(team2Players);
-  const fallbackTeam1NeedsEmergency = fallbackTeam1Profile.gkRoleCount === 0;
-  const fallbackTeam2NeedsEmergency = fallbackTeam2Profile.gkRoleCount === 0;
-  const fallbackTeam1Pass =
-    !fallbackTeam1NeedsEmergency || fallbackTeam1Profile.capableCount >= REQUIRED_GK_CAPABLE_WHEN_NO_GK;
-  const fallbackTeam2Pass =
-    !fallbackTeam2NeedsEmergency || fallbackTeam2Profile.capableCount >= REQUIRED_GK_CAPABLE_WHEN_NO_GK;
-  const fallbackEmergencyStatus = fallbackTeam1Pass && fallbackTeam2Pass ? 'PASS' : 'FAIL';
+  const fallbackGkAnalysisBlock = createGKEmergencyAnalysisBlock(
+    fallbackTeam1Profile,
+    fallbackTeam2Profile,
+    fallbackGkPreference,
+  );
 
   const primaryFallback: GeneratedTeamOption = {
     team1: { players: team1Players, totalRating: stats1.rating },
@@ -997,11 +1017,8 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
 - Teams generated using Power Rating (Best Fit, ignoring constraints).
 
 [Emergency + ATT]
-- Selected GK willingness: yes=${selectedGKSummary.yesCount}, low=${selectedGKSummary.lowCount}, no=${selectedGKSummary.noCount}.
-- Rule when no GK role: each team needs >= ${REQUIRED_GK_CAPABLE_WHEN_NO_GK} capable keepers (yes + low).
-- T1: GK roles=${fallbackTeam1Profile.gkRoleCount}, yes=${fallbackTeam1Profile.yesCount}, low=${fallbackTeam1Profile.lowCount}, no=${fallbackTeam1Profile.noCount}, capable=${fallbackTeam1Profile.capableCount}
-- T2: GK roles=${fallbackTeam2Profile.gkRoleCount}, yes=${fallbackTeam2Profile.yesCount}, low=${fallbackTeam2Profile.lowCount}, no=${fallbackTeam2Profile.noCount}, capable=${fallbackTeam2Profile.capableCount}
-- Status in fallback split: ${fallbackEmergencyStatus}
+- Selected GK willingness: good=${selectedGKSummary.goodCount}, low=${selectedGKSummary.lowCount}, no=${selectedGKSummary.noCount}.
+${fallbackGkAnalysisBlock}
 - Soft ATT spread in fallback: total ATT ${fallbackAttPreference.totalAtt}, split T1 ${fallbackAttPreference.team1Att} / T2 ${fallbackAttPreference.team2Att}, adjustment ${formatScoreAdjustment(fallbackAttPreference.adjustment)}.
 
 [Lineups]

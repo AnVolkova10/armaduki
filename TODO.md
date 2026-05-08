@@ -7,10 +7,11 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [ ] Tomar solo 1 item por iteracion.
 - [ ] No tocar otros modulos salvo dependencias directas del item.
 - [ ] Al cerrar un item, probar en local antes de pasar al siguiente.
+- [ ] Al cerrar cambios de codigo, anotar pasos cortos y simples de prueba manual.
 - [ ] Disenar y validar siempre con enfoque mobile-first: layout, interacciones y legibilidad.
 - [ ] Si un item requiere Sheet/App Script, actualizar primero el contrato de datos y confirmar backward compatibility.
 - [ ] Mantener la UI mayormente en ingles por ahora.
-- [ ] Antes de tocar el generador, dejar `npm run lint`, `npm run build` y tests minimos funcionando.
+- [ ] Antes de tocar el generador, dejar `npm run lint`, `npm run build` y prueba manual definida.
 
 ## Fase 0 - Baseline tecnico
 
@@ -23,34 +24,25 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [x] F2-00.7 Asegurar que el footer siempre quede visible abajo, incluso con poco contenido.
 - [x] F2-00.8 Permitir cerrar modales con tecla Escape.
 
-## Fase 1 - Reglas reales y tests base
+## Fase 1 - Reglas reales del generador
 
 - [x] F2-01.1 Auditar README vs generador: stages de wants, regla emergency GK, max ATT, 3 GK y fallback.
 - [x] F2-01.2 Decidir y documentar la regla real de emergency GK: cantidad requerida y si cuenta `low`.
 - [x] F2-01.3 Decidir y documentar la regla real para 3 GK seleccionados.
 - [x] F2-01.4 Alinear README con el comportamiento real confirmado.
-- [ ] F2-01.5 Ajustar semantica de goalkeeper: `good` suma plus porque le gusta atajar, `low` ataja pero mal, `no` no ataja.
-- [ ] F2-01.6 Incluir el plus/penalidad de goalkeeper en el score y en el analisis.
-- [ ] F2-02.1 Agregar setup de tests automaticos para `teamGenerator` y parsers/store.
-- [ ] F2-02.2 Test generator: happy path 5v5.
-- [ ] F2-02.3 Test generator: avoids como hard constraint.
-- [ ] F2-02.4 Test generator: wants strict.
-- [ ] F2-02.5 Test generator: fallback cuando no hay split ideal.
-- [ ] F2-02.6 Test generator: owner bias.
-- [ ] F2-02.7 Test generator: caso 3 GK.
-- [ ] F2-02.8 Test store/parser: campos faltantes deben seguir cargando jugadores existentes.
-- [ ] F2-02.9 Test generator: goalkeeper `good` mejora score, `low` no suma plus y `no` no cuenta como opcion.
+- [x] F2-01.5 Ajustar semantica de goalkeeper: `good` suma plus porque le gusta atajar, `low` ataja pero mal, `no` no ataja.
+- [x] F2-01.6 Incluir el plus/penalidad de goalkeeper en el score y en el analisis.
 
 ### Auditoria F2-01.1 - README vs generador actual
 
 - Wants stages: README describe `STRICT`, `RELAXED_UNILATERAL` y `RELAXED_MUTUAL`, pero `generateTeams` solo ejecuta `strict`; los modos relajados existen en helpers/tipos pero hoy son inalcanzables.
-- Emergency GK: README dice que un team sin GK necesita al menos `3` jugadores con `gkWillingness: yes`; el codigo exige `2` jugadores capaces y cuenta `yes + low`.
+- Emergency GK: la auditoria original detecto que README decia `3` jugadores `gkWillingness: yes`; el codigo exige `2` jugadores capaces. Desde F2-01.5 cuenta `good + low` y lee datos legacy `yes` como `good`.
 - Max ATT: README declara max `2 ATT` por team; el codigo no tiene hard constraint de max ATT. Solo fuerza split 1/1 cuando hay exactamente 2 ATT seleccionados y aplica ajuste soft cuando hay muchos ATT.
 - 3 GK seleccionados: el codigo valida max `1` GK por team. Con 3 GK de rol no puede existir split estricto valido en 2 equipos, entonces cae a fallback.
 - Fallback: README dice fallback si fallan staged constraints; en codigo hay dos niveles: primero un fallback social-hard que conserva avoids + wants strict y relaja reglas no sociales, despues un snake split por power que ignora constraints si no existe split social-hard.
 - Scoring: README dice que el score numerico usa rating + atributos, pero el codigo tambien suma ajustes soft de GK y ATT.
 
-### Decisiones F2-01.2 / F2-01.3 - Reglas a implementar despues
+### Decisiones F2-01.2 / F2-01.3 - Reglas confirmadas
 
 - Wants queda estricto. Si no hay solucion estricta, el algoritmo no debe relajar wants automaticamente antes de fallback.
 - Emergency GK mantiene el algoritmo actual: si un team no tiene GK real, necesita jugadores capaces de ese lado. `good` y `low` cuentan como capaces; `no` no cuenta.
@@ -66,10 +58,10 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 
 ## Fase 2 - Limpieza UX inmediata
 
-- [ ] F2-03.1 Reemplazar opcion `Clear All` por `Clear links` en People.
-- [ ] F2-03.2 Reemplazar opcion `Clear All` por `Clear links` en Match.
-- [ ] F2-03.3 Reemplazar confirmacion `Clear all links?` por copy consistente con `Clear links`.
-- [ ] F2-03.4 Mantener `Clear Wants`, `Clear Avoids`, `Clear Filters` y `Clear Selection` sin cambiar comportamiento.
+- [x] F2-03.1 Reemplazar opcion `Clear All` por `Clear Links` en People.
+- [x] F2-03.2 Reemplazar opcion `Clear All` por `Clear Links` en Match.
+- [x] F2-03.3 Reemplazar confirmacion `Clear all links?` por copy consistente con `Clear Links`.
+- [x] F2-03.4 Mantener `Clear Wants`, `Clear Avoids`, `Clear Filters` y `Clear Selection` sin cambiar comportamiento.
 - [ ] F2-03.5 Agregar el icono de la pelota rojo en la UI donde corresponda.
 - [ ] F2-03.6 Agregar indicador visual de color cuando la seleccion llega a 10/10.
 - [ ] F2-03.7 En lineups/resultados, mostrar la puntuacion de cada team solo cuando el ojito/privacy mode esta apagado.
@@ -86,7 +78,7 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [ ] F2-05.1 Agregar `numero de camiseta` al modal.
 - [ ] F2-05.2 Agregar `equipo` con multiples valores al modal.
 - [ ] F2-05.3 Agregar `dia/lugar` con multiples valores al modal.
-- [ ] F2-05.4 Actualizar labels del modal de arquero a `good`, `low`, `no`.
+- [x] F2-05.4 Actualizar labels del modal de arquero a `good`, `low`, `no`.
 - [ ] F2-05.5 Mostrar camiseta en tarjeta sin romper privacidad ni mobile.
 - [ ] F2-05.6 Mostrar equipo en tarjeta.
 - [ ] F2-05.7 Mostrar equipo con circulo/swatch de dos colores.
@@ -154,7 +146,7 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 
 - [ ] `npm run lint` pasa.
 - [ ] `npm run build` pasa.
-- [ ] Tests automaticos base pasan.
+- [ ] QA manual de los cambios principales queda definido y probado.
 - [ ] Campos nuevos leen y escriben contra Sheet sin romper jugadores existentes.
 - [ ] Selector de Wants/Avoids es buscable y ordena por historial cuando existe.
 - [ ] Generar equipos scrollea al resultado.

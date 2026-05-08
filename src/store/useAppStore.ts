@@ -133,9 +133,10 @@ function validateRole(value: string | undefined): Role {
 }
 
 function validateGKWillingness(value: string | undefined): GKWillingness {
-  const valid: GKWillingness[] = ['yes', 'no', 'low'];
-  const normalized = (value || '').toLowerCase() as GKWillingness;
-  return valid.includes(normalized) ? normalized : 'no';
+  const valid: GKWillingness[] = ['good', 'no', 'low'];
+  const normalized = (value || '').trim().toLowerCase();
+  if (normalized === 'yes') return 'good';
+  return valid.includes(normalized as GKWillingness) ? (normalized as GKWillingness) : 'no';
 }
 
 function validateRating(value: string | undefined): number {

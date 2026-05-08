@@ -217,9 +217,9 @@ export function PeoplePage() {
     const handleClearAllRelationships = () => {
         setShowClearLinksMenu(false);
         requestConfirm({
-            title: 'Clear all links?',
+            title: 'Clear Links?',
             message: 'This will remove every positive and negative relationship for all players.',
-            confirmLabel: 'Clear All',
+            confirmLabel: 'Clear Links',
             tone: 'danger',
             onConfirm: () => clearAllRelationships(),
         });
@@ -307,7 +307,7 @@ export function PeoplePage() {
                                     className="clear-links-option clear-links-option--light"
                                     onClick={handleClearAllRelationships}
                                 >
-                                    Clear All
+                                    Clear links
                                 </button>
                             </div>
                         )}

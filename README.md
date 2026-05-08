@@ -20,7 +20,7 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
   - if there are exactly 2 selected DEF, they must be split 1/1
   - if there are exactly 2 selected ATT, they must be split 1/1
   - if a team has no GK role, it needs at least `2` capable emergency keepers
-  - capable emergency keepers are `gkWillingness: yes` or `gkWillingness: low`
+  - capable emergency keepers are `gkWillingness: good` or `gkWillingness: low`
   - if a team has a GK role, emergency keeper count does not matter for that team
 - Social hard constraint:
   - players that avoid each other cannot be in the same team
@@ -35,7 +35,10 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
   - strict mode cannot satisfy max `1` GK per team with 3 GK selected, so fallback is expected
 - Scoring model:
   - numeric score uses rating + attribute balance
-  - score also includes soft GK willingness and ATT spread adjustments
+  - score also includes soft GK emergency and ATT spread adjustments
+  - for teams without a GK role, each `good` emergency keeper adds a small bonus
+  - `low` counts as a capable emergency keeper but does not add bonus or penalty
+  - fallback splits get a penalty when a team without GK role has fewer than `2` capable emergency keepers
   - social satisfaction is analysis-only (met wants + met dislikes), no social points
 - Owner bias:
   - player ID from `VITE_OWNER_ID` is forced into the weaker/equal team
@@ -100,7 +103,7 @@ Expected fields from `action=read` response:
 - `role` (`GK | FLEX | DEF | MID | ATT`)
 - `rating` (`1..10`)
 - `avatar`
-- `gkWillingness` (`yes | low | no`)
+- `gkWillingness` (`good | low | no`; legacy `yes` values are read as `good`)
 - `wantsWith` (pipe-separated IDs: `1|3|8`)
 - `avoidsWith` (pipe-separated IDs)
 - `attributes` (JSON string/object)

@@ -1,5 +1,5 @@
 export type Role = 'GK' | 'FLEX' | 'DEF' | 'MID' | 'ATT';
-export type GKWillingness = 'yes' | 'no' | 'low';
+export type GKWillingness = 'good' | 'no' | 'low';
 
 export type AttributeLevel = 'high' | 'mid' | 'low';
 
