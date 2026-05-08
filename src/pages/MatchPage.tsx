@@ -101,13 +101,6 @@ export function MatchPage() {
     }, [fetchPeople, people.length]);
 
     useEffect(() => {
-        if (!privacyMode) return;
-        if (uiScoreFilter !== 'all') setUiScoreFilter('all');
-        if (uiSortMode === 'score') setUiSortMode('none');
-        if (uiScoreSortDirection !== 'desc') setUiScoreSortDirection('desc');
-    }, [privacyMode, uiScoreFilter, uiScoreSortDirection, uiSortMode]);
-
-    useEffect(() => {
         const handleDocumentClick = (event: MouseEvent) => {
             if (!showClearMenu) return;
             const target = event.target as Node;
@@ -122,6 +115,9 @@ export function MatchPage() {
 
     const normalizedQuery = normalizeSearch(searchQuery);
     const availableSortOptions = privacyMode ? SORT_OPTIONS_PRIVACY : SORT_OPTIONS;
+    const effectiveScoreFilter = privacyMode ? 'all' : uiScoreFilter;
+    const effectiveSortMode = privacyMode && uiSortMode === 'score' ? 'none' : uiSortMode;
+    const effectiveScoreSortDirection = privacyMode ? 'desc' : uiScoreSortDirection;
 
     const searchedPeople = useMemo(() => {
         if (!normalizedQuery) return people;
@@ -140,17 +136,17 @@ export function MatchPage() {
     }, [searchedPeople, uiRoleFilter]);
 
     const filteredPeople = useMemo(() => {
-        if (privacyMode || uiScoreFilter === 'all') return roleFilteredPeople;
-        const targetScore = Number(uiScoreFilter);
+        if (effectiveScoreFilter === 'all') return roleFilteredPeople;
+        const targetScore = Number(effectiveScoreFilter);
         return roleFilteredPeople.filter((person) => person.rating === targetScore);
-    }, [privacyMode, roleFilteredPeople, uiScoreFilter]);
+    }, [effectiveScoreFilter, roleFilteredPeople]);
 
     const visiblePeople = useMemo(() => {
-        if (uiSortMode === 'none' || (privacyMode && uiSortMode === 'score')) return filteredPeople;
+        if (effectiveSortMode === 'none') return filteredPeople;
 
         const sorted = [...filteredPeople];
-        if (uiSortMode === 'score' && !privacyMode) {
-            if (uiScoreSortDirection === 'desc') {
+        if (effectiveSortMode === 'score') {
+            if (effectiveScoreSortDirection === 'desc') {
                 sorted.sort((a, b) => (b.rating - a.rating) || a.nickname.localeCompare(b.nickname));
                 return sorted;
             }
@@ -158,7 +154,7 @@ export function MatchPage() {
             return sorted;
         }
 
-        if (uiSortMode === 'position') {
+        if (effectiveSortMode === 'position') {
             sorted.sort((a, b) => {
                 const roleDiff = ROLE_SORT_PRIORITY[a.role] - ROLE_SORT_PRIORITY[b.role];
                 if (roleDiff !== 0) return roleDiff;
@@ -168,10 +164,10 @@ export function MatchPage() {
         }
 
         return sorted;
-    }, [filteredPeople, privacyMode, uiScoreSortDirection, uiSortMode]);
+    }, [effectiveScoreSortDirection, effectiveSortMode, filteredPeople]);
 
     const hasActiveSearchOrFilter =
-        Boolean(normalizedQuery) || uiRoleFilter !== 'all' || (!privacyMode && uiScoreFilter !== 'all');
+        Boolean(normalizedQuery) || uiRoleFilter !== 'all' || effectiveScoreFilter !== 'all';
 
     const handleGenerate = () => {
         setLocalError(null);
@@ -364,7 +360,7 @@ export function MatchPage() {
 
                     {!privacyMode && (
                         <DropdownMenuSelect
-                            value={uiScoreFilter}
+                            value={effectiveScoreFilter}
                             options={SCORE_FILTER_OPTIONS}
                             onChange={(value) => setUiScoreFilter(value as 'all' | `${number}`)}
                             ariaLabel="Filter by score"
@@ -373,17 +369,17 @@ export function MatchPage() {
 
                     <div
                         className={`match-sort-group ${
-                            !privacyMode && uiSortMode === 'score' ? 'match-sort-group--with-toggle' : ''
+                            !privacyMode && effectiveSortMode === 'score' ? 'match-sort-group--with-toggle' : ''
                         }`}
                     >
                         <DropdownMenuSelect
-                            value={uiSortMode}
+                            value={effectiveSortMode}
                             options={availableSortOptions}
                             onChange={setUiSortMode}
                             ariaLabel="Sort players"
                         />
 
-                        {!privacyMode && uiSortMode === 'score' && (
+                        {!privacyMode && effectiveSortMode === 'score' && (
                             <button
                                 type="button"
                                 className="match-sort-direction-toggle"
@@ -391,18 +387,18 @@ export function MatchPage() {
                                     setUiScoreSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'))
                                 }
                                 aria-label={
-                                    uiScoreSortDirection === 'desc'
+                                    effectiveScoreSortDirection === 'desc'
                                         ? 'Score direction: high to low'
                                         : 'Score direction: low to high'
                                 }
                                 title={
-                                    uiScoreSortDirection === 'desc'
+                                    effectiveScoreSortDirection === 'desc'
                                         ? 'Score: high -> low'
                                         : 'Score: low -> high'
                                 }
                             >
                                 <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                    {uiScoreSortDirection === 'desc' ? (
+                                    {effectiveScoreSortDirection === 'desc' ? (
                                         <path d="M12 5v14m0 0l5-5m-5 5l-5-5" />
                                     ) : (
                                         <path d="M12 19V5m0 0l5 5m-5-5l-5 5" />
@@ -449,7 +445,7 @@ export function MatchPage() {
 
             {!isLoading && people.length > 0 && (
                 <div className="match-count">
-                    {normalizedQuery || uiRoleFilter !== 'all' || (!privacyMode && uiScoreFilter !== 'all')
+                    {normalizedQuery || uiRoleFilter !== 'all' || effectiveScoreFilter !== 'all'
                         ? `Showing ${visiblePeople.length} of ${people.length} players`
                         : `Total: ${people.length} players`}
                 </div>

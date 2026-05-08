@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import type { Person, Role, GKWillingness, AttributeLevel, Attributes } from '../types';
 import { getSuggestedRating } from '../utils/ratingSuggestion';
@@ -28,10 +28,20 @@ const attributesList: { key: keyof Attributes; label: string }[] = [
     { key: 'stamina', label: 'Stamina' },
 ];
 
-
+const DEFAULT_ATTRIBUTES: Attributes = {
+    shooting: 'mid',
+    control: 'mid',
+    passing: 'mid',
+    defense: 'mid',
+    pace: 'mid',
+    vision: 'mid',
+    grit: 'mid',
+    stamina: 'mid',
+};
 
 export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const { people, privacyMode } = useAppStore();
+    const personId = person?.id || '';
     const [name, setName] = useState(person?.name || '');
     const [nickname, setNickname] = useState(person?.nickname || '');
     const [role, setRole] = useState<Role>(person?.role || 'FLEX');
@@ -40,10 +50,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const [rating, setRating] = useState(person?.rating || 5);
 
     // Attributes State
-    const [attributes, setAttributes] = useState<Attributes>(person?.attributes || {
-        shooting: 'mid', control: 'mid', passing: 'mid', defense: 'mid',
-        pace: 'mid', vision: 'mid', grit: 'mid', stamina: 'mid'
-    });
+    const [attributes, setAttributes] = useState<Attributes>(person?.attributes || DEFAULT_ATTRIBUTES);
     const suggestedRating = useMemo(() => getSuggestedRating(attributes), [attributes]);
 
     const [avatar, setAvatar] = useState(person?.avatar || '');
@@ -51,23 +58,27 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const [wantsWith, setWantsWith] = useState<string[]>(person?.wantsWith || []);
     const [avoidsWith, setAvoidsWith] = useState<string[]>(person?.avoidsWith || []);
 
-    const otherPeople = people.filter(p => p.id !== person?.id);
+    const otherPeople = useMemo(() => people.filter((p) => p.id !== personId), [people, personId]);
     const inverseWants = useMemo(() => {
-        if (!person?.id) return [];
-        return otherPeople.filter(p => p.wantsWith.includes(person.id));
-    }, [otherPeople, person?.id]);
+        if (!personId) return new Set<string>();
+        return new Set(otherPeople.filter((p) => p.wantsWith.includes(personId)).map((p) => p.id));
+    }, [otherPeople, personId]);
 
     const inverseAvoids = useMemo(() => {
-        if (!person?.id) return [];
-        return otherPeople.filter(p => p.avoidsWith.includes(person.id));
-    }, [otherPeople, person?.id]);
+        if (!personId) return new Set<string>();
+        return new Set(otherPeople.filter((p) => p.avoidsWith.includes(personId)).map((p) => p.id));
+    }, [otherPeople, personId]);
 
-    // Auto-Set GK Willingness if Role is GK
     useEffect(() => {
-        if (role === 'GK') {
-            setGkWillingness('yes');
-        }
-    }, [role]);
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onCancel();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [onCancel]);
 
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -127,7 +138,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
             rating,
             attributes,
             avatar,
-            gkWillingness,
+            gkWillingness: role === 'GK' ? 'yes' : gkWillingness,
             wantsWith,
             avoidsWith,
         });
@@ -151,6 +162,13 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         setWantsWith(prev => prev.filter(i => i !== id));
     };
 
+    const handleRoleChange = (nextRole: Role) => {
+        setRole(nextRole);
+        if (nextRole === 'GK') {
+            setGkWillingness('yes');
+        }
+    };
+
     const renderAttributeRow = (key: keyof Attributes, label: string) => {
         const val = attributes[key];
         return (
@@ -159,13 +177,13 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                 <div className="attr-buttons">
                     <button type="button"
                         className={`attr-btn low ${val === 'low' ? 'active' : ''}`}
-                        onClick={() => updateAttribute(key, 'low')}>👎</button>
+                        onClick={() => updateAttribute(key, 'low')}>L</button>
                     <button type="button"
                         className={`attr-btn mid ${val === 'mid' ? 'active' : ''}`}
-                        onClick={() => updateAttribute(key, 'mid')}>🤏</button>
+                        onClick={() => updateAttribute(key, 'mid')}>M</button>
                     <button type="button"
                         className={`attr-btn high ${val === 'high' ? 'active' : ''}`}
-                        onClick={() => updateAttribute(key, 'high')}>👍</button>
+                        onClick={() => updateAttribute(key, 'high')}>H</button>
                 </div>
             </div>
         );
@@ -251,7 +269,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                         key={r}
                                         type="button"
                                         className={`role-btn ${r.toLowerCase()} ${role === r ? 'active' : ''}`}
-                                        onClick={() => setRole(r)}
+                                        onClick={() => handleRoleChange(r)}
                                     >
                                         {r}
                                     </button>
@@ -299,7 +317,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                         <button
                                             key={p.id}
                                             type="button"
-                                            className={`relationship-btn wants ${wantsWith.includes(p.id) ? 'active' : ''} ${inverseWants.some(i => i.id === p.id) ? 'inverse-hint-wants' : ''}`}
+                                            className={`relationship-btn wants ${wantsWith.includes(p.id) ? 'active' : ''} ${inverseWants.has(p.id) ? 'inverse-hint-wants' : ''}`}
                                             onClick={() => toggleWantsWith(p.id)}
                                         >
                                             {p.nickname}
@@ -317,7 +335,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                         <button
                                             key={p.id}
                                             type="button"
-                                            className={`relationship-btn avoids ${avoidsWith.includes(p.id) ? 'active' : ''} ${inverseAvoids.some(i => i.id === p.id) ? 'inverse-hint-avoids' : ''}`}
+                                            className={`relationship-btn avoids ${avoidsWith.includes(p.id) ? 'active' : ''} ${inverseAvoids.has(p.id) ? 'inverse-hint-avoids' : ''}`}
                                             onClick={() => toggleAvoidsWith(p.id)}
                                         >
                                             {p.nickname}
