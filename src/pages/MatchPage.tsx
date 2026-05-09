@@ -90,9 +90,17 @@ export function MatchPage() {
     const [uiScoreSortDirection, setUiScoreSortDirection] = useState<'desc' | 'asc'>('desc');
     const [showClearMenu, setShowClearMenu] = useState(false);
     const clearMenuRef = useRef<HTMLDivElement | null>(null);
+    const previousSelectedCountRef = useRef<number | null>(null);
+    const resultRef = useRef<HTMLDivElement | null>(null);
+    const shouldScrollToResultRef = useRef(false);
 
     const selectedCount = selectedIds.size;
     const canGenerate = selectedCount === 10;
+    const selectionCountClassName = [
+        'selection-count',
+        selectedCount === 10 ? 'selection-count--complete' : '',
+        selectedCount > 10 ? 'selection-count--over' : '',
+    ].filter(Boolean).join(' ');
 
     useEffect(() => {
         if (people.length === 0) {
@@ -112,6 +120,24 @@ export function MatchPage() {
         document.addEventListener('mousedown', handleDocumentClick);
         return () => document.removeEventListener('mousedown', handleDocumentClick);
     }, [showClearMenu]);
+
+    useEffect(() => {
+        const previousSelectedCount = previousSelectedCountRef.current;
+        previousSelectedCountRef.current = selectedCount;
+
+        if (previousSelectedCount !== null && selectedCount === 10 && previousSelectedCount !== 10) {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, [selectedCount]);
+
+    useEffect(() => {
+        if (!generatedTeams || !shouldScrollToResultRef.current) return;
+
+        shouldScrollToResultRef.current = false;
+        window.requestAnimationFrame(() => {
+            resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }, [generatedTeams]);
 
     const normalizedQuery = normalizeSearch(searchQuery);
     const availableSortOptions = privacyMode ? SORT_OPTIONS_PRIVACY : SORT_OPTIONS;
@@ -182,10 +208,18 @@ export function MatchPage() {
         const teams = generateTeams(selectedPeople);
 
         if (teams) {
+            shouldScrollToResultRef.current = true;
             setGeneratedTeams(teams);
         } else {
+            shouldScrollToResultRef.current = false;
             setLocalError('Could not generate valid teams. Check roles and goalkeeper availability.');
         }
+    };
+
+    const handlePersonSelect = (id: string) => {
+        const alreadySelected = selectedIds.has(id);
+        if (!alreadySelected && selectedCount >= 10) return;
+        toggleSelection(id);
     };
 
     const handleClearSelection = () => {
@@ -260,7 +294,7 @@ export function MatchPage() {
             <div className="page-header">
                 <h2>Match Setup</h2>
                 <div className="header-actions">
-                    <span className="selection-count">
+                    <span className={selectionCountClassName} aria-live="polite">
                         {selectedCount}/10 selected
                     </span>
                     <div className="relationship-actions" ref={clearMenuRef}>
@@ -435,7 +469,8 @@ export function MatchPage() {
                                 key={person.id}
                                 person={person}
                                 selected={selectedIds.has(person.id)}
-                                onSelect={() => toggleSelection(person.id)}
+                                selectionDisabled={!selectedIds.has(person.id) && selectedCount >= 10}
+                                onSelect={() => handlePersonSelect(person.id)}
                                 selectable
                             />
                         ))}
@@ -461,7 +496,11 @@ export function MatchPage() {
                     </button>
                 </div>
             )}
-            {generatedTeams && <TeamResult result={generatedTeams} />}
+            {generatedTeams && (
+                <div ref={resultRef} className="team-result-scroll-anchor">
+                    <TeamResult result={generatedTeams} />
+                </div>
+            )}
 
             <ConfirmDialog
                 open={Boolean(confirmState)}

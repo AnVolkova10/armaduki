@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { GeneratedTeams, GeneratedTeamOption, Person } from '../types';
 import useAppStore from '../store/useAppStore';
+import { calculateTeamPower } from '../services/teamGenerator';
 import './TeamResult.css';
 
 interface TeamResultProps {
@@ -139,11 +140,15 @@ export function TeamResult({ result }: TeamResultProps) {
 
     const primaryTeam1Sorted = sortPlayers(primary.team1.players);
     const primaryTeam2Sorted = sortPlayers(primary.team2.players);
+    const primaryTeam1Power = calculateTeamPower(primary.team1.players);
+    const primaryTeam2Power = calculateTeamPower(primary.team2.players);
     const primaryCopyText = buildCopyText(primary);
     const primaryAnalysis = parseAnalysis(primary.explanation ?? '');
 
     const secondaryTeam1Sorted = secondary ? sortPlayers(secondary.team1.players) : [];
     const secondaryTeam2Sorted = secondary ? sortPlayers(secondary.team2.players) : [];
+    const secondaryTeam1Power = secondary ? calculateTeamPower(secondary.team1.players) : null;
+    const secondaryTeam2Power = secondary ? calculateTeamPower(secondary.team2.players) : null;
     const secondaryCopyText = secondary ? buildCopyText(secondary) : '';
 
     const handleCopy = async (text: string, onCopied: (value: boolean) => void) => {
@@ -182,6 +187,28 @@ export function TeamResult({ result }: TeamResultProps) {
     };
 
     const primaryRatingDiff = Math.abs(primary.team1.totalRating - primary.team2.totalRating);
+    const renderAnalysisLineupRow = (label: 'T1' | 'T2', players: Person[]) => {
+        const lineupTotal = players.reduce((total, player) => total + player.rating, 0);
+
+        return (
+            <div className="analysis-lineup-row">
+                <span className={label === 'T1' ? 'analysis-token-t1' : 'analysis-token-t2'}>{label}</span>
+                {!privacyMode && <span className="analysis-lineup-total">{lineupTotal}</span>}
+                <span className="analysis-lineup-separator">:</span>
+                <div className="analysis-lineup-players">
+                    {players.map((player) => (
+                        <span key={`${label}-${player.id}`} className="analysis-lineup-player">
+                            <span className={`analysis-token-role analysis-token-role-${player.role.toLowerCase()}`}>
+                                {player.role}
+                            </span>
+                            {!privacyMode && <span className="analysis-lineup-rating">{player.rating}</span>}
+                            <span className="analysis-lineup-name">{player.nickname}</span>
+                        </span>
+                    ))}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="team-result">
@@ -197,7 +224,11 @@ export function TeamResult({ result }: TeamResultProps) {
                 <div className="team-box">
                     <div className="team-header">
                         <span className="team-name">Team 1</span>
-                        {!privacyMode && <span className="team-rating">* {primary.team1.totalRating}</span>}
+                        {!privacyMode && (
+                            <div className="team-metrics">
+                                <span className="team-power">Power: {formatValue(primaryTeam1Power)}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="team-players">
                         {primaryTeam1Sorted.map((player) => (
@@ -211,7 +242,11 @@ export function TeamResult({ result }: TeamResultProps) {
                 <div className="team-box">
                     <div className="team-header">
                         <span className="team-name">Team 2</span>
-                        {!privacyMode && <span className="team-rating">* {primary.team2.totalRating}</span>}
+                        {!privacyMode && (
+                            <div className="team-metrics">
+                                <span className="team-power">Power: {formatValue(primaryTeam2Power)}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="team-players">
                         {primaryTeam2Sorted.map((player) => (
@@ -237,24 +272,31 @@ export function TeamResult({ result }: TeamResultProps) {
                         {primaryAnalysis.sections.map((section, sectionIndex) => (
                             <section key={`${section.title}-${sectionIndex}`} className="analysis-section">
                                 <div className="analysis-section-title">{section.title}</div>
-                                <div className="analysis-lines">
-                                    {section.lines.map((line, lineIndex) => {
-                                        const trimmed = line.trimStart();
-                                        const isSubline = line.startsWith('  - ');
-                                        const displayLine = trimmed.startsWith('- ')
-                                            ? trimmed.slice(2)
-                                            : trimmed;
+                                {section.title === 'Lineups' ? (
+                                    <div className="analysis-lineup-lines">
+                                        {renderAnalysisLineupRow('T1', primaryTeam1Sorted)}
+                                        {renderAnalysisLineupRow('T2', primaryTeam2Sorted)}
+                                    </div>
+                                ) : (
+                                    <div className="analysis-lines">
+                                        {section.lines.map((line, lineIndex) => {
+                                            const trimmed = line.trimStart();
+                                            const isSubline = line.startsWith('  - ');
+                                            const displayLine = trimmed.startsWith('- ')
+                                                ? trimmed.slice(2)
+                                                : trimmed;
 
-                                        return (
-                                            <div
-                                                key={`${section.title}-${lineIndex}-${displayLine}`}
-                                                className={`analysis-line ${isSubline ? 'analysis-subline' : ''}`}
-                                            >
-                                                {renderAnalysisLine(displayLine)}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                            return (
+                                                <div
+                                                    key={`${section.title}-${lineIndex}-${displayLine}`}
+                                                    className={`analysis-line ${isSubline ? 'analysis-subline' : ''}`}
+                                                >
+                                                    {renderAnalysisLine(displayLine)}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </section>
                         ))}
                     </div>
@@ -321,7 +363,14 @@ export function TeamResult({ result }: TeamResultProps) {
 
                                     <div className="planb-teams">
                                         <div className="planb-team-box">
-                                            <div className="planb-team-title">Team 1</div>
+                                            <div className="planb-team-header">
+                                                <div className="planb-team-title">Team 1</div>
+                                                {!privacyMode && secondaryTeam1Power !== null && (
+                                                    <span className="planb-team-power">
+                                                        Power: {formatValue(secondaryTeam1Power)}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="planb-team-players">
                                                 {secondaryTeam1Sorted.map((player) => (
                                                     <span key={`planb-t1-${player.id}`}>{player.nickname}</span>
@@ -329,7 +378,14 @@ export function TeamResult({ result }: TeamResultProps) {
                                             </div>
                                         </div>
                                         <div className="planb-team-box">
-                                            <div className="planb-team-title">Team 2</div>
+                                            <div className="planb-team-header">
+                                                <div className="planb-team-title">Team 2</div>
+                                                {!privacyMode && secondaryTeam2Power !== null && (
+                                                    <span className="planb-team-power">
+                                                        Power: {formatValue(secondaryTeam2Power)}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="planb-team-players">
                                                 {secondaryTeam2Sorted.map((player) => (
                                                     <span key={`planb-t2-${player.id}`}>{player.nickname}</span>

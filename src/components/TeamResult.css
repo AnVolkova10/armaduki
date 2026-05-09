@@ -65,9 +65,18 @@
   color: var(--accent);
 }
 
-.team-rating {
+.team-metrics {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.team-power {
   color: var(--text-secondary);
   font-size: 0.875rem;
+  white-space: nowrap;
 }
 
 .team-players {
@@ -199,12 +208,25 @@
   background: rgba(0, 0, 0, 0.14);
 }
 
-.planb-team-title {
+.planb-team-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.35rem;
+}
+
+.planb-team-title {
   font-size: 0.72rem;
   color: #969696;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.planb-team-power {
+  color: #a7a7a7;
+  font-size: 0.72rem;
+  white-space: nowrap;
 }
 
 .planb-team-players {
@@ -277,6 +299,56 @@
 .analysis-lines {
   display: grid;
   gap: 0.35rem;
+}
+
+.analysis-lineup-lines {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.analysis-lineup-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.85rem;
+  color: #cccccc;
+}
+
+.analysis-lineup-separator {
+  color: #cccccc;
+  line-height: 1.35;
+}
+
+.analysis-lineup-total {
+  color: #fbbf24;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.analysis-lineup-players {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.55rem;
+  min-width: 0;
+}
+
+.analysis-lineup-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.analysis-lineup-rating {
+  color: #fbbf24;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.analysis-lineup-name {
+  color: #ffffff;
+  line-height: 1.2;
 }
 
 .analysis-line {

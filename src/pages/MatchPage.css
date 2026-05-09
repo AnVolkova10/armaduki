@@ -219,14 +219,28 @@
 .match-page .selection-count {
   padding: 0 1rem;
   background: var(--bg-secondary);
+  border: 1px solid transparent;
   border-radius: 6px;
-  color: var(--accent);
+  color: var(--text-secondary);
   font-weight: 600;
   min-height: 38px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.match-page .selection-count--complete {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.65);
+  color: #ef4444;
+}
+
+.match-page .selection-count--over {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.65);
+  color: #ef4444;
 }
 
 .match-page .generate-teams-btn:hover:not(:disabled),
@@ -287,4 +301,8 @@
   text-align: right;
   color: var(--text-secondary);
   font-size: 0.875rem;
+}
+
+.match-page .team-result-scroll-anchor {
+  scroll-margin-top: 5rem;
 }

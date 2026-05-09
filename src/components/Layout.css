@@ -17,12 +17,28 @@
   border-bottom: 1px solid var(--border);
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.brand-ball {
+  display: block;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+}
+
 .logo {
   font-size: 1.5rem;
+  line-height: 1;
   font-weight: 700;
   color: var(--accent);
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
+  transform: translateY(-1px);
 }
 
 .nav {
@@ -86,6 +102,17 @@
 .footer-signature {
   font-family: 'Courier New', Courier, monospace;
   opacity: 0.6;
+}
+
+.footer-ball {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
 }
 
 .footer-actions {

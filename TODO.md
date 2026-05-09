@@ -32,12 +32,13 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [x] F2-01.4 Alinear README con el comportamiento real confirmado.
 - [x] F2-01.5 Ajustar semantica de goalkeeper: `good` suma plus porque le gusta atajar, `low` ataja pero mal, `no` no ataja.
 - [x] F2-01.6 Incluir el plus/penalidad de goalkeeper en el score y en el analisis.
+- [x] F2-01.7 Ajustar owner bias para usar `Power` y ATT con spread hard `abs(T1 ATT - T2 ATT) <= 1`.
 
 ### Auditoria F2-01.1 - README vs generador actual
 
 - Wants stages: README describe `STRICT`, `RELAXED_UNILATERAL` y `RELAXED_MUTUAL`, pero `generateTeams` solo ejecuta `strict`; los modos relajados existen en helpers/tipos pero hoy son inalcanzables.
 - Emergency GK: la auditoria original detecto que README decia `3` jugadores `gkWillingness: yes`; el codigo exige `2` jugadores capaces. Desde F2-01.5 cuenta `good + low` y lee datos legacy `yes` como `good`.
-- Max ATT: README declara max `2 ATT` por team; el codigo no tiene hard constraint de max ATT. Solo fuerza split 1/1 cuando hay exactamente 2 ATT seleccionados y aplica ajuste soft cuando hay muchos ATT.
+- Max ATT: la auditoria original detecto que README declaraba max `2 ATT` por team. El codigo no tiene hard max `2 ATT`; desde F2-01.7 exige spread hard `abs(T1 ATT - T2 ATT) <= 1` y mantiene ajuste soft para ordenar opciones validas.
 - 3 GK seleccionados: el codigo valida max `1` GK por team. Con 3 GK de rol no puede existir split estricto valido en 2 equipos, entonces cae a fallback.
 - Fallback: README dice fallback si fallan staged constraints; en codigo hay dos niveles: primero un fallback social-hard que conserva avoids + wants strict y relaja reglas no sociales, despues un snake split por power que ignora constraints si no existe split social-hard.
 - Scoring: README dice que el score numerico usa rating + atributos, pero el codigo tambien suma ajustes soft de GK y ATT.
@@ -52,8 +53,9 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - Si un team tiene GK real, la regla de emergency GK no aplica para ese team. En el resumen debe decir algo tipo "GK real presente, emergency keepers not needed" en vez de mezclar o contar posibles innecesariamente.
 - Si un team no tiene GK real, el resumen debe mostrar claramente cuantos capaces tiene y si pasa/falla la regla.
 - Si se seleccionan 3 GK de rol, no bloquear. Generar igual con warning claro porque es raro pero posible, y explicar si se uso fallback.
-- ATT queda como preferencia soft, no como hard max `2 ATT`.
-- Fallback queda como esta: primero social-hard, despues snake split si no hay alternativa.
+- ATT queda sin hard max `2 ATT`, pero con spread hard: diferencia maxima `1` entre equipos. Ejemplos: con `4 ATT` debe ser `2/2`; con `5 ATT` puede ser `2/3`.
+- Owner bias usa `Power` (`rating + atributos ponderados`), no solo rating total.
+- Fallback queda asi: primero social-hard con owner bias y ATT/DEF spread, despues snake split si no hay alternativa.
 - Bonus por mismo equipo queda para mas adelante, despues de tener el campo `teams` cargado y visible.
 
 ## Fase 2 - Limpieza UX inmediata
@@ -62,12 +64,12 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [x] F2-03.2 Reemplazar opcion `Clear All` por `Clear Links` en Match.
 - [x] F2-03.3 Reemplazar confirmacion `Clear all links?` por copy consistente con `Clear Links`.
 - [x] F2-03.4 Mantener `Clear Wants`, `Clear Avoids`, `Clear Filters` y `Clear Selection` sin cambiar comportamiento.
-- [ ] F2-03.5 Agregar el icono de la pelota rojo en la UI donde corresponda.
-- [ ] F2-03.6 Agregar indicador visual de color cuando la seleccion llega a 10/10.
-- [ ] F2-03.7 En lineups/resultados, mostrar la puntuacion de cada team solo cuando el ojito/privacy mode esta apagado.
-- [ ] F2-09.1 Al generar equipos, crear un ref al bloque de resultado.
-- [ ] F2-09.2 Cuando aparece `generatedTeams`, hacer `scrollIntoView` hasta el resultado.
-- [ ] F2-09.3 Validar que el scroll no dispare si hay error o si se limpia la seleccion.
+- [x] F2-03.5 Agregar el icono de la pelota rojo en la UI donde corresponda.
+- [x] F2-03.6 Agregar indicador visual de color cuando la seleccion llega a 10/10.
+- [x] F2-03.7 En lineups/resultados, mostrar la puntuacion de cada jugadora solo cuando el ojito/privacy mode esta apagado.
+- [x] F2-09.1 Al generar equipos, crear un ref al bloque de resultado.
+- [x] F2-09.2 Cuando aparece `generatedTeams`, hacer `scrollIntoView` hasta el resultado.
+- [x] F2-09.3 Validar que el scroll no dispare si hay error o si se limpia la seleccion.
 
 ## Fase 3 - Nuevos campos de jugador
 

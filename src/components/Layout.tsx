@@ -9,7 +9,10 @@ export function Layout() {
     return (
         <div className="layout">
             <header className="header">
-                <h1 className="logo">armaduki</h1>
+                <div className="brand">
+                    <h1 className="logo">armaduki</h1>
+                    <img className="brand-ball" src="/ball.svg" alt="" aria-hidden="true" />
+                </div>
                 <nav className="nav">
                     <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                         People
@@ -26,6 +29,7 @@ export function Layout() {
                 <div className="footer-signature">
                     Ángela Curzi 2026
                 </div>
+                <img className="footer-ball" src="/ball.svg" alt="" aria-hidden="true" />
                 <div className="footer-actions">
                     <button
                         className="privacy-toggle-mini"

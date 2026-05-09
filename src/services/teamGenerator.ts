@@ -158,6 +158,16 @@ function calculateTeamStats(players: Person[]): TeamStats {
   return { rating, attributes };
 }
 
+function calculateTeamPowerFromStats(stats: TeamStats): number {
+  const attributesTotal = Object.values(stats.attributes).reduce((sum, value) => sum + value, 0);
+  return stats.rating + attributesTotal;
+}
+
+export function calculateTeamPower(players: Person[]): number {
+  const stats = calculateTeamStats(players);
+  return calculateTeamPowerFromStats(stats);
+}
+
 function hasSocialConflict(players: Person[]): boolean {
   const ids = new Set(players.map((p) => p.id));
   for (const p of players) {
@@ -313,22 +323,24 @@ function countRole(players: Person[], role: Person['role']): number {
   return players.reduce((total, player) => total + (player.role === role ? 1 : 0), 0);
 }
 
-function validateRoleSplitWhenExactlyTwo(
+function validateRoleSpread(
   team1: Person[],
   team2: Person[],
   allPlayers: Person[],
 ): { valid: boolean; reason?: 'roleSplit' } {
-  const rolesToSplit: Person['role'][] = ['ATT', 'DEF'];
-
-  for (const role of rolesToSplit) {
-    const totalRoleCount = countRole(allPlayers, role);
-    if (totalRoleCount !== 2) continue;
-
-    const team1RoleCount = countRole(team1, role);
-    const team2RoleCount = countRole(team2, role);
-    if (team1RoleCount !== 1 || team2RoleCount !== 1) {
+  const totalDefCount = countRole(allPlayers, 'DEF');
+  if (totalDefCount === 2) {
+    const team1DefCount = countRole(team1, 'DEF');
+    const team2DefCount = countRole(team2, 'DEF');
+    if (team1DefCount !== 1 || team2DefCount !== 1) {
       return { valid: false, reason: 'roleSplit' };
     }
+  }
+
+  const team1AttCount = countRole(team1, 'ATT');
+  const team2AttCount = countRole(team2, 'ATT');
+  if (Math.abs(team1AttCount - team2AttCount) > 1) {
+    return { valid: false, reason: 'roleSplit' };
   }
 
   return { valid: true };
@@ -369,6 +381,22 @@ function validateWantsConstraint(
   }
 
   return { valid: true };
+}
+
+function isOwnerBiasValid(
+  team1Players: Person[],
+  team2Players: Person[],
+  team1Power: number,
+  team2Power: number,
+  owner: Person | undefined,
+): boolean {
+  if (!owner) return true;
+
+  const ownerInTeam1 = team1Players.some((player) => player.id === owner.id);
+  const ownerInTeam2 = team2Players.some((player) => player.id === owner.id);
+  if (!ownerInTeam1 && !ownerInTeam2) return true;
+
+  return ownerInTeam1 ? team1Power <= team2Power : team2Power <= team1Power;
 }
 
 function getCombinations<T>(arr: T[], k: number): T[][] {
@@ -549,8 +577,8 @@ function createAnalysisExplanation(
 
   const attPreferenceLine =
     attPreference.totalAtt >= 5 && attPreference.overloadedTeam !== 'Even'
-      ? `- Soft ATT spread: total ATT ${attPreference.totalAtt}, split T1 ${attPreference.team1Att} / T2 ${attPreference.team2Att}; overloaded side ${attPreference.overloadedTeam} has DEF=${attPreference.overloadedDefCount ?? 0}, adjustment ${formatScoreAdjustment(attPreference.adjustment)}.`
-      : `- Soft ATT spread: total ATT ${attPreference.totalAtt}, split T1 ${attPreference.team1Att} / T2 ${attPreference.team2Att}, adjustment ${formatScoreAdjustment(attPreference.adjustment)}.`;
+      ? `- ATT score preference: hard spread passed, total ATT ${attPreference.totalAtt}, split T1 ${attPreference.team1Att} / T2 ${attPreference.team2Att}; overloaded side ${attPreference.overloadedTeam} has DEF=${attPreference.overloadedDefCount ?? 0}, adjustment ${formatScoreAdjustment(attPreference.adjustment)}.`
+      : `- ATT score preference: hard spread passed, total ATT ${attPreference.totalAtt}, split T1 ${attPreference.team1Att} / T2 ${attPreference.team2Att}, adjustment ${formatScoreAdjustment(attPreference.adjustment)}.`;
 
   return `Analysis (Score: ${Math.round(score)})
 
@@ -684,6 +712,7 @@ function findBestSocialHardFallback(
   allCombinations: Person[][],
 ): SocialFallbackCandidate | null {
   const candidatesByPartition = new Map<string, SocialFallbackCandidate>();
+  const owner = players.find((player) => player.id === OWNER_ID);
 
   for (const team1PlayersRaw of allCombinations) {
     const team1IdsRaw = new Set(team1PlayersRaw.map((player) => player.id));
@@ -698,8 +727,25 @@ function findBestSocialHardFallback(
       continue;
     }
 
+    const roleSpreadValidation = validateRoleSpread(team1PlayersRaw, team2PlayersRaw, players);
+    if (!roleSpreadValidation.valid) {
+      continue;
+    }
+
     const stats1Raw = calculateTeamStats(team1PlayersRaw);
     const stats2Raw = calculateTeamStats(team2PlayersRaw);
+    if (
+      !isOwnerBiasValid(
+        team1PlayersRaw,
+        team2PlayersRaw,
+        calculateTeamPowerFromStats(stats1Raw),
+        calculateTeamPowerFromStats(stats2Raw),
+        owner,
+      )
+    ) {
+      continue;
+    }
+
     const canonical = canonicalizeTeams(team1PlayersRaw, team2PlayersRaw, stats1Raw, stats2Raw);
     const gkPreference = getGKPreferenceBreakdown(
       getTeamGKProfile(canonical.team1Players),
@@ -785,7 +831,7 @@ function findRankedResultsForMode(
       continue;
     }
 
-    const roleSplitValidation = validateRoleSplitWhenExactlyTwo(team1PlayersRaw, team2PlayersRaw, players);
+    const roleSplitValidation = validateRoleSpread(team1PlayersRaw, team2PlayersRaw, players);
     if (!roleSplitValidation.valid) {
       failureStats.roleSplit++;
       continue;
@@ -799,16 +845,13 @@ function findRankedResultsForMode(
 
     const stats1Raw = calculateTeamStats(team1PlayersRaw);
     const stats2Raw = calculateTeamStats(team2PlayersRaw);
-    const ratingDiffRaw = Math.abs(stats1Raw.rating - stats2Raw.rating);
+    const team1PowerRaw = calculateTeamPowerFromStats(stats1Raw);
+    const team2PowerRaw = calculateTeamPowerFromStats(stats2Raw);
 
-    // Owner bias: owner must stay in weaker/equal team.
-    if (owner && ratingDiffRaw > 0) {
-      const ownerInTeam1Raw = team1IdsRaw.has(OWNER_ID);
-      const team1RawIsStronger = stats1Raw.rating > stats2Raw.rating;
-      if ((ownerInTeam1Raw && team1RawIsStronger) || (!ownerInTeam1Raw && !team1RawIsStronger)) {
-        failureStats.ownerBias++;
-        continue;
-      }
+    // Owner bias: owner must stay in the lower/equal Power team.
+    if (!isOwnerBiasValid(team1PlayersRaw, team2PlayersRaw, team1PowerRaw, team2PowerRaw, owner)) {
+      failureStats.ownerBias++;
+      continue;
     }
 
     const canonical = canonicalizeTeams(team1PlayersRaw, team2PlayersRaw, stats1Raw, stats2Raw);
@@ -911,7 +954,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
   const biasPct = total > 0 ? Math.round((failureStats.ownerBias / total) * 100) : 0;
   const selectedGKSummary = getTeamGKProfile(players);
 
-  // First fallback tier: keep social rules hard (avoids + wants), relax non-social constraints.
+  // First fallback tier: keep social rules, owner bias, and role spread hard.
   const socialHardFallback = findBestSocialHardFallback(players, allCombinations);
   if (socialHardFallback) {
     const fallbackTeam1Profile = getTeamGKProfile(socialHardFallback.team1Players);
@@ -931,14 +974,14 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
 
 [Details]
 - FALLBACK USED: strict constraints could not be met.
-- Social-hard fallback applied: avoids + wants stayed hard in final split.
+- Social-hard fallback applied: avoids + wants + owner bias + ATT/DEF spread stayed hard in final split.
 - Social Conflicts: 0% (enforced in final split)
 - Affinity/Wants Hard Rule: 0% (enforced in final split)
 - Role Issues: ${rolePct}%
 - Emergency GK Rule: ${emergencyGKPct}%
-- DEF/ATT Split Rule: ${roleSplitPct}%
-- Owner Bias (Too strong): ${biasPct}%
-- Teams generated using Balance Score fallback while preserving social hard constraints.
+- DEF/ATT Spread Rule: ${roleSplitPct}% (enforced in final split)
+- Owner Bias (Too strong): ${biasPct}% (enforced in final split)
+- Teams generated using Balance Score fallback while preserving social hard constraints, owner bias, and ATT/DEF spread.
 
 [Emergency + ATT]
 - Selected GK willingness: good=${selectedGKSummary.goodCount}, low=${selectedGKSummary.lowCount}, no=${selectedGKSummary.noCount}.
@@ -1011,7 +1054,7 @@ ${fallbackGkAnalysisBlock}
 - Social Conflicts: ${socialPct}%
 - Role Issues: ${rolePct}%
 - Emergency GK Rule: ${emergencyGKPct}%
-- DEF/ATT Split Rule: ${roleSplitPct}%
+- DEF/ATT Spread Rule: ${roleSplitPct}%
 - Affinity/Wants Hard Rule: ${wantsStrictPct}%
 - Owner Bias (Too strong): ${biasPct}%
 - Teams generated using Power Rating (Best Fit, ignoring constraints).

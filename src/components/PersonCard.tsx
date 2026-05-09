@@ -9,6 +9,7 @@ interface PersonCardProps {
     onSelect?: () => void;
     selected?: boolean;
     selectable?: boolean;
+    selectionDisabled?: boolean;
     showMatchBadge?: boolean;
 }
 
@@ -19,14 +20,15 @@ export function PersonCard({
     onSelect,
     selected,
     selectable,
+    selectionDisabled,
     showMatchBadge,
 }: PersonCardProps) {
     const { privacyMode } = useAppStore();
 
     return (
         <div
-            className={`person-card ${selected ? 'selected' : ''} ${selectable ? 'selectable' : ''}`}
-            onClick={selectable ? onSelect : undefined}
+            className={`person-card ${selected ? 'selected' : ''} ${selectable ? 'selectable' : ''} ${selectionDisabled ? 'selection-disabled' : ''}`}
+            onClick={selectable && !selectionDisabled ? onSelect : undefined}
         >
             <div className="card-content">
                 {person.avatar && person.avatar.trim() !== '' ? (

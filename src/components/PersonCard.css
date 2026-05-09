@@ -13,6 +13,11 @@
   cursor: pointer;
 }
 
+.person-card.selectable.selection-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .person-card.selected {
   border-color: #dc2626;
   background: #1a1212;

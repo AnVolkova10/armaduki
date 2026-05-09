@@ -18,7 +18,7 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
   - max `1` GK
   - max `2` DEF
   - if there are exactly 2 selected DEF, they must be split 1/1
-  - if there are exactly 2 selected ATT, they must be split 1/1
+  - ATT must be spread evenly enough: `abs(T1 ATT - T2 ATT) <= 1`
   - if a team has no GK role, it needs at least `2` capable emergency keepers
   - capable emergency keepers are `gkWillingness: good` or `gkWillingness: low`
   - if a team has a GK role, emergency keeper count does not matter for that team
@@ -29,22 +29,24 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
   - relaxed wants modes exist in code/types, but `generateTeams` currently only runs strict mode
 - ATT handling:
   - there is no hard max `2 ATT` per team
-  - ATT distribution is handled as a soft scoring preference
+  - `4 ATT` selected must split `2/2`; `5 ATT` selected may split `2/3`
+  - ATT distribution still has a soft scoring preference after the hard spread rule passes
 - 3 GK handling:
   - selection is not blocked
   - strict mode cannot satisfy max `1` GK per team with 3 GK selected, so fallback is expected
 - Scoring model:
   - numeric score uses rating + attribute balance
+  - team `Power` is rating total + weighted attributes, and is used for owner bias
   - score also includes soft GK emergency and ATT spread adjustments
   - for teams without a GK role, each `good` emergency keeper adds a small bonus
   - `low` counts as a capable emergency keeper but does not add bonus or penalty
   - fallback splits get a penalty when a team without GK role has fewer than `2` capable emergency keepers
   - social satisfaction is analysis-only (met wants + met dislikes), no social points
 - Owner bias:
-  - player ID from `VITE_OWNER_ID` is forced into the weaker/equal team
+  - player ID from `VITE_OWNER_ID` is forced into the lower/equal `Power` team
   - default owner ID is `10` if env var is missing/empty
 - Fallbacks:
-  - first fallback keeps social rules hard (`avoids` + strict `wants`) and relaxes non-social constraints
+  - first fallback keeps social rules hard (`avoids` + strict `wants`) plus owner bias and ATT/DEF spread, then relaxes other non-social constraints
   - final fallback uses a snake split by power and may ignore constraints if no social-hard split exists
 
 ## Stack
