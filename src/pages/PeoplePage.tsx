@@ -307,7 +307,7 @@ export function PeoplePage() {
                                     className="clear-links-option clear-links-option--light"
                                     onClick={handleClearAllRelationships}
                                 >
-                                    Clear links
+                                    Clear Links
                                 </button>
                             </div>
                         )}

@@ -15,7 +15,7 @@ export function Layout() {
                 </div>
                 <nav className="nav">
                     <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                        People
+                        Players
                     </NavLink>
                     <NavLink to="/match" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
                         Match

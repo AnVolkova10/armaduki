@@ -12,6 +12,10 @@ interface FailedSyncOperation {
   run: () => Promise<void>;
 }
 
+const DEFAULT_ROLE: Role = 'FLEX';
+const DEFAULT_RATING = 5;
+const DEFAULT_GK_WILLINGNESS: GKWillingness = 'no';
+
 // Helper to get next sequential ID
 function getNextId(people: Person[]): string {
   if (people.length === 0) return '0';
@@ -19,8 +23,18 @@ function getNextId(people: Person[]): string {
   return String(maxId + 1);
 }
 
-function parseArrayField(value: string | number | undefined): string[] {
+function getOptionalString(value: unknown): string {
+  if (value === undefined || value === null || value === '') return '';
+  return String(value).trim();
+}
+
+function parseArrayField(value: unknown): string[] {
   if (value === undefined || value === null || value === '') return [];
+  if (Array.isArray(value)) {
+    return value.map(item => getOptionalString(item)).filter(Boolean);
+  }
+  if (typeof value !== 'string' && typeof value !== 'number') return [];
+
   const str = String(value).trim();
   if (str === '') return [];
   return str.split('|').map(s => s.trim()).filter(Boolean);
@@ -99,17 +113,17 @@ function parsePersonRow(row: unknown, index: number): Person | null {
 
   const getValue = (targetKey: string): unknown => normalizedRow.get(normalizeKey(targetKey));
 
-  const nickname = getValue('nickname')?.toString().trim() || '';
+  const nickname = getOptionalString(getValue('nickname'));
   if (!nickname || nickname.toLowerCase() === 'unknown') return null;
 
-  const id = getValue('id')?.toString().trim() || String(index + 1);
-  const name = getValue('name')?.toString().trim() || '';
-  const role = validateRole(getValue('role')?.toString());
-  const rating = validateRating(getValue('rating')?.toString());
-  const avatar = getValue('avatar')?.toString().trim() || '';
-  const gkWillingness = validateGKWillingness(getValue('gkwillingness')?.toString());
-  const wantsWith = parseArrayField(getValue('wantswith') as string | number | undefined);
-  const avoidsWith = parseArrayField(getValue('avoidswith') as string | number | undefined);
+  const id = getOptionalString(getValue('id')) || String(index + 1);
+  const name = getOptionalString(getValue('name'));
+  const role = validateRole(getValue('role'));
+  const rating = validateRating(getValue('rating'));
+  const avatar = getOptionalString(getValue('avatar'));
+  const gkWillingness = validateGKWillingness(getValue('gkwillingness'));
+  const wantsWith = parseArrayField(getValue('wantswith'));
+  const avoidsWith = parseArrayField(getValue('avoidswith'));
   const attributes = parseAttributes(getValue('attributes'));
 
   return {
@@ -126,23 +140,23 @@ function parsePersonRow(row: unknown, index: number): Person | null {
   };
 }
 
-function validateRole(value: string | undefined): Role {
+function validateRole(value: unknown): Role {
   const validRoles: Role[] = ['GK', 'FLEX', 'DEF', 'MID', 'ATT'];
-  const normalized = (value || '').toUpperCase() as Role;
-  return validRoles.includes(normalized) ? normalized : 'FLEX';
+  const normalized = getOptionalString(value).toUpperCase() as Role;
+  return validRoles.includes(normalized) ? normalized : DEFAULT_ROLE;
 }
 
-function validateGKWillingness(value: string | undefined): GKWillingness {
+function validateGKWillingness(value: unknown): GKWillingness {
   const valid: GKWillingness[] = ['good', 'no', 'low'];
-  const normalized = (value || '').trim().toLowerCase();
+  const normalized = getOptionalString(value).toLowerCase();
   if (normalized === 'yes') return 'good';
-  return valid.includes(normalized as GKWillingness) ? (normalized as GKWillingness) : 'no';
+  return valid.includes(normalized as GKWillingness) ? (normalized as GKWillingness) : DEFAULT_GK_WILLINGNESS;
 }
 
-function validateRating(value: string | undefined): number {
-  const num = parseInt(value || '5', 10);
-  if (isNaN(num)) return 5;
-  return Math.max(1, Math.min(10, num));
+function validateRating(value: unknown): number {
+  const num = typeof value === 'number' ? value : parseInt(getOptionalString(value) || String(DEFAULT_RATING), 10);
+  if (!Number.isFinite(num)) return DEFAULT_RATING;
+  return Math.max(1, Math.min(10, Math.trunc(num)));
 }
 
 function buildUpdatePayload(person: Person) {
