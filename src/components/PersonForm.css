@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.5rem;
   z-index: 100;
   backdrop-filter: blur(4px);
 }
@@ -13,10 +13,10 @@
 .modal {
   background: var(--bg-secondary);
   border-radius: 12px;
-  padding: 1.25rem;
+  padding: 0.9rem 1.1rem;
   max-width: 650px;
   width: 100%;
-  max-height: 95vh;
+  max-height: calc(100vh - 1rem);
   overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--border);
@@ -44,9 +44,9 @@
   display: flex;
   align-items: center;
   justify-content: space-around;
-  gap: 1.25rem;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
+  gap: 1rem;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.65rem;
   border-bottom: 1px solid var(--border);
 }
 
@@ -54,15 +54,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  width: 90px;
+  gap: 0.22rem;
+  width: 86px;
   position: relative;
   /* For absolute positioning of privacy icon */
 }
 
 .avatar-frame {
-  width: 70px;
-  height: 70px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   position: relative;
   overflow: hidden;
@@ -72,8 +72,8 @@
 }
 
 .avatar-preview {
-  width: 70px;
-  height: 70px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--border);
@@ -151,19 +151,19 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.55rem;
   justify-content: center;
   max-width: 220px;
   /* Prevent inputs from stretching too wide */
 }
 
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 0.65rem;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
   color: var(--text-secondary);
   font-size: 0.8rem;
   font-weight: 500;
@@ -171,13 +171,13 @@
 
 .form-group input {
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: 0.4rem 0.65rem;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg-primary);
   color: var(--text-primary);
   font-size: 0.9rem;
-  height: 36px;
+  height: 34px;
 }
 
 .form-group input:focus {
@@ -187,17 +187,17 @@
 }
 
 .extra-info-section {
-  margin-top: 1rem;
+  margin-top: 0.65rem;
   margin-bottom: 0;
-  padding-top: 0.75rem;
+  padding-top: 0.5rem;
   border-bottom: 1px solid var(--border);
-  padding-bottom: 0.75rem;
+  padding-bottom: 0.55rem;
   border-top: 1px solid var(--border);
 }
 
 .extra-info-toggle {
   width: 100%;
-  height: 24px;
+  height: 20px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
@@ -233,9 +233,9 @@
 }
 
 .extra-info-content {
-  padding-top: 0.65rem;
+  padding-top: 0.45rem;
   display: grid;
-  gap: 0.9rem;
+  gap: 0.55rem;
 }
 
 .extra-info-field {
@@ -244,8 +244,8 @@
 }
 
 .extra-info-field input {
-  height: 26px;
-  padding: 0.35rem 0.5rem;
+  height: 24px;
+  padding: 0.25rem 0.45rem;
   font-size: 0.82rem;
   font-family: monospace;
   text-align: center;
@@ -253,14 +253,14 @@
 
 .teams-field {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.35rem;
 }
 
 .teams-field-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.55rem;
 }
 
 .teams-field-header label {
@@ -285,12 +285,22 @@
 
 .team-options-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
-  gap: 0.35rem;
+  grid-template-columns: repeat(auto-fill, 82px);
+  gap: 0.42rem 0.35rem;
+  align-items: start;
+  justify-content: start;
+}
+
+.team-option-stack {
+  min-width: 0;
+  width: 82px;
+  display: grid;
+  justify-items: center;
+  gap: 0.2rem;
 }
 
 .team-option {
-  min-width: 0;
+  width: 82px;
   min-height: 31px;
   appearance: none;
   display: flex;
@@ -349,6 +359,37 @@
   text-shadow:
     0 1px 2px rgba(0, 0, 0, 0.85),
     0 0 4px rgba(255, 0, 0, 0.42);
+}
+
+.team-main-ball {
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.55;
+  filter: grayscale(1) brightness(0.85);
+  transition: opacity 0.15s, filter 0.15s, transform 0.15s;
+}
+
+.team-main-ball img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.team-main-ball:hover,
+.team-main-ball:focus-visible {
+  opacity: 0.85;
+  filter: grayscale(0.45) brightness(0.95);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.team-main-ball.is-primary {
+  opacity: 1;
+  filter: none;
 }
 
 .teams-empty-state {
@@ -467,17 +508,21 @@
 .relationships-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
+  gap: 0.8rem;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
   border-top: 1px solid var(--border);
+}
+
+.relationship-column > label {
+  margin-bottom: 0.35rem !important;
 }
 
 .relationship-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-  gap: 0.35rem;
-  max-height: 120px;
+  gap: 0.3rem;
+  max-height: 94px;
   overflow-y: auto;
   padding-right: 0.25rem;
 }
@@ -493,7 +538,7 @@
 }
 
 .relationship-btn {
-  padding: 0.25rem;
+  padding: 0.18rem 0.25rem;
   border-radius: 4px;
   border: 1px solid var(--border);
   background: var(--bg-primary);
@@ -505,18 +550,19 @@
   text-overflow: ellipsis;
   text-align: center;
   transition: all 0.15s;
+  min-height: 23px;
 }
 
 
 .form-row-compact {
   display: flex;
-  gap: 1.5rem;
-  margin-bottom: 1rem;
+  gap: 1.25rem;
+  margin-bottom: 0.65rem;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
   color: var(--text-secondary);
   font-size: 0.8rem;
   font-weight: 500;
@@ -525,7 +571,7 @@
 
 /* Updated Stats Section */
 .stats-section {
-  margin-bottom: 1.25rem;
+  margin-bottom: 0.8rem;
   padding: 0;
   background: transparent;
   border: none;
@@ -665,12 +711,12 @@
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
 }
 
 .btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.65rem 1.35rem;
   border-radius: 8px;
   border: none;
   font-size: 0.95rem;
@@ -726,13 +772,13 @@
 .attributes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 0.75rem;
+  gap: 0.5rem 0.75rem;
 }
 
 .attribute-row {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.18rem;
 }
 
 .attr-label {
@@ -756,7 +802,7 @@
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 3px 0;
+  padding: 2px 0;
   border-radius: 2px;
   font-size: 0.85rem;
   line-height: 1;

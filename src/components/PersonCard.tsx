@@ -27,7 +27,7 @@ export function PersonCard({
     showMatchBadge,
 }: PersonCardProps) {
     const { privacyMode, teamsCatalog } = useAppStore();
-    const mainTeamId = person.teams?.[0];
+    const mainTeamId = person.primaryTeam;
     const mainTeam = mainTeamId ? teamsCatalog.find((team) => team.teamId === mainTeamId) : undefined;
     const teamMarkerStyle = mainTeam ? {
         '--team-color-1': mainTeam.color1 || DEFAULT_TEAM_COLOR_1,

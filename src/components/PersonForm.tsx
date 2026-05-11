@@ -82,6 +82,13 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const [avoidsWith, setAvoidsWith] = useState<string[]>(person?.avoidsWith || []);
     const [shirtNumber, setShirtNumber] = useState(person?.shirtNumber || '');
     const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>(person?.teams || []);
+    const [primaryTeamId, setPrimaryTeamId] = useState(() => {
+        const initialTeams = person?.teams || [];
+        if (person?.primaryTeam && initialTeams.includes(person.primaryTeam)) {
+            return person.primaryTeam;
+        }
+        return initialTeams[0] || '';
+    });
     const [isExtraInfoOpen, setIsExtraInfoOpen] = useState(false);
 
     const otherPeople = useMemo(() => people.filter((p) => p.id !== personId), [people, personId]);
@@ -89,7 +96,8 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const teamsById = useMemo(() => {
         return new Map(teamsCatalog.map((team) => [team.teamId, team]));
     }, [teamsCatalog]);
-    const avatarTeam = selectedTeamIds.length > 0 ? teamsById.get(selectedTeamIds[0]) : undefined;
+    const effectivePrimaryTeamId = selectedTeamIdSet.has(primaryTeamId) ? primaryTeamId : '';
+    const avatarTeam = effectivePrimaryTeamId ? teamsById.get(effectivePrimaryTeamId) : undefined;
     const sortedTeams = useMemo(() => {
         return [...teamsCatalog].sort((a, b) => a.name.localeCompare(b.name));
     }, [teamsCatalog]);
@@ -177,7 +185,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
             wantsWith,
             avoidsWith,
             shirtNumber: shirtNumber.trim(),
-            primaryTeam: person?.primaryTeam,
+            primaryTeam: effectivePrimaryTeamId || undefined,
             teams: selectedTeamIds,
             groups: person?.groups || [],
             availability: person?.availability || [],
@@ -214,9 +222,23 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     };
 
     const toggleTeam = (teamId: string) => {
-        setSelectedTeamIds(prev =>
-            prev.includes(teamId) ? prev.filter(id => id !== teamId) : [...prev, teamId]
-        );
+        const nextSelectedTeamIds = selectedTeamIds.includes(teamId)
+            ? selectedTeamIds.filter(id => id !== teamId)
+            : [...selectedTeamIds, teamId];
+
+        setSelectedTeamIds(nextSelectedTeamIds);
+        setPrimaryTeamId((currentPrimaryTeamId) => {
+            if (nextSelectedTeamIds.length === 0) return '';
+            if (!currentPrimaryTeamId || !nextSelectedTeamIds.includes(currentPrimaryTeamId)) {
+                return nextSelectedTeamIds[0];
+            }
+            return currentPrimaryTeamId;
+        });
+    };
+
+    const setPrimaryTeam = (teamId: string) => {
+        if (!selectedTeamIdSet.has(teamId)) return;
+        setPrimaryTeamId(teamId);
     };
 
     const getTeamOptionStyle = (team: TeamCatalog): React.CSSProperties => {
@@ -480,22 +502,36 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
 
                                         {!isTeamsCatalogLoading && !teamsCatalogError && sortedTeams.map((team) => {
                                             const isSelected = selectedTeamIdSet.has(team.teamId);
+                                            const isPrimary = effectivePrimaryTeamId === team.teamId;
 
                                             return (
-                                                <button
-                                                    key={team.teamId}
-                                                    type="button"
-                                                    className={`team-option ${isSelected ? 'is-selected' : ''}`}
-                                                    style={getTeamOptionStyle(team)}
-                                                    aria-pressed={isSelected}
-                                                    onClick={() => toggleTeam(team.teamId)}
-                                                    title={team.name}
-                                                >
-                                                    <span className="team-option-name">{team.name}</span>
-                                                    <span className="team-option-status">
-                                                        {isSelected ? 'Selected' : 'Add'}
-                                                    </span>
-                                                </button>
+                                                <div key={team.teamId} className="team-option-stack">
+                                                    <button
+                                                        type="button"
+                                                        className={`team-option ${isSelected ? 'is-selected' : ''}`}
+                                                        style={getTeamOptionStyle(team)}
+                                                        aria-pressed={isSelected}
+                                                        onClick={() => toggleTeam(team.teamId)}
+                                                        title={team.name}
+                                                    >
+                                                        <span className="team-option-name">{team.name}</span>
+                                                        <span className="team-option-status">
+                                                            {isSelected ? 'Selected' : 'Add'}
+                                                        </span>
+                                                    </button>
+
+                                                    {selectedTeamIds.length > 1 && isSelected && (
+                                                        <button
+                                                            type="button"
+                                                            className={`team-main-ball ${isPrimary ? 'is-primary' : ''}`}
+                                                            onClick={() => setPrimaryTeam(team.teamId)}
+                                                            title={isPrimary ? `${team.name} is main team` : `Set ${team.name} as main team`}
+                                                            aria-label={isPrimary ? `${team.name} is main team` : `Set ${team.name} as main team`}
+                                                        >
+                                                            <img src="/ball.svg" alt="" aria-hidden="true" />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             );
                                         })}
                                     </div>

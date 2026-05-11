@@ -98,9 +98,9 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [x] F2-05.2.2 Agregar tipos frontend para catalogo de equipos (`TeamCatalog`/similar) con `teamId`, `name`, `color1`, `color2`, `crest`.
 - [x] F2-05.2.3 Agregar store/cliente para cargar `teamsCatalog` desde `readTeams`.
 - [x] F2-05.2.4 Agregar selector compacto de equipos en `Extra info`: seleccion multiple, colores por equipo y estado vacio si no hay equipos cargados.
-- [ ] F2-05.2.5 Agregar seleccion de equipo principal: si se elige el primer equipo y no hay `primaryTeam`, queda como principal por defecto.
-- [ ] F2-05.2.6 Permitir cambiar el equipo principal entre los equipos seleccionados.
-- [ ] F2-05.2.7 Guardar `primaryTeam` cuando exista UI de equipo principal; `teams` ya se guarda desde F2-05.2.4 preservando ediciones manuales de Sheets.
+- [x] F2-05.2.5 Agregar seleccion de equipo principal: si se elige el primer equipo y no hay `primaryTeam`, queda como principal por defecto.
+- [x] F2-05.2.6 Permitir cambiar el equipo principal entre los equipos seleccionados.
+- [x] F2-05.2.7 Guardar `primaryTeam` cuando exista UI de equipo principal; `teams` ya se guarda desde F2-05.2.4 preservando ediciones manuales de Sheets.
 - [ ] F2-05.3 Agregar `grupo/cancha habitual` y `dia/lugar` con multiples valores al modal.
 - [x] F2-05.4 Actualizar labels del modal de arquero a `good`, `low`, `no`.
 - [x] F2-05.5 Mostrar camiseta en tarjeta sin romper privacidad ni mobile.
@@ -324,6 +324,20 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - Al guardar el modal, `teams` se actualiza en la jugadora y se refleja en Sheets por el payload Phase 2 existente.
 - `primaryTeam` no se modifica todavia; queda para los pasos de equipo principal.
 - `src/components/PersonCard.tsx` muestra un triangulo en la esquina inferior izquierda con los colores del primer equipo, sin texto.
+
+### Implementacion F2-05.2.5 - default `primaryTeam`
+
+- `src/components/PersonForm.tsx` guarda como `primaryTeam` el primer equipo seleccionado si la jugadora no tenia principal.
+- Si se elimina el equipo principal desde el selector, el siguiente equipo seleccionado pasa a ser principal; si no quedan equipos, se limpia.
+- La mini pill del modal usa solo `primaryTeam`; si falta, no muestra senal aunque existan `teams`.
+- `src/components/PersonCard.tsx` usa solo `primaryTeam` para el triangulo de equipo; si falta, no muestra senal aunque existan `teams`.
+
+### Implementacion F2-05.2.6 - cambiar equipo principal
+
+- `src/components/PersonForm.tsx` permite cambiar `primaryTeam` con una pelotita debajo de cada equipo seleccionado.
+- La pelotita roja indica el equipo principal; la gris indica equipo seleccionado secundario.
+- Click en la pill selecciona/deselecciona el equipo; click en la pelotita cambia `primaryTeam` sin tocar `teams`.
+- Al guardar, `primaryTeam` se envia por el payload Phase 2 existente, preservando campos que no cambian.
 
 ## Fase 4 - Filtros y orden
 
