@@ -93,6 +93,14 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [x] F2-04.4 Documentar columnas nuevas requeridas en Sheet/App Script.
 - [x] F2-05.1 Agregar `numero de camiseta` al modal dentro de una seccion colapsable `Extra info`.
 - [ ] F2-05.2 Agregar `equipo` con multiples valores al modal.
+- [ ] F2-05.2.0 Cargar equipos manualmente en la pestana `Teams` por ahora; no crear equipos desde el modal de jugadora.
+- [ ] F2-05.2.1 Agregar accion App Script `action=readTeams` que lea la pestana `Teams` con defaults seguros.
+- [ ] F2-05.2.2 Agregar tipos frontend para catalogo de equipos (`TeamCatalog`/similar) con `teamId`, `name`, `color1`, `color2`, `crest`.
+- [ ] F2-05.2.3 Agregar store/cliente para cargar `teamsCatalog` desde `readTeams`.
+- [ ] F2-05.2.4 Agregar selector/search de equipos en `Extra info`: seleccion multiple, chips seleccionados y estado vacio si no hay equipos cargados.
+- [ ] F2-05.2.5 Agregar seleccion de equipo principal: si se elige el primer equipo y no hay `primaryTeam`, queda como principal por defecto.
+- [ ] F2-05.2.6 Permitir cambiar el equipo principal entre los equipos seleccionados.
+- [ ] F2-05.2.7 Guardar `primaryTeam` y `teams` en payloads solo cuando cambian, preservando ediciones manuales de Sheets.
 - [ ] F2-05.3 Agregar `grupo/cancha habitual` y `dia/lugar` con multiples valores al modal.
 - [x] F2-05.4 Actualizar labels del modal de arquero a `good`, `low`, `no`.
 - [x] F2-05.5 Mostrar camiseta en tarjeta sin romper privacidad ni mobile.
@@ -156,6 +164,7 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - `color2`: opcional, color secundario en hex para swatch/circulo de dos colores; si falta, se usa `color1`.
 - `crest`: opcional, URL/data URL/emoji corto para escudo o identificador visual del equipo.
 - `Players.primaryTeam` guarda el `teamId` principal actual, y `Players.teams` guarda multiples `teamId` separados por pipe, ejemplo `armaduki|femix|las-pibas`.
+- Decision UI: los equipos se cargan a mano en `Teams`; el modal de jugadora solo selecciona equipos existentes. Si se selecciona un primer equipo y `primaryTeam` esta vacio, ese equipo queda como principal por defecto. Despues se puede cambiar el principal entre los equipos seleccionados.
 - Si un `teamId` aparece en `Players.teams` pero no existe en `Teams`, la app debe mostrar el id como texto simple y no romper filtros ni cards.
 - La migracion de App Script debe crear `Teams` con headers si no existe, pero no necesita cargar equipos iniciales automaticamente.
 - Todas las columnas salvo `teamId` y `name` son opcionales para empezar simple.
