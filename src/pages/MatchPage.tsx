@@ -68,6 +68,9 @@ export function MatchPage() {
         isLoading,
         error,
         fetchPeople,
+        fetchTeamsCatalog,
+        teamsCatalogLoaded,
+        isTeamsCatalogLoading,
         toggleSelection,
         clearSelection,
         generatedTeams,
@@ -107,6 +110,12 @@ export function MatchPage() {
             fetchPeople();
         }
     }, [fetchPeople, people.length]);
+
+    useEffect(() => {
+        if (!teamsCatalogLoaded && !isTeamsCatalogLoading) {
+            fetchTeamsCatalog();
+        }
+    }, [fetchTeamsCatalog, isTeamsCatalogLoading, teamsCatalogLoaded]);
 
     useEffect(() => {
         const handleDocumentClick = (event: MouseEvent) => {

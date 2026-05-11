@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Attributes, AttributeLevel, GeneratedTeams, GKWillingness, Person, Role } from '../types';
+import type { Attributes, AttributeLevel, GeneratedTeams, GKWillingness, Person, Role, TeamCatalog } from '../types';
 
 // Google Apps Script Web App URL
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
@@ -106,7 +106,7 @@ function normalizeKey(key: string): string {
   return key.toLowerCase().replace(/\s/g, '');
 }
 
-function parsePersonRow(row: unknown, index: number): Person | null {
+function createRowGetter(row: unknown): ((targetKey: string) => unknown) | null {
   if (!row || typeof row !== 'object') return null;
 
   const rowRecord = row as Record<string, unknown>;
@@ -116,7 +116,12 @@ function parsePersonRow(row: unknown, index: number): Person | null {
     normalizedRow.set(normalizeKey(key), value);
   }
 
-  const getValue = (targetKey: string): unknown => normalizedRow.get(normalizeKey(targetKey));
+  return (targetKey: string): unknown => normalizedRow.get(normalizeKey(targetKey));
+}
+
+function parsePersonRow(row: unknown, index: number): Person | null {
+  const getValue = createRowGetter(row);
+  if (!getValue) return null;
 
   const nickname = getOptionalString(getValue('nickname'));
   if (!nickname || nickname.toLowerCase() === 'unknown') return null;
@@ -160,6 +165,25 @@ function parsePersonRow(row: unknown, index: number): Person | null {
     secondaryRole,
     active,
     notes,
+  };
+}
+
+function parseTeamCatalogRow(row: unknown): TeamCatalog | null {
+  const getValue = createRowGetter(row);
+  if (!getValue) return null;
+
+  const teamId = getOptionalString(getValue('teamId'));
+  if (!teamId) return null;
+
+  const name = getOptionalString(getValue('name')) || teamId;
+  const color1 = getOptionalString(getValue('color1'));
+
+  return {
+    teamId,
+    name,
+    color1,
+    color2: getOptionalString(getValue('color2')) || color1,
+    crest: getOptionalString(getValue('crest')),
   };
 }
 
@@ -327,12 +351,16 @@ async function postPersonUpdate(person: Person, previousPerson?: Person): Promis
 interface AppStore {
   // Data
   people: Person[];
+  teamsCatalog: TeamCatalog[];
   selectedIds: Set<string>;
   generatedTeams: GeneratedTeams | null;
   
   // Loading state
   isLoading: boolean;
+  isTeamsCatalogLoading: boolean;
   error: string | null;
+  teamsCatalogError: string | null;
+  teamsCatalogLoaded: boolean;
 
   // Sync state
   syncStatus: SyncStatus;
@@ -342,6 +370,7 @@ interface AppStore {
   
   // Actions - Data fetching
   fetchPeople: () => Promise<void>;
+  fetchTeamsCatalog: () => Promise<void>;
   
   // Actions - People management
   setPeople: (people: Person[]) => void;
@@ -414,10 +443,14 @@ const useAppStore = create<AppStore>()((set, get) => {
   return {
     // Initial state
     people: [],
+    teamsCatalog: [],
     selectedIds: new Set(),
     generatedTeams: null,
     isLoading: false,
+    isTeamsCatalogLoading: false,
     error: null,
+    teamsCatalogError: null,
+    teamsCatalogLoaded: false,
     syncStatus: 'idle',
     syncMessage: null,
     syncUpdatedAt: null,
@@ -472,6 +505,60 @@ const useAppStore = create<AppStore>()((set, get) => {
         set({ 
           error: 'Error loading data from Google Sheets', 
           isLoading: false 
+        });
+      }
+    },
+
+    fetchTeamsCatalog: async () => {
+      if (get().isTeamsCatalogLoading) return;
+
+      set({ isTeamsCatalogLoading: true, teamsCatalogError: null });
+
+      try {
+        const response = await fetch(`${APPS_SCRIPT_URL}?action=readTeams`);
+        const rawData = await response.json();
+
+        console.log('Raw Teams from Apps Script:', rawData);
+
+        if (!Array.isArray(rawData)) {
+          throw new Error('Incorrect teams format: not an array');
+        }
+
+        let skippedRows = 0;
+        const teamsCatalog: TeamCatalog[] = [];
+
+        rawData.forEach((row: unknown, index: number) => {
+          try {
+            const parsed = parseTeamCatalogRow(row);
+            if (parsed) {
+              teamsCatalog.push(parsed);
+            } else {
+              skippedRows++;
+            }
+          } catch (rowError) {
+            skippedRows++;
+            console.warn(`Skipped malformed team row ${index + 1}:`, rowError);
+          }
+        });
+
+        if (skippedRows > 0) {
+          console.warn(`Skipped ${skippedRows} malformed team row(s) while loading team catalog.`);
+        }
+
+        console.log('Parsed Teams Catalog:', teamsCatalog);
+        set({
+          teamsCatalog,
+          teamsCatalogLoaded: true,
+          isTeamsCatalogLoading: false,
+          teamsCatalogError: null,
+        });
+      } catch (fetchError) {
+        console.error('Error fetching teams catalog:', fetchError);
+        set({
+          teamsCatalog: [],
+          teamsCatalogLoaded: true,
+          teamsCatalogError: 'Error loading teams catalog from Google Sheets',
+          isTeamsCatalogLoading: false,
         });
       }
     },

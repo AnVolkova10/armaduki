@@ -36,6 +36,14 @@ export interface Person {
   notes?: string;
 }
 
+export interface TeamCatalog {
+  teamId: string;
+  name: string;
+  color1: string;
+  color2: string;
+  crest: string;
+}
+
 export interface Team {
   players: Person[];
   totalRating: number;

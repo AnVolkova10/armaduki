@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import useAppStore from '../store/useAppStore';
-import type { Person, Role, GKWillingness, AttributeLevel, Attributes } from '../types';
+import type { Person, Role, GKWillingness, AttributeLevel, Attributes, TeamCatalog } from '../types';
 import { getSuggestedRating } from '../utils/ratingSuggestion';
 import './PersonForm.css';
 
@@ -39,8 +39,31 @@ const DEFAULT_ATTRIBUTES: Attributes = {
     stamina: 'mid',
 };
 
+const DEFAULT_TEAM_COLOR_1 = '#3a3a3a';
+const DEFAULT_TEAM_COLOR_2 = '#111111';
+
+function getHexLuminance(hex: string): number | null {
+    const value = hex.trim().replace(/^#/, '');
+    if (!/^[a-f\d]{3}$|^[a-f\d]{6}$/i.test(value)) return null;
+
+    const expanded = value.length === 3
+        ? value.split('').map((char) => char + char).join('')
+        : value;
+    const red = parseInt(expanded.slice(0, 2), 16);
+    const green = parseInt(expanded.slice(2, 4), 16);
+    const blue = parseInt(expanded.slice(4, 6), 16);
+
+    return ((red * 0.299) + (green * 0.587) + (blue * 0.114)) / 255;
+}
+
 export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
-    const { people, privacyMode } = useAppStore();
+    const {
+        people,
+        privacyMode,
+        teamsCatalog,
+        isTeamsCatalogLoading,
+        teamsCatalogError,
+    } = useAppStore();
     const personId = person?.id || '';
     const [name, setName] = useState(person?.name || '');
     const [nickname, setNickname] = useState(person?.nickname || '');
@@ -58,9 +81,19 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const [wantsWith, setWantsWith] = useState<string[]>(person?.wantsWith || []);
     const [avoidsWith, setAvoidsWith] = useState<string[]>(person?.avoidsWith || []);
     const [shirtNumber, setShirtNumber] = useState(person?.shirtNumber || '');
+    const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>(person?.teams || []);
     const [isExtraInfoOpen, setIsExtraInfoOpen] = useState(false);
 
     const otherPeople = useMemo(() => people.filter((p) => p.id !== personId), [people, personId]);
+    const selectedTeamIdSet = useMemo(() => new Set(selectedTeamIds), [selectedTeamIds]);
+    const teamsById = useMemo(() => {
+        return new Map(teamsCatalog.map((team) => [team.teamId, team]));
+    }, [teamsCatalog]);
+    const avatarTeam = selectedTeamIds.length > 0 ? teamsById.get(selectedTeamIds[0]) : undefined;
+    const sortedTeams = useMemo(() => {
+        return [...teamsCatalog].sort((a, b) => a.name.localeCompare(b.name));
+    }, [teamsCatalog]);
+
     const inverseWants = useMemo(() => {
         if (!personId) return new Set<string>();
         return new Set(otherPeople.filter((p) => p.wantsWith.includes(personId)).map((p) => p.id));
@@ -145,7 +178,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
             avoidsWith,
             shirtNumber: shirtNumber.trim(),
             primaryTeam: person?.primaryTeam,
-            teams: person?.teams || [],
+            teams: selectedTeamIds,
             groups: person?.groups || [],
             availability: person?.availability || [],
             birthYear: person?.birthYear,
@@ -178,6 +211,32 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         if (nextRole === 'GK') {
             setGkWillingness('good');
         }
+    };
+
+    const toggleTeam = (teamId: string) => {
+        setSelectedTeamIds(prev =>
+            prev.includes(teamId) ? prev.filter(id => id !== teamId) : [...prev, teamId]
+        );
+    };
+
+    const getTeamOptionStyle = (team: TeamCatalog): React.CSSProperties => {
+        const color1 = team.color1 || DEFAULT_TEAM_COLOR_1;
+        const color2 = team.color2 || team.color1 || DEFAULT_TEAM_COLOR_2;
+        const luminanceValues = [getHexLuminance(color1), getHexLuminance(color2)]
+            .filter((value): value is number => value !== null);
+        const averageLuminance = luminanceValues.length > 0
+            ? luminanceValues.reduce((sum, value) => sum + value, 0) / luminanceValues.length
+            : 0;
+        const textColor = averageLuminance > 0.58 ? '#111111' : '#ffffff';
+
+        return {
+            '--team-color-1': color1,
+            '--team-color-2': color2,
+            '--team-text-color': textColor,
+            '--team-text-shadow': textColor === '#ffffff'
+                ? '0 1px 2px rgba(0, 0, 0, 0.75)'
+                : '0 1px 1px rgba(255, 255, 255, 0.32)',
+        } as React.CSSProperties;
     };
 
     const renderAttributeRow = (key: keyof Attributes, label: string) => {
@@ -214,24 +273,32 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                     {/* Header: Avatar + Names */}
                     <div className="modal-header">
                         <div className="avatar-section">
-                            {avatar ? (
-                                <img src={avatar} alt="Preview" className="avatar-preview" />
-                            ) : (
-                                <div className="avatar-preview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
-                                    ?
-                                </div>
-                            )}
-                            {shirtNumber.trim() && (
-                                <span className="modal-shirt-number">#{shirtNumber.trim()}</span>
-                            )}
-                            <label className="avatar-upload-btn">
-                                {avatar ? 'Change Photo' : 'Upload Photo'}
+                            <label className="avatar-frame">
+                                {avatar ? (
+                                    <img src={avatar} alt="Preview" className="avatar-preview" />
+                                ) : (
+                                    <div className="avatar-preview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
+                                        ?
+                                    </div>
+                                )}
+                                <span className="avatar-upload-overlay">
+                                    {avatar ? 'Change' : 'Upload'}
+                                </span>
                                 <input type="file" accept="image/*" onChange={handleAvatarChange} />
                             </label>
-
-
-
-
+                            {shirtNumber.trim() && !avatarTeam && (
+                                <span className="modal-shirt-number">#{shirtNumber.trim()}</span>
+                            )}
+                            {avatarTeam && (
+                                <span
+                                    className="modal-team-pill"
+                                    style={getTeamOptionStyle(avatarTeam)}
+                                    title={avatarTeam.name}
+                                    aria-label={avatarTeam.name}
+                                >
+                                    {shirtNumber.trim() ? `#${shirtNumber.trim()}` : avatarTeam.name}
+                                </span>
+                            )}
                         </div>
 
                         <div className="header-inputs">
@@ -388,6 +455,50 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                         value={shirtNumber}
                                         onChange={e => setShirtNumber(e.target.value)}
                                     />
+                                </div>
+
+                                <div className="teams-field">
+                                    <div className="teams-field-header">
+                                        <label>Teams</label>
+                                        {selectedTeamIds.length > 0 && (
+                                            <span>{selectedTeamIds.length} selected</span>
+                                        )}
+                                    </div>
+
+                                    <div className="team-options-list">
+                                        {isTeamsCatalogLoading && (
+                                            <div className="teams-empty-state">Loading teams...</div>
+                                        )}
+
+                                        {!isTeamsCatalogLoading && teamsCatalogError && (
+                                            <div className="teams-empty-state is-error">{teamsCatalogError}</div>
+                                        )}
+
+                                        {!isTeamsCatalogLoading && !teamsCatalogError && teamsCatalog.length === 0 && (
+                                            <div className="teams-empty-state">No teams loaded yet</div>
+                                        )}
+
+                                        {!isTeamsCatalogLoading && !teamsCatalogError && sortedTeams.map((team) => {
+                                            const isSelected = selectedTeamIdSet.has(team.teamId);
+
+                                            return (
+                                                <button
+                                                    key={team.teamId}
+                                                    type="button"
+                                                    className={`team-option ${isSelected ? 'is-selected' : ''}`}
+                                                    style={getTeamOptionStyle(team)}
+                                                    aria-pressed={isSelected}
+                                                    onClick={() => toggleTeam(team.teamId)}
+                                                    title={team.name}
+                                                >
+                                                    <span className="team-option-name">{team.name}</span>
+                                                    <span className="team-option-status">
+                                                        {isSelected ? 'Selected' : 'Add'}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
                         )}

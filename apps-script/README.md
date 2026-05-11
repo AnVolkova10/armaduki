@@ -8,6 +8,7 @@ Before deploying:
 - Deploy a new web app version after changing the remote Apps Script code.
 - Run `?action=migrateSchema` after deploy to rename legacy `db` to `Players`, create missing sheets, and append missing columns.
 - Run `?action=read` after deploy to confirm the app still returns player rows.
+- Run `?action=readTeams` after deploy to confirm the app returns the team catalog.
 
 Deploy steps:
 
@@ -20,7 +21,8 @@ Deploy steps:
 7. Keep using the same `/exec` web app URL. If the URL did not change, `.env` and Vercel env vars do not need updates.
 8. Open `WEB_APP_URL?action=migrateSchema` and confirm it returns `ok: true`.
 9. Open `WEB_APP_URL?action=read` and confirm it returns player rows.
-10. If a brand new web app URL was created by mistake, update `VITE_APPS_SCRIPT_URL` locally and in Vercel before using production.
+10. Open `WEB_APP_URL?action=readTeams` and confirm it returns team rows or `[]`.
+11. If a brand new web app URL was created by mistake, update `VITE_APPS_SCRIPT_URL` locally and in Vercel before using production.
 
 Current migration status:
 
@@ -31,6 +33,7 @@ Current migration status:
 - `ensureSchema()` appends missing columns to the end of existing header rows and does not reorder or delete existing data.
 - `action=migrateSchema` runs `ensureSchema()` explicitly from the deployed web app URL.
 - `action=migratePlayersSheet` remains available as a focused legacy rename action.
+- `action=readTeams` returns the `Teams` catalog for the frontend with safe defaults.
 - `update` preserves existing cell values for columns missing from the incoming payload.
 - `delete` and `update` resolve the `id` column by header name instead of assuming it is the first column.
 
@@ -75,6 +78,8 @@ Phase 2 safety note: the frontend reads these new fields but only writes them ba
 - `color1`: optional primary color hex.
 - `color2`: optional secondary color hex; UI can fall back to `color1`.
 - `crest`: optional crest URL, data URL, emoji, or short visual identifier.
+
+`action=readTeams` skips rows without `teamId`, defaults missing `name` to `teamId`, defaults missing `color2` to `color1`, and returns empty strings for optional missing values.
 
 ### Groups
 

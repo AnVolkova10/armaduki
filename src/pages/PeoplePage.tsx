@@ -67,6 +67,9 @@ export function PeoplePage() {
         isLoading,
         error,
         fetchPeople,
+        fetchTeamsCatalog,
+        teamsCatalogLoaded,
+        isTeamsCatalogLoading,
         addPerson,
         updatePerson,
         deletePerson,
@@ -96,6 +99,12 @@ export function PeoplePage() {
             fetchPeople();
         }
     }, [fetchPeople, people.length]);
+
+    useEffect(() => {
+        if (!teamsCatalogLoaded && !isTeamsCatalogLoading) {
+            fetchTeamsCatalog();
+        }
+    }, [fetchTeamsCatalog, isTeamsCatalogLoading, teamsCatalogLoaded]);
 
     useEffect(() => {
         const handleDocumentClick = (event: MouseEvent) => {

@@ -92,20 +92,20 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [x] F2-04.3.0 Preservar columnas nuevas de Sheets omitiendolas del payload mientras no esten editables en UI.
 - [x] F2-04.4 Documentar columnas nuevas requeridas en Sheet/App Script.
 - [x] F2-05.1 Agregar `numero de camiseta` al modal dentro de una seccion colapsable `Extra info`.
-- [ ] F2-05.2 Agregar `equipo` con multiples valores al modal.
-- [ ] F2-05.2.0 Cargar equipos manualmente en la pestana `Teams` por ahora; no crear equipos desde el modal de jugadora.
-- [ ] F2-05.2.1 Agregar accion App Script `action=readTeams` que lea la pestana `Teams` con defaults seguros.
-- [ ] F2-05.2.2 Agregar tipos frontend para catalogo de equipos (`TeamCatalog`/similar) con `teamId`, `name`, `color1`, `color2`, `crest`.
-- [ ] F2-05.2.3 Agregar store/cliente para cargar `teamsCatalog` desde `readTeams`.
-- [ ] F2-05.2.4 Agregar selector/search de equipos en `Extra info`: seleccion multiple, chips seleccionados y estado vacio si no hay equipos cargados.
+- [x] F2-05.2 Planificar `equipo` con multiples valores en el modal; ejecucion dividida en F2-05.2.x.
+- [x] F2-05.2.0 Cargar equipos manualmente en la pestana `Teams` por ahora; no crear equipos desde el modal de jugadora.
+- [x] F2-05.2.1 Agregar accion App Script `action=readTeams` que lea la pestana `Teams` con defaults seguros.
+- [x] F2-05.2.2 Agregar tipos frontend para catalogo de equipos (`TeamCatalog`/similar) con `teamId`, `name`, `color1`, `color2`, `crest`.
+- [x] F2-05.2.3 Agregar store/cliente para cargar `teamsCatalog` desde `readTeams`.
+- [x] F2-05.2.4 Agregar selector compacto de equipos en `Extra info`: seleccion multiple, colores por equipo y estado vacio si no hay equipos cargados.
 - [ ] F2-05.2.5 Agregar seleccion de equipo principal: si se elige el primer equipo y no hay `primaryTeam`, queda como principal por defecto.
 - [ ] F2-05.2.6 Permitir cambiar el equipo principal entre los equipos seleccionados.
-- [ ] F2-05.2.7 Guardar `primaryTeam` y `teams` en payloads solo cuando cambian, preservando ediciones manuales de Sheets.
+- [ ] F2-05.2.7 Guardar `primaryTeam` cuando exista UI de equipo principal; `teams` ya se guarda desde F2-05.2.4 preservando ediciones manuales de Sheets.
 - [ ] F2-05.3 Agregar `grupo/cancha habitual` y `dia/lugar` con multiples valores al modal.
 - [x] F2-05.4 Actualizar labels del modal de arquero a `good`, `low`, `no`.
 - [x] F2-05.5 Mostrar camiseta en tarjeta sin romper privacidad ni mobile.
 - [ ] F2-05.6 Mostrar equipo en tarjeta.
-- [ ] F2-05.7 Mostrar equipo con circulo/swatch de dos colores.
+- [x] F2-05.7 Mostrar equipo con senal/swatch de dos colores.
 - [ ] F2-05.8 Agregar `anio de nacimiento` o edad calculada al modal solo si aporta al armado de partidos.
 - [ ] F2-05.9 Agregar `segunda posicion` al modal como campo opcional.
 - [ ] F2-05.10 Agregar `active` para ocultar jugadoras inactivas sin borrarlas.
@@ -282,6 +282,48 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - `src/components/PersonForm.tsx` agrega una seccion colapsable `Extra info`, cerrada por defecto, con el campo `Shirt number`.
 - `src/store/useAppStore.ts` envia campos Phase 2 en `add` solo si tienen valor y en `update` solo cuando cambian.
 - `src/components/PersonCard.tsx` muestra la camiseta en gris, chica, con `#` y debajo de la foto solo si existe.
+
+### Implementacion F2-05.2.0 - carga manual de equipos
+
+- Se valido carga manual inicial en la pestana `Teams`.
+- Por ahora los equipos se administran desde Sheets, no desde el modal.
+- `crest` puede usar rutas servidas por Vercel desde `public/crests`, ejemplo `/crests/cocucha-crest.png`.
+- Siguiente paso: leer `Teams` desde App Script con `action=readTeams`.
+
+### Implementacion F2-05.2.1 - `readTeams`
+
+- `apps-script/Code.gs` expone `action=readTeams` por GET y POST.
+- La accion corre `ensureSchema()` antes de leer, asi que crea la pestana `Teams` si falta.
+- Devuelve objetos frontend-friendly con `teamId`, `name`, `color1`, `color2`, `crest`.
+- Si falta `name`, usa `teamId`; si falta `color2`, usa `color1`; si falta `crest`, devuelve string vacio.
+- Las filas sin `teamId` se ignoran para evitar referencias inestables en `Players.teams`.
+
+### Implementacion F2-05.2.2 - tipo `TeamCatalog`
+
+- `src/types/index.ts` exporta `TeamCatalog` con `teamId`, `name`, `color1`, `color2`, `crest`.
+- Los campos de color y escudo quedan como `string` porque `readTeams` ya devuelve defaults seguros.
+- Todavia no se carga ni se muestra el catalogo en UI; eso queda para `F2-05.2.3` y `F2-05.2.4`.
+
+### Implementacion F2-05.2.3 - store `teamsCatalog`
+
+- `src/store/useAppStore.ts` agrega `teamsCatalog`, `teamsCatalogLoaded`, `isTeamsCatalogLoading` y `teamsCatalogError`.
+- `fetchTeamsCatalog()` llama a `action=readTeams`, parsea filas con defaults seguros y omite filas sin `teamId`.
+- `PeoplePage` y `MatchPage` disparan la carga del catalogo una vez si todavia no fue cargado.
+- Todavia no hay UI para seleccionar equipos; eso queda para `F2-05.2.4`.
+
+### Implementacion F2-05.2.4 - selector multiple de equipos
+
+- `src/components/PersonForm.tsx` agrega selector multiple de equipos dentro de `Extra info`.
+- El selector no usa search por ahora porque el catalogo esperado es chico.
+- Cada equipo se muestra como una pill compacta con fondo de `color1` + `color2`, sin escudo.
+- La pill muestra solo el `name`; el `teamId` queda como valor interno para guardar.
+- Click en una pill selecciona/deselecciona y mantiene el indicador `Add`/`Selected`.
+- Si hay equipo, el modal muestra solo la mini pill con colores del primer equipo y el numero adentro; si no hay equipo, mantiene el numero gris.
+- El cambio de foto queda como overlay sobre la imagen al hover/focus para no ocupar espacio debajo.
+- La lista muestra estado vacio y respeta errores/carga del catalogo.
+- Al guardar el modal, `teams` se actualiza en la jugadora y se refleja en Sheets por el payload Phase 2 existente.
+- `primaryTeam` no se modifica todavia; queda para los pasos de equipo principal.
+- `src/components/PersonCard.tsx` muestra un triangulo en la esquina inferior izquierda con los colores del primer equipo, sin texto.
 
 ## Fase 4 - Filtros y orden
 

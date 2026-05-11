@@ -23,6 +23,21 @@
   background: #1a1212;
 }
 
+.team-corner-marker {
+  --team-color-1: #3a3a3a;
+  --team-color-2: #111111;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 24px;
+  height: 24px;
+  border-bottom-left-radius: 5px;
+  clip-path: polygon(0 0, 0 100%, 100% 100%);
+  background:
+    linear-gradient(135deg, var(--team-color-1) 0 50%, var(--team-color-2) 50% 100%);
+  pointer-events: none;
+}
+
 .card-content {
   display: flex;
   gap: 12px;

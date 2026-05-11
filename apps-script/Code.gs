@@ -133,6 +133,32 @@ function findRowIndexById(sheet, id) {
   return data.findIndex((row, index) => index > 0 && String(row[idColumnIndex]) === String(id));
 }
 
+function readSheetObjects(sheet) {
+  const data = sheet.getDataRange().getValues();
+
+  if (data.length === 0) return [];
+
+  const headers = data[0];
+  const rows = data.slice(1);
+
+  return rows.map(row => {
+    const obj = {};
+    headers.forEach((header, index) => {
+      const key = normalizeKey(header);
+      if (key) {
+        obj[key] = row[index];
+      }
+    });
+    return obj;
+  });
+}
+
+function getRowString(rowObject, key) {
+  const value = rowObject[normalizeKey(key)];
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
+
 function buildRowFromPayload(headers, lowerBody, existingRow) {
   return headers.map((header, index) => {
     const headerKey = normalizeKey(header);
@@ -194,23 +220,32 @@ function ensureSchema() {
 function readPlayers() {
   ensureSchema();
   const sheet = getPlayersSheet();
-  const data = sheet.getDataRange().getValues();
+  return readSheetObjects(sheet);
+}
 
-  if (data.length === 0) return [];
+function readTeams() {
+  ensureSchema();
+  const spreadsheet = getSpreadsheet();
+  const sheet = getOrCreateSheet(spreadsheet, TEAMS_SHEET_NAME, TEAMS_HEADERS);
+  const rows = readSheetObjects(sheet);
+  const teams = [];
 
-  const headers = data[0];
-  const rows = data.slice(1);
+  rows.forEach(row => {
+    const teamId = getRowString(row, 'teamId');
+    if (!teamId) return;
 
-  return rows.map(row => {
-    const obj = {};
-    headers.forEach((header, index) => {
-      const key = normalizeKey(header);
-      if (key) {
-        obj[key] = row[index];
-      }
+    const color1 = getRowString(row, 'color1');
+
+    teams.push({
+      teamId: teamId,
+      name: getRowString(row, 'name') || teamId,
+      color1: color1,
+      color2: getRowString(row, 'color2') || color1,
+      crest: getRowString(row, 'crest'),
     });
-    return obj;
   });
+
+  return teams;
 }
 
 function migratePlayersSheetName() {
@@ -236,6 +271,10 @@ function doGet(e) {
 
     if (action === 'read') {
       return jsonOutput(readPlayers());
+    }
+
+    if (action === 'readTeams') {
+      return jsonOutput(readTeams());
     }
 
     if (action === 'migratePlayersSheet') {
@@ -265,6 +304,10 @@ function doPost(e) {
 
     if (action === 'migrateSchema') {
       return jsonOutput(migrateSchema());
+    }
+
+    if (action === 'readTeams') {
+      return jsonOutput(readTeams());
     }
 
     const lowerBody = {};

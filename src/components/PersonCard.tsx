@@ -13,6 +13,9 @@ interface PersonCardProps {
     showMatchBadge?: boolean;
 }
 
+const DEFAULT_TEAM_COLOR_1 = '#3a3a3a';
+const DEFAULT_TEAM_COLOR_2 = '#111111';
+
 export function PersonCard({
     person,
     onEdit,
@@ -23,13 +26,28 @@ export function PersonCard({
     selectionDisabled,
     showMatchBadge,
 }: PersonCardProps) {
-    const { privacyMode } = useAppStore();
+    const { privacyMode, teamsCatalog } = useAppStore();
+    const mainTeamId = person.teams?.[0];
+    const mainTeam = mainTeamId ? teamsCatalog.find((team) => team.teamId === mainTeamId) : undefined;
+    const teamMarkerStyle = mainTeam ? {
+        '--team-color-1': mainTeam.color1 || DEFAULT_TEAM_COLOR_1,
+        '--team-color-2': mainTeam.color2 || mainTeam.color1 || DEFAULT_TEAM_COLOR_2,
+    } as React.CSSProperties : undefined;
 
     return (
         <div
             className={`person-card ${selected ? 'selected' : ''} ${selectable ? 'selectable' : ''} ${selectionDisabled ? 'selection-disabled' : ''}`}
             onClick={selectable && !selectionDisabled ? onSelect : undefined}
         >
+            {mainTeam && (
+                <span
+                    className="team-corner-marker"
+                    style={teamMarkerStyle}
+                    title={mainTeam.name}
+                    aria-label={mainTeam.name}
+                />
+            )}
+
             <div className="card-content">
                 <div className="avatar-stack">
                     {person.avatar && person.avatar.trim() !== '' ? (
