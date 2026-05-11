@@ -88,7 +88,7 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [x] F2-04.0.10 Documentar paso de deploy de App Script despues de cambiar el codigo del web app.
 - [x] F2-04.1 Agregar a tipos `shirtNumber?: string`, `primaryTeam?: string`, `teams: string[]`, `groups: string[]`, `availability: string[]`, `birthYear?: string`, `secondaryRole?: Role`, `active?: boolean`, `notes?: string`.
 - [x] F2-04.2 Actualizar parser de Sheets para leer campos nuevos aunque falten columnas.
-- [ ] F2-04.3 Actualizar payloads `add`/`update` para enviar campos nuevos sin romper datos viejos, despues de que esos campos existan en el modal.
+- [x] F2-04.3 Actualizar payloads `add`/`update` para enviar campos nuevos sin romper datos viejos.
 - [x] F2-04.3.0 Preservar columnas nuevas de Sheets omitiendolas del payload mientras no esten editables en UI.
 - [x] F2-04.4 Documentar columnas nuevas requeridas en Sheet/App Script.
 - [x] F2-05.1 Agregar `numero de camiseta` al modal dentro de una seccion colapsable `Extra info`.
@@ -254,13 +254,13 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - `teams`, `groups` y `availability` se leen como listas separadas por pipe.
 - `active` acepta valores falsos tipo `false`, `no`, `0`, `inactive` u `off`; cualquier valor vacio o no reconocido queda activo para no ocultar jugadoras existentes.
 
-### Implementacion F2-04.3.0 - preservacion de campos nuevos
+### Implementacion F2-04.3 / F2-04.3.0 - payloads y preservacion de campos nuevos
 
-- `src/store/useAppStore.ts` lee campos Phase 2 pero no los envia todavia en payloads `add`/`update`, porque el modal aun no los edita.
-- Esto evita pisar cambios manuales hechos en Sheets con valores viejos o vacios que la app tenga en memoria.
+- `src/store/useAppStore.ts` envia campos Phase 2 en `add` solo si tienen valor real.
+- En `update`, los campos Phase 2 se envian solo si cambiaron contra la version cargada de la jugadora.
+- Esto evita pisar cambios manuales hechos en Sheets con valores viejos o vacios que la app tenga en memoria, y permite limpiar un campo desde UI cuando tenga control visible.
 - `wantsWith` y `avoidsWith` siguen enviandose como antes porque esos campos si se editan desde la UI.
-- `shirtNumber` se envia solo si cambia desde el modal, o si se crea una jugadora nueva con camiseta, para evitar pisar cambios manuales hechos en Sheets.
-- F2-04.3 queda pendiente para `primaryTeam`, `teams`, `groups`, `availability`, `birthYear`, `secondaryRole`, `active` y `notes`, cuando F2-05 agregue controles reales para editarlos.
+- `shirtNumber` ya tiene control visible en el modal; `primaryTeam`, `teams`, `groups`, `availability`, `birthYear`, `secondaryRole`, `active` y `notes` quedan listos para enviarse cuando F2-05 agregue controles reales para editarlos.
 
 ### Implementacion F2-04.4 - documentacion de columnas
 
@@ -271,7 +271,7 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 ### Implementacion F2-05.1/F2-05.5 - camiseta
 
 - `src/components/PersonForm.tsx` agrega una seccion colapsable `Extra info`, cerrada por defecto, con el campo `Shirt number`.
-- `src/store/useAppStore.ts` envia `shirtNumber` en `add` si tiene valor y en `update` solo cuando cambia; el resto de campos Phase 2 siguen omitidos para no pisar Sheets.
+- `src/store/useAppStore.ts` envia campos Phase 2 en `add` solo si tienen valor y en `update` solo cuando cambian.
 - `src/components/PersonCard.tsx` muestra la camiseta en gris, chica, con `#` y debajo de la foto solo si existe.
 
 ## Fase 4 - Filtros y orden

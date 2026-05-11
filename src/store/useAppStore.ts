@@ -201,6 +201,70 @@ function serializeArrayField(value: string[] | undefined): string {
   return (value || []).join('|');
 }
 
+function addOptionalPayloadField(payload: Record<string, unknown>, key: string, value: unknown) {
+  if (value !== undefined && value !== '') {
+    payload[key] = value;
+  }
+}
+
+function addChangedStringPayloadField(
+  payload: Record<string, unknown>,
+  key: string,
+  value: unknown,
+  previousValue: unknown,
+) {
+  const next = getOptionalString(value);
+  const previous = getOptionalString(previousValue);
+  if (next !== previous) {
+    payload[key] = next;
+  }
+}
+
+function addChangedArrayPayloadField(
+  payload: Record<string, unknown>,
+  key: string,
+  value: string[] | undefined,
+  previousValue: string[] | undefined,
+) {
+  const next = serializeArrayField(value);
+  const previous = serializeArrayField(previousValue);
+  if (next !== previous) {
+    payload[key] = next;
+  }
+}
+
+function addPhase2AddPayloadFields(payload: Record<string, unknown>, person: Person) {
+  addOptionalPayloadField(payload, 'shirtNumber', getOptionalString(person.shirtNumber));
+  addOptionalPayloadField(payload, 'primaryTeam', getOptionalString(person.primaryTeam));
+  addOptionalPayloadField(payload, 'teams', serializeArrayField(person.teams));
+  addOptionalPayloadField(payload, 'groups', serializeArrayField(person.groups));
+  addOptionalPayloadField(payload, 'availability', serializeArrayField(person.availability));
+  addOptionalPayloadField(payload, 'birthYear', getOptionalString(person.birthYear));
+  addOptionalPayloadField(payload, 'secondaryRole', getOptionalString(person.secondaryRole));
+  addOptionalPayloadField(payload, 'notes', getOptionalString(person.notes));
+
+  if (person.active === false) {
+    payload.active = false;
+  }
+}
+
+function addChangedPhase2PayloadFields(payload: Record<string, unknown>, person: Person, previousPerson?: Person) {
+  if (!previousPerson) return;
+
+  addChangedStringPayloadField(payload, 'shirtNumber', person.shirtNumber, previousPerson.shirtNumber);
+  addChangedStringPayloadField(payload, 'primaryTeam', person.primaryTeam, previousPerson.primaryTeam);
+  addChangedArrayPayloadField(payload, 'teams', person.teams, previousPerson.teams);
+  addChangedArrayPayloadField(payload, 'groups', person.groups, previousPerson.groups);
+  addChangedArrayPayloadField(payload, 'availability', person.availability, previousPerson.availability);
+  addChangedStringPayloadField(payload, 'birthYear', person.birthYear, previousPerson.birthYear);
+  addChangedStringPayloadField(payload, 'secondaryRole', person.secondaryRole, previousPerson.secondaryRole);
+  addChangedStringPayloadField(payload, 'notes', person.notes, previousPerson.notes);
+
+  if (person.active !== previousPerson.active) {
+    payload.active = person.active ?? true;
+  }
+}
+
 function buildPersonPayloadFields(person: Person) {
   return {
     id: person.id,
@@ -222,12 +286,7 @@ function buildUpdatePayload(person: Person, previousPerson?: Person) {
     ...buildPersonPayloadFields(person),
   };
 
-  if (
-    previousPerson &&
-    getOptionalString(person.shirtNumber) !== getOptionalString(previousPerson.shirtNumber)
-  ) {
-    payload.shirtNumber = getOptionalString(person.shirtNumber);
-  }
+  addChangedPhase2PayloadFields(payload, person, previousPerson);
 
   return payload;
 }
@@ -238,10 +297,7 @@ function buildAddPayload(person: Person) {
     ...buildPersonPayloadFields(person),
   };
 
-  const shirtNumber = getOptionalString(person.shirtNumber);
-  if (shirtNumber) {
-    payload.shirtNumber = shirtNumber;
-  }
+  addPhase2AddPayloadFields(payload, person);
 
   return payload;
 }
