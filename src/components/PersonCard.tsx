@@ -31,13 +31,18 @@ export function PersonCard({
             onClick={selectable && !selectionDisabled ? onSelect : undefined}
         >
             <div className="card-content">
-                {person.avatar && person.avatar.trim() !== '' ? (
-                    <img src={person.avatar} alt={person.nickname} className="avatar" />
-                ) : (
-                    <div className="avatar-placeholder">
-                        {person.nickname[0].toUpperCase()}
-                    </div>
-                )}
+                <div className="avatar-stack">
+                    {person.avatar && person.avatar.trim() !== '' ? (
+                        <img src={person.avatar} alt={person.nickname} className="avatar" />
+                    ) : (
+                        <div className="avatar-placeholder">
+                            {person.nickname[0].toUpperCase()}
+                        </div>
+                    )}
+                    <span className={`shirt-number ${person.shirtNumber?.trim() ? '' : 'is-empty'}`}>
+                        {person.shirtNumber?.trim() ? `#${person.shirtNumber.trim()}` : '\u00A0'}
+                    </span>
+                </div>
 
                 <div className="info">
                     <div className="nickname">{person.nickname}</div>

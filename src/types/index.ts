@@ -25,6 +25,15 @@ export interface Person {
   wantsWith: string[];
   avoidsWith: string[];
   attributes?: Attributes;
+  shirtNumber?: string;
+  primaryTeam?: string;
+  teams: string[];
+  groups: string[];
+  availability: string[];
+  birthYear?: string;
+  secondaryRole?: Role;
+  active?: boolean;
+  notes?: string;
 }
 
 export interface Team {

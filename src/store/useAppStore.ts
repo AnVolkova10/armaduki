@@ -28,6 +28,11 @@ function getOptionalString(value: unknown): string {
   return String(value).trim();
 }
 
+function getOptionalField(value: unknown): string | undefined {
+  const str = getOptionalString(value);
+  return str || undefined;
+}
+
 function parseArrayField(value: unknown): string[] {
   if (value === undefined || value === null || value === '') return [];
   if (Array.isArray(value)) {
@@ -125,6 +130,15 @@ function parsePersonRow(row: unknown, index: number): Person | null {
   const wantsWith = parseArrayField(getValue('wantswith'));
   const avoidsWith = parseArrayField(getValue('avoidswith'));
   const attributes = parseAttributes(getValue('attributes'));
+  const shirtNumber = getOptionalField(getValue('shirtnumber'));
+  const primaryTeam = getOptionalField(getValue('primaryteam'));
+  const teams = parseArrayField(getValue('teams'));
+  const groups = parseArrayField(getValue('groups'));
+  const availability = parseArrayField(getValue('availability'));
+  const birthYear = getOptionalField(getValue('birthyear'));
+  const secondaryRole = validateOptionalRole(getValue('secondaryrole'));
+  const active = validateActive(getValue('active'));
+  const notes = getOptionalField(getValue('notes'));
 
   return {
     id,
@@ -137,6 +151,15 @@ function parsePersonRow(row: unknown, index: number): Person | null {
     wantsWith,
     avoidsWith,
     attributes,
+    shirtNumber,
+    primaryTeam,
+    teams,
+    groups,
+    availability,
+    birthYear,
+    secondaryRole,
+    active,
+    notes,
   };
 }
 
@@ -146,11 +169,26 @@ function validateRole(value: unknown): Role {
   return validRoles.includes(normalized) ? normalized : DEFAULT_ROLE;
 }
 
+function validateOptionalRole(value: unknown): Role | undefined {
+  const normalized = getOptionalString(value);
+  if (!normalized) return undefined;
+
+  const role = validateRole(normalized);
+  return role === normalized.toUpperCase() ? role : undefined;
+}
+
 function validateGKWillingness(value: unknown): GKWillingness {
   const valid: GKWillingness[] = ['good', 'no', 'low'];
   const normalized = getOptionalString(value).toLowerCase();
   if (normalized === 'yes') return 'good';
   return valid.includes(normalized as GKWillingness) ? (normalized as GKWillingness) : DEFAULT_GK_WILLINGNESS;
+}
+
+function validateActive(value: unknown): boolean {
+  const normalized = getOptionalString(value).toLowerCase();
+  if (!normalized) return true;
+  if (['false', 'no', '0', 'inactive', 'off'].includes(normalized)) return false;
+  return true;
 }
 
 function validateRating(value: unknown): number {
@@ -159,9 +197,12 @@ function validateRating(value: unknown): number {
   return Math.max(1, Math.min(10, Math.trunc(num)));
 }
 
-function buildUpdatePayload(person: Person) {
+function serializeArrayField(value: string[] | undefined): string {
+  return (value || []).join('|');
+}
+
+function buildPersonPayloadFields(person: Person) {
   return {
-    action: 'update',
     id: person.id,
     name: person.name,
     nickname: person.nickname,
@@ -169,26 +210,40 @@ function buildUpdatePayload(person: Person) {
     rating: person.rating,
     avatar: person.avatar,
     gkWillingness: person.gkWillingness,
-    wantsWith: person.wantsWith.join('|'),
-    avoidsWith: person.avoidsWith.join('|'),
+    wantsWith: serializeArrayField(person.wantsWith),
+    avoidsWith: serializeArrayField(person.avoidsWith),
     attributes: JSON.stringify(person.attributes || {}),
   };
 }
 
-function buildAddPayload(person: Person) {
-  return {
-    action: 'add',
-    id: person.id,
-    name: person.name,
-    nickname: person.nickname,
-    role: person.role,
-    rating: person.rating,
-    avatar: person.avatar,
-    gkWillingness: person.gkWillingness,
-    wantsWith: person.wantsWith.join('|'),
-    avoidsWith: person.avoidsWith.join('|'),
-    attributes: JSON.stringify(person.attributes || {}),
+function buildUpdatePayload(person: Person, previousPerson?: Person) {
+  const payload: Record<string, unknown> = {
+    action: 'update',
+    ...buildPersonPayloadFields(person),
   };
+
+  if (
+    previousPerson &&
+    getOptionalString(person.shirtNumber) !== getOptionalString(previousPerson.shirtNumber)
+  ) {
+    payload.shirtNumber = getOptionalString(person.shirtNumber);
+  }
+
+  return payload;
+}
+
+function buildAddPayload(person: Person) {
+  const payload: Record<string, unknown> = {
+    action: 'add',
+    ...buildPersonPayloadFields(person),
+  };
+
+  const shirtNumber = getOptionalString(person.shirtNumber);
+  if (shirtNumber) {
+    payload.shirtNumber = shirtNumber;
+  }
+
+  return payload;
 }
 
 function buildDeletePayload(id: string) {
@@ -209,8 +264,8 @@ async function postAppsScriptPayload(payload: Record<string, unknown>): Promise<
   });
 }
 
-async function postPersonUpdate(person: Person): Promise<void> {
-  await postAppsScriptPayload(buildUpdatePayload(person));
+async function postPersonUpdate(person: Person, previousPerson?: Person): Promise<void> {
+  await postAppsScriptPayload(buildUpdatePayload(person, previousPerson));
 }
 
 interface AppStore {
@@ -387,12 +442,14 @@ const useAppStore = create<AppStore>()((set, get) => {
     },
 
     updatePerson: async (person) => {
+      const previousPerson = get().people.find((existing) => existing.id === person.id);
+
       // Optimistic update first
       set((state) => ({
         people: state.people.map((existing) => (existing.id === person.id ? person : existing)),
       }));
 
-      const syncTask = () => postPersonUpdate(person);
+      const syncTask = () => postPersonUpdate(person, previousPerson);
       await runSyncOperation({
         label: `player "${person.nickname}"`,
         task: syncTask,

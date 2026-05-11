@@ -57,6 +57,8 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const [gkWillingness, setGkWillingness] = useState<GKWillingness>(person?.gkWillingness || 'low');
     const [wantsWith, setWantsWith] = useState<string[]>(person?.wantsWith || []);
     const [avoidsWith, setAvoidsWith] = useState<string[]>(person?.avoidsWith || []);
+    const [shirtNumber, setShirtNumber] = useState(person?.shirtNumber || '');
+    const [isExtraInfoOpen, setIsExtraInfoOpen] = useState(false);
 
     const otherPeople = useMemo(() => people.filter((p) => p.id !== personId), [people, personId]);
     const inverseWants = useMemo(() => {
@@ -141,6 +143,15 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
             gkWillingness: role === 'GK' ? 'good' : gkWillingness,
             wantsWith,
             avoidsWith,
+            shirtNumber: shirtNumber.trim(),
+            primaryTeam: person?.primaryTeam,
+            teams: person?.teams || [],
+            groups: person?.groups || [],
+            availability: person?.availability || [],
+            birthYear: person?.birthYear,
+            secondaryRole: person?.secondaryRole,
+            active: person?.active,
+            notes: person?.notes,
         });
     };
 
@@ -209,6 +220,9 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                 <div className="avatar-preview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
                                     ?
                                 </div>
+                            )}
+                            {shirtNumber.trim() && (
+                                <span className="modal-shirt-number">#{shirtNumber.trim()}</span>
                             )}
                             <label className="avatar-upload-btn">
                                 {avatar ? 'Change Photo' : 'Upload Photo'}
@@ -351,6 +365,33 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                             </div>
                         </div>
                     )}
+
+                    <div className="extra-info-section">
+                        <button
+                            type="button"
+                            className="extra-info-toggle"
+                            aria-expanded={isExtraInfoOpen}
+                            onClick={() => setIsExtraInfoOpen((open) => !open)}
+                        >
+                            <span>Extra info</span>
+                            <span className={`extra-info-caret ${isExtraInfoOpen ? 'is-open' : ''}`} aria-hidden="true" />
+                        </button>
+
+                        {isExtraInfoOpen && (
+                            <div className="extra-info-content">
+                                <div className="form-group extra-info-field">
+                                    <label>Shirt number</label>
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        maxLength={4}
+                                        value={shirtNumber}
+                                        onChange={e => setShirtNumber(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     <div className="form-actions">
                         <button type="button" className="btn btn-secondary" onClick={onCancel}>
