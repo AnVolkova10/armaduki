@@ -2,9 +2,11 @@ import { NavLink, Outlet } from 'react-router-dom';
 import './Layout.css';
 
 import useAppStore from '../store/useAppStore';
+import { AppNotices } from './AppNotices';
 
 export function Layout() {
-    const { privacyMode, togglePrivacyMode } = useAppStore();
+    const privacyMode = useAppStore((state) => state.privacyMode);
+    const togglePrivacyMode = useAppStore((state) => state.togglePrivacyMode);
 
     return (
         <div className="layout">
@@ -25,6 +27,7 @@ export function Layout() {
             <main className="main">
                 <Outlet />
             </main>
+            <AppNotices />
             <footer className="footer">
                 <div className="footer-signature">
                     Ángela Curzi 2026

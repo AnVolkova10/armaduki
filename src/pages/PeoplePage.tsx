@@ -64,7 +64,7 @@ export function PeoplePage() {
     const {
         people,
         selectedIds,
-        isLoading,
+        peopleStatus,
         error,
         fetchPeople,
         fetchTeamsCatalog,
@@ -78,10 +78,9 @@ export function PeoplePage() {
         clearAvoidsRelationships,
         setError,
         privacyMode,
-        syncStatus,
-        syncMessage,
-        clearSyncState,
     } = useAppStore();
+    const isLoading = peopleStatus === 'loading';
+    const isLoaded = peopleStatus === 'loaded';
 
     const [showForm, setShowForm] = useState(false);
     const [editingPerson, setEditingPerson] = useState<Person | undefined>();
@@ -95,10 +94,10 @@ export function PeoplePage() {
     const clearLinksMenuRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
-        if (people.length === 0) {
-            fetchPeople();
+        if (peopleStatus === 'idle') {
+            void fetchPeople();
         }
-    }, [fetchPeople, people.length]);
+    }, [fetchPeople, peopleStatus]);
 
     useEffect(() => {
         if (!teamsCatalogLoaded && !isTeamsCatalogLoading) {
@@ -179,9 +178,9 @@ export function PeoplePage() {
 
     const handleSave = (person: Person) => {
         if (editingPerson) {
-            updatePerson(person);
+            void updatePerson(person);
         } else {
-            addPerson(person);
+            void addPerson(person);
         }
         setShowForm(false);
         setEditingPerson(undefined);
@@ -321,7 +320,12 @@ export function PeoplePage() {
                             </div>
                         )}
                     </div>
-                    <ActionButton variant="primary" onClick={() => setShowForm(true)}>
+                    <ActionButton
+                        variant="primary"
+                        onClick={() => setShowForm(true)}
+                        disabled={!isLoaded}
+                        title={isLoaded ? undefined : 'Players must load from Google Sheets first'}
+                    >
                         + Add Player
                     </ActionButton>
                 </div>
@@ -413,28 +417,25 @@ export function PeoplePage() {
             {error && (
                 <div className="error">
                     {error}
-                    <button className="btn btn-secondary" onClick={() => setError(null)}>
-                        &times;
-                    </button>
-                </div>
-            )}
-            {syncStatus === 'error' && syncMessage && (
-                <div className="error">
-                    {syncMessage}
-                    <button className="btn btn-secondary" onClick={clearSyncState}>
+                    {peopleStatus === 'error' && (
+                        <button className="btn btn-secondary" onClick={() => void fetchPeople()}>
+                            Retry
+                        </button>
+                    )}
+                    <button className="btn btn-secondary" onClick={() => setError(null)} aria-label="Dismiss error">
                         &times;
                     </button>
                 </div>
             )}
 
-            {!isLoading && people.length === 0 ? (
+            {isLoaded && people.length === 0 ? (
                 <div className="empty-state">
                     <p>No players yet.</p>
                     <p className="hint">
                         Data is loaded from Google Sheets. You can add players manually or edit the spreadsheet.
                     </p>
                 </div>
-            ) : !isLoading && visiblePeople.length === 0 ? (
+            ) : people.length > 0 && visiblePeople.length === 0 ? (
                 <div className="empty-state">
                     <p>No players match current controls.</p>
                     <p className="hint">
@@ -458,7 +459,7 @@ export function PeoplePage() {
                 </div>
             )}
 
-            {!isLoading && (
+            {isLoaded && (
                 <div className="people-count">
                     {normalizedQuery || uiRoleFilter !== 'all' || effectiveScoreFilter !== 'all'
                         ? `Showing ${visiblePeople.length} of ${people.length} players`

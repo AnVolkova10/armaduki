@@ -65,7 +65,7 @@ export function MatchPage() {
     const {
         people,
         selectedIds,
-        isLoading,
+        peopleStatus,
         error,
         fetchPeople,
         fetchTeamsCatalog,
@@ -79,10 +79,9 @@ export function MatchPage() {
         clearWantsRelationships,
         clearAvoidsRelationships,
         privacyMode,
-        syncStatus,
-        syncMessage,
-        clearSyncState,
     } = useAppStore();
+    const isLoading = peopleStatus === 'loading';
+    const isLoaded = peopleStatus === 'loaded';
 
     const [localError, setLocalError] = useState<string | null>(null);
     const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
@@ -106,10 +105,10 @@ export function MatchPage() {
     ].filter(Boolean).join(' ');
 
     useEffect(() => {
-        if (people.length === 0) {
-            fetchPeople();
+        if (peopleStatus === 'idle') {
+            void fetchPeople();
         }
-    }, [fetchPeople, people.length]);
+    }, [fetchPeople, peopleStatus]);
 
     useEffect(() => {
         if (!teamsCatalogLoaded && !isTeamsCatalogLoading) {
@@ -458,9 +457,11 @@ export function MatchPage() {
                     <SheetLoader ariaLabel="Loading players from Google Sheets" />
                 </div>
             ) : people.length === 0 ? (
-                <div className="empty-state">
-                    <p>No players available. Go to the Players page to add some.</p>
-                </div>
+                isLoaded && (
+                    <div className="empty-state">
+                        <p>No players available. Go to the Players page to add some.</p>
+                    </div>
+                )
             ) : visiblePeople.length === 0 ? (
                 <div className="empty-state">
                     <p>No players match current controls.</p>
@@ -487,7 +488,7 @@ export function MatchPage() {
                 </>
             )}
 
-            {!isLoading && people.length > 0 && (
+            {isLoaded && people.length > 0 && (
                 <div className="match-count">
                     {normalizedQuery || uiRoleFilter !== 'all' || effectiveScoreFilter !== 'all'
                         ? `Showing ${visiblePeople.length} of ${people.length} players`
@@ -495,16 +496,17 @@ export function MatchPage() {
                 </div>
             )}
 
-            {error && <div className="error">{error}</div>}
-            {localError && <div className="error">{localError}</div>}
-            {syncStatus === 'error' && syncMessage && (
+            {error && (
                 <div className="error">
-                    {syncMessage}
-                    <button className="btn btn-secondary" onClick={clearSyncState}>
-                        &times;
-                    </button>
+                    {error}
+                    {peopleStatus === 'error' && (
+                        <button className="btn btn-secondary" onClick={() => void fetchPeople()}>
+                            Retry
+                        </button>
+                    )}
                 </div>
             )}
+            {localError && <div className="error">{localError}</div>}
             {generatedTeams && (
                 <div ref={resultRef} className="team-result-scroll-anchor">
                     <TeamResult result={generatedTeams} />
