@@ -26,7 +26,7 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
   - players that avoid each other cannot be in the same team
 - Wants constraint:
   - wants are strict: unilateral + mutual wants must stay together
-  - relaxed wants modes exist in code/types, but `generateTeams` currently only runs strict mode
+  - there is no relaxed wants stage; `RELAXED_*` values stay in `GenerationStage` only for `MatchHistory` compatibility
 - ATT handling:
   - there is no hard max `2 ATT` per team
   - `4 ATT` selected must split `2/2`; `5 ATT` selected may split `2/3`
@@ -34,6 +34,7 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
 - 3 GK handling:
   - selection is not blocked
   - strict mode cannot satisfy max `1` GK per team with 3 GK selected, so fallback is expected
+  - the fallback splits them `2/1` (fewest GK limit breaks), unless a higher-priority rule forces otherwise
 - Scoring model:
   - numeric score uses rating + attribute balance
   - team `Power` is rating total + weighted attributes, and is used for owner bias
@@ -45,9 +46,11 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
 - Owner bias:
   - player ID from `VITE_OWNER_ID` is forced into the lower/equal `Power` team
   - default owner ID is `10` if env var is missing/empty
-- Fallbacks:
-  - first fallback keeps social rules hard (`avoids` + strict `wants`) plus owner bias and ATT/DEF spread, then relaxes other non-social constraints
-  - final fallback uses a snake split by power and may ignore constraints if no social-hard split exists
+- Fallback (only when no split meets every rule):
+  - picks the split that breaks the fewest rules, in this priority: `avoids` > `wants` > owner bias > ATT/DEF spread > GK/DEF limits (including emergency GK); ties go to the best balance score
+  - if a split keeps avoids + wants + owner bias + ATT/DEF spread, it is used (the old "social-hard" tier), now also preferring fewer GK/DEF limit breaks
+  - avoids are only broken when no avoid-safe split exists at all (the old snake split could break them needlessly)
+  - the analysis adds a `[Fallback]` section: why no strict split exists (3+ GK, 5+ DEF, missing emergency keepers, a wants chain longer than 5, a want/avoid contradiction) and which rules were relaxed, naming the players
 
 ## Stack
 
@@ -65,6 +68,9 @@ src/
   services/     # team generation logic
   store/        # Zustand store + Sheets integration
   types/        # shared TypeScript types
+  utils/        # search + rating suggestion helpers
+tests/          # team generator tests (npm test)
+apps-script/    # versioned Google Apps Script backend
 ```
 
 ## Local setup
@@ -94,6 +100,7 @@ npm run dev
 - `npm run build` - type-check + production build
 - `npm run preview` - preview production build
 - `npm run lint` - run ESLint
+- `npm test` - run the team generator tests (`tests/`, Node's built-in test runner; needs Node 22.18+ for TypeScript)
 
 ## Data contract (Sheets/App Script)
 
@@ -115,6 +122,17 @@ Write actions used by the app:
 - `add`
 - `update`
 - `delete`
+
+Sync behavior:
+
+- Writes are sent as `text/plain` POSTs (no CORS preflight) and the Apps Script answer is checked: `Added`, `Updated` and `Deleted` are success; `ID not found` on delete counts as already deleted. Any other answer, HTTP error, network error or 60s timeout is shown as a sync error with `Retry`.
+- Writes run one at a time, in order. A retry rebuilds its payload from the current local data, so it never resends stale values.
+- `update` only sends the fields that changed in the app; the Apps Script keeps every other cell, so manual Sheet edits are not overwritten.
+- Clearing links only updates players that had links, 4 requests at a time.
+- Deleting a player also removes their id from every other player's `wantsWith` / `avoidsWith`.
+- New player ids are the highest numeric id found in ids and links + 1, so a new player never inherits links meant for a deleted one.
+- Rows with a duplicate `id` (only the first is shown) or without `id` show a warning after loading.
+- Closing the tab while a write is pending or failed asks for confirmation.
 
 ## UX notes
 

@@ -407,3 +407,30 @@ Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
 - [ ] Bonus de mismo equipo aparece en analisis y no rompe reglas fuertes.
 - [ ] Footer queda siempre visible abajo.
 - [ ] Modales cierran con Escape.
+
+## Revision tecnica (nov 2026)
+
+Hecho:
+
+- [x] RV-01 Sync con Sheets: se lee la respuesta del Apps Script (antes `no-cors` hacia que todo error pareciera "Synced"). Errores reales con aviso abajo y boton `Retry`; escrituras en cola y en orden; timeout 60s; aviso al cerrar la pestana con cambios sin guardar.
+- [x] RV-02 `update` envia solo los campos que cambiaron: no pisa ediciones manuales de Sheets ni reenvia el avatar en cada guardado.
+- [x] RV-03 IDs: el id nuevo es el mayor id visto en ids y links + 1 (antes, borrar la ultima jugadora y crear otra reusaba el id y heredaba sus wants/avoids). Borrar jugadora limpia sus links en el resto. Filas sin id o con id duplicado muestran warning.
+- [x] RV-04 Clear links: solo jugadoras con links, 4 requests a la vez, payload minimo (antes: N requests simultaneos con payload completo, podian fallar en silencio).
+- [x] RV-05 Generador: el fallback elige el split que rompe menos reglas (avoids > wants > owner bias > ATT/DEF spread > limites GK/DEF). Antes el snake podia juntar avoids sin necesidad y con 3 GK podia armar 3/0. El analisis explica el por que en `[Fallback]`. La etapa estricta da resultados identicos (test diferencial contra la version anterior).
+- [x] RV-06 `npm test`: tests del generador con el runner nativo de Node.
+- [x] RV-07 Modal: no se cierra al soltar una seleccion de texto afuera; avatar comprimido bajo 45k chars (limite de celda 50k); error visible si la imagen no se puede leer; links a ids borrados se descartan.
+- [x] RV-08 Mobile/a11y: inputs de 16px en mobile (sin zoom en iOS), modal con `dvh`, acciones de card visibles en tablets, cards seleccionables con teclado.
+- [x] RV-09 `apps-script/Code.gs`: lock en escrituras, `add` rechaza ids duplicados, ids con espacios, `ensureSchema()` cacheado 6h. El `SPREADSHEET_ID` pasa a Propiedades del script (ya no va en el codigo).
+- [x] RV-09.1 Deploy con `clasp` desde `apps-script/` (push, version, redeploy del mismo deployment). Sin copiar/pegar. Config local en `apps-script/.clasp.json` (gitignored).
+
+Pendiente / a decidir:
+
+- [x] RV-10.1 `SPREADSHEET_ID` cargado en Propiedades del script; `Code.gs` nuevo subido con `clasp` como version 19 y probado en un deployment temporal (lectura identica a la version 18, escrituras de prueba sin cambios en la Sheet).
+- [ ] RV-10.2 Pasar produccion a la version 19: desde `apps-script/`, `npx @google/clasp redeploy <deploymentId> -V 19` (la URL no cambia). Mientras tanto produccion sigue en la version 18, compatible con el frontend nuevo.
+- [ ] RV-11 Probar en local contra la Sheet real con una jugadora de prueba: crear, editar rating, borrar; ver que no aparezca el aviso rojo. Si aparece `Apps Script answered: ...` con un texto de exito distinto, ajustar `SUCCESS_RESPONSES` en el store.
+- [ ] RV-12 Privacidad: definir que tiene que ocultar privacy mode (hoy el analisis sigue mostrando totales de rating por equipo) y que datos deberia devolver `action=read`.
+- [ ] RV-13 Seguridad: agregar autenticacion a las escrituras del Apps Script (ver F2-12.4).
+- [ ] RV-14 Default de `gkWillingness`: el modal usa `low` y el parser de Sheets usa `no`. Unificar.
+- [ ] RV-15 Extraer filtros/orden duplicados de People y Match (F2-06.6) antes de Fase 4.
+- [ ] RV-16 `npm audit fix`: react-router 7.13 -> 7.18 (los advisories son de SSR/RSC, no aplican a esta SPA, pero es un update menor).
+- [x] RV-17 Borrar deployments viejos del Apps Script (@1 a @14). Quedan solo el de produccion y @HEAD.
