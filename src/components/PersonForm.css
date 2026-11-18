@@ -17,7 +17,10 @@
   max-width: 650px;
   width: 100%;
   max-height: calc(100vh - 1rem);
+  /* dvh excludes mobile browser toolbars, so the Save button is never hidden behind them. */
+  max-height: calc(100dvh - 1rem);
   overflow-y: auto;
+  overscroll-behavior: contain;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   border: 1px solid var(--border);
 }
@@ -113,6 +116,14 @@
 
 .avatar-upload-btn input[type="file"] {
   display: none;
+}
+
+.avatar-error {
+  max-width: 100%;
+  color: #f87171;
+  font-size: 0.65rem;
+  line-height: 1.25;
+  text-align: center;
 }
 
 .modal-shirt-number {
@@ -741,6 +752,13 @@
 
 .btn-secondary:hover {
   color: var(--text-primary);
+}
+
+/* iOS Safari zooms the page when an input under 16px gets focus. */
+@media (max-width: 640px) {
+  .form-group input {
+    font-size: 16px;
+  }
 }
 
 /* Responsive adjustments */

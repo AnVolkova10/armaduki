@@ -207,6 +207,13 @@
   font-size: 0.84rem;
 }
 
+/* iOS Safari zooms the page when an input under 16px gets focus. */
+@media (max-width: 640px) {
+  .match-page .match-search-input {
+    font-size: 16px;
+  }
+}
+
 .match-page .match-search-input::placeholder {
   color: var(--text-secondary);
 }

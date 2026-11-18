@@ -26,7 +26,8 @@ export function PersonCard({
     selectionDisabled,
     showMatchBadge,
 }: PersonCardProps) {
-    const { privacyMode, teamsCatalog } = useAppStore();
+    const privacyMode = useAppStore((state) => state.privacyMode);
+    const teamsCatalog = useAppStore((state) => state.teamsCatalog);
     const mainTeamId = person.primaryTeam;
     const mainTeam = mainTeamId ? teamsCatalog.find((team) => team.teamId === mainTeamId) : undefined;
     const teamMarkerStyle = mainTeam ? {
@@ -34,10 +35,22 @@ export function PersonCard({
         '--team-color-2': mainTeam.color2 || mainTeam.color1 || DEFAULT_TEAM_COLOR_2,
     } as React.CSSProperties : undefined;
 
+    const canSelect = Boolean(selectable && !selectionDisabled && onSelect);
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (!canSelect || (event.key !== 'Enter' && event.key !== ' ')) return;
+        event.preventDefault();
+        onSelect?.();
+    };
+
     return (
         <div
             className={`person-card ${selected ? 'selected' : ''} ${selectable ? 'selectable' : ''} ${selectionDisabled ? 'selection-disabled' : ''}`}
-            onClick={selectable && !selectionDisabled ? onSelect : undefined}
+            onClick={canSelect ? onSelect : undefined}
+            onKeyDown={selectable ? handleKeyDown : undefined}
+            role={selectable ? 'button' : undefined}
+            tabIndex={selectable ? (selectionDisabled ? -1 : 0) : undefined}
+            aria-pressed={selectable ? Boolean(selected) : undefined}
+            aria-disabled={selectable && selectionDisabled ? true : undefined}
         >
             {mainTeam && (
                 <span
@@ -54,7 +67,7 @@ export function PersonCard({
                         <img src={person.avatar} alt={person.nickname} className="avatar" />
                     ) : (
                         <div className="avatar-placeholder">
-                            {person.nickname[0].toUpperCase()}
+                            {(Array.from(person.nickname)[0] ?? '?').toUpperCase()}
                         </div>
                     )}
                     <span className={`shirt-number ${person.shirtNumber?.trim() ? '' : 'is-empty'}`}>
@@ -79,12 +92,12 @@ export function PersonCard({
 
             {!selectable && (
                 <div className="actions">
-                    <button onClick={onEdit} className="edit-btn" title="Editar">
+                    <button type="button" onClick={onEdit} className="edit-btn" title="Edit" aria-label={`Edit ${person.nickname}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
                         </svg>
                     </button>
-                    <button onClick={onDelete} className="delete-btn" title="Borrar">
+                    <button type="button" onClick={onDelete} className="delete-btn" title="Delete" aria-label={`Delete ${person.nickname}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import type { Person, Role, GKWillingness, AttributeLevel, Attributes, TeamCatalog } from '../types';
 import { getSuggestedRating } from '../utils/ratingSuggestion';
@@ -42,6 +42,32 @@ const DEFAULT_ATTRIBUTES: Attributes = {
 const DEFAULT_TEAM_COLOR_1 = '#3a3a3a';
 const DEFAULT_TEAM_COLOR_2 = '#111111';
 
+// Google Sheets cells hold at most 50,000 characters. A bigger avatar makes the whole
+// row write fail, so photos are shrunk until the data URL fits with some margin.
+const MAX_AVATAR_DATA_URL_LENGTH = 45_000;
+const AVATAR_MAX_SIZES = [200, 160, 128, 96];
+const AVATAR_JPEG_QUALITIES = [0.8, 0.65, 0.5];
+
+function compressAvatar(img: HTMLImageElement): string | null {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    for (const maxSize of AVATAR_MAX_SIZES) {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        for (const quality of AVATAR_JPEG_QUALITIES) {
+            const dataUrl = canvas.toDataURL('image/jpeg', quality);
+            if (dataUrl.length <= MAX_AVATAR_DATA_URL_LENGTH) return dataUrl;
+        }
+    }
+
+    return null;
+}
+
 function getHexLuminance(hex: string): number | null {
     const value = hex.trim().replace(/^#/, '');
     if (!/^[a-f\d]{3}$|^[a-f\d]{6}$/i.test(value)) return null;
@@ -65,6 +91,8 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         teamsCatalogError,
     } = useAppStore();
     const personId = person?.id || '';
+    const keepKnownIds = (ids: string[] | undefined) =>
+        (ids || []).filter((id) => id !== personId && people.some((p) => p.id === id));
     const [name, setName] = useState(person?.name || '');
     const [nickname, setNickname] = useState(person?.nickname || '');
     const [role, setRole] = useState<Role>(person?.role || 'FLEX');
@@ -77,9 +105,13 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const suggestedRating = useMemo(() => getSuggestedRating(attributes), [attributes]);
 
     const [avatar, setAvatar] = useState(person?.avatar || '');
+    const [avatarError, setAvatarError] = useState<string | null>(null);
     const [gkWillingness, setGkWillingness] = useState<GKWillingness>(person?.gkWillingness || 'low');
-    const [wantsWith, setWantsWith] = useState<string[]>(person?.wantsWith || []);
-    const [avoidsWith, setAvoidsWith] = useState<string[]>(person?.avoidsWith || []);
+    // Links to ids that are no longer in the sheet are dropped, so counts match the
+    // highlighted buttons and saving cleans them up.
+    const [wantsWith, setWantsWith] = useState<string[]>(() => keepKnownIds(person?.wantsWith));
+    const [avoidsWith, setAvoidsWith] = useState<string[]>(() => keepKnownIds(person?.avoidsWith));
+    const pointerDownOnOverlayRef = useRef(false);
     const [shirtNumber, setShirtNumber] = useState(person?.shirtNumber || '');
     const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>(person?.teams || []);
     const [primaryTeamId, setPrimaryTeamId] = useState(() => {
@@ -124,49 +156,32 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     }, [onCancel]);
 
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            // Compress Image Logic
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const MAX_SIZE = 200; // Increased size again per user request
+        const input = e.target;
+        const file = input.files?.[0];
+        // Reset so picking the same file again still triggers onChange.
+        input.value = '';
+        if (!file) return;
 
-                    let width = img.width;
-                    let height = img.height;
+        setAvatarError(null);
+        const objectUrl = URL.createObjectURL(file);
+        const img = new Image();
 
-                    // Calculate new dimensions (keeping aspect ratio, although we force 32x32 mostly for icons)
-                    // For avatars, square is usually best. Let's force fit to 32x32 or keep aspect within 32x32
-                    if (width > height) {
-                        if (width > MAX_SIZE) {
-                            height *= MAX_SIZE / width;
-                            width = MAX_SIZE;
-                        }
-                    } else {
-                        if (height > MAX_SIZE) {
-                            width *= MAX_SIZE / height;
-                            height = MAX_SIZE;
-                        }
-                    }
+        img.onload = () => {
+            URL.revokeObjectURL(objectUrl);
+            const dataUrl = compressAvatar(img);
+            if (dataUrl) {
+                setAvatar(dataUrl);
+            } else {
+                setAvatarError('Photo too heavy for Sheets. Try another one.');
+            }
+        };
 
-                    canvas.width = width;
-                    canvas.height = height;
+        img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            setAvatarError("Can't read this image. Use a JPG or PNG.");
+        };
 
-                    const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                        ctx.drawImage(img, 0, 0, width, height);
-                        // Convert to lightweight JPG (or PNG if transparency needed, but JPG is smaller)
-                        // Using high quality for such small size is fine
-                        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                        setAvatar(dataUrl);
-                    }
-                };
-                img.src = event.target?.result as string;
-            };
-            reader.readAsDataURL(file);
-        }
+        img.src = objectUrl;
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -287,9 +302,23 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         );
     }
 
+    // Close only when the press both started and ended on the backdrop. Otherwise selecting
+    // text in an input and releasing the mouse outside the modal would discard the form.
+    const handleOverlayPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+        pointerDownOnOverlayRef.current = event.target === event.currentTarget;
+    };
+
+    const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
+        const startedOnOverlay = pointerDownOnOverlayRef.current;
+        pointerDownOnOverlayRef.current = false;
+        if (startedOnOverlay && event.target === event.currentTarget) {
+            onCancel();
+        }
+    };
+
     return (
-        <div className="modal-overlay" onClick={onCancel}>
-            <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onPointerDown={handleOverlayPointerDown} onClick={handleOverlayClick}>
+            <div className="modal">
                 <form onSubmit={handleSubmit}>
 
                     {/* Header: Avatar + Names */}
@@ -308,6 +337,9 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                 </span>
                                 <input type="file" accept="image/*" onChange={handleAvatarChange} />
                             </label>
+                            {avatarError && (
+                                <span className="avatar-error" role="alert">{avatarError}</span>
+                            )}
                             {shirtNumber.trim() && !avatarTeam && (
                                 <span className="modal-shirt-number">#{shirtNumber.trim()}</span>
                             )}
@@ -331,6 +363,8 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                     value={nickname}
                                     onChange={e => setNickname(e.target.value)}
                                     required
+                                    pattern=".*\S.*"
+                                    title="Nickname can't be blank"
                                     autoFocus
                                 />
                             </div>
