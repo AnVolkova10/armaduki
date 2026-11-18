@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .env
 .env.local
+
+# clasp (Apps Script CLI): holds the script id, kept out of git
+apps-script/.clasp.json

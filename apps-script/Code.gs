@@ -1,4 +1,6 @@
-const SPREADSHEET_ID = 'PASTE_SPREADSHEET_ID_HERE';
+// The spreadsheet id lives in Script Properties (Project Settings > Script Properties),
+// so this file can be pushed from the repo as-is and the id never lands in git.
+const SPREADSHEET_ID_PROPERTY = 'SPREADSHEET_ID';
 
 const PLAYERS_SHEET_NAME = 'Players';
 const LEGACY_PLAYERS_SHEET_NAME = 'db';
@@ -6,6 +8,14 @@ const TEAMS_SHEET_NAME = 'Teams';
 const GROUPS_SHEET_NAME = 'Groups';
 const RELATIONSHIP_HISTORY_SHEET_NAME = 'RelationshipHistory';
 const MATCH_HISTORY_SHEET_NAME = 'MatchHistory';
+
+// ensureSchema() costs many Spreadsheet calls, so normal requests run it at most once per
+// cache window. Bump the version when headers change; `action=migrateSchema` always runs it.
+const SCHEMA_CACHE_KEY = 'armaduki-schema-v1';
+const SCHEMA_CACHE_SECONDS = 6 * 60 * 60;
+
+// Writes wait up to this long for other writes to finish (prevents interleaved row edits).
+const LOCK_TIMEOUT_MS = 30000;
 
 const PLAYERS_HEADERS = [
   'id',
@@ -78,8 +88,31 @@ function textOutput(value) {
   return ContentService.createTextOutput(value);
 }
 
+// Opened once per request; globals are re-created on every execution.
+let cachedSpreadsheet = null;
+
 function getSpreadsheet() {
-  return SpreadsheetApp.openById(SPREADSHEET_ID);
+  if (cachedSpreadsheet) return cachedSpreadsheet;
+
+  const spreadsheetId = PropertiesService.getScriptProperties().getProperty(SPREADSHEET_ID_PROPERTY);
+  if (!spreadsheetId) {
+    throw new Error(
+      'Missing script property ' + SPREADSHEET_ID_PROPERTY + ' (Project Settings > Script Properties).',
+    );
+  }
+
+  cachedSpreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  return cachedSpreadsheet;
+}
+
+function withScriptLock(callback) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(LOCK_TIMEOUT_MS);
+  try {
+    return callback();
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function ensureSheetHeaders(sheet, headers) {
@@ -122,15 +155,20 @@ function getColumnIndex(headers, targetKey) {
   return headers.findIndex(header => normalizeKey(header) === normalizedTarget);
 }
 
-function findRowIndexById(sheet, id) {
-  if (id === undefined || id === null) return -1;
+function normalizeId(value) {
+  if (value === undefined || value === null) return '';
+  return String(value).trim();
+}
 
-  const headers = getHeaders(sheet);
-  const idColumnIndex = getColumnIndex(headers, 'id');
+// `data` is the full sheet (header row included). Returns the data index of the row, or -1.
+function findRowIndexById(data, id) {
+  const targetId = normalizeId(id);
+  if (!targetId || data.length === 0) return -1;
+
+  const idColumnIndex = getColumnIndex(data[0], 'id');
   if (idColumnIndex === -1) return -1;
 
-  const data = sheet.getDataRange().getValues();
-  return data.findIndex((row, index) => index > 0 && String(row[idColumnIndex]) === String(id));
+  return data.findIndex((row, index) => index > 0 && normalizeId(row[idColumnIndex]) === targetId);
 }
 
 function readSheetObjects(sheet) {
@@ -175,11 +213,12 @@ function buildRowFromPayload(headers, lowerBody, existingRow) {
   });
 }
 
+// Returns the players sheet. Renames legacy `db` or creates `Players` when needed.
+// Headers of an existing sheet are kept up to date by ensureSchema().
 function getPlayersSheet() {
   const spreadsheet = getSpreadsheet();
   const playersSheet = spreadsheet.getSheetByName(PLAYERS_SHEET_NAME);
   if (playersSheet) {
-    ensureSheetHeaders(playersSheet, PLAYERS_HEADERS);
     return playersSheet;
   }
 
@@ -196,6 +235,7 @@ function getPlayersSheet() {
 function ensureSchema() {
   const spreadsheet = getSpreadsheet();
   const playersSheet = getPlayersSheet();
+  ensureSheetHeaders(playersSheet, PLAYERS_HEADERS);
   const teamsSheet = getOrCreateSheet(spreadsheet, TEAMS_SHEET_NAME, TEAMS_HEADERS);
   const groupsSheet = getOrCreateSheet(spreadsheet, GROUPS_SHEET_NAME, GROUPS_HEADERS);
   const relationshipHistorySheet = getOrCreateSheet(
@@ -204,6 +244,8 @@ function ensureSchema() {
     RELATIONSHIP_HISTORY_HEADERS,
   );
   const matchHistorySheet = getOrCreateSheet(spreadsheet, MATCH_HISTORY_SHEET_NAME, MATCH_HISTORY_HEADERS);
+
+  CacheService.getScriptCache().put(SCHEMA_CACHE_KEY, 'ok', SCHEMA_CACHE_SECONDS);
 
   return {
     ok: true,
@@ -217,14 +259,31 @@ function ensureSchema() {
   };
 }
 
+function isSchemaFresh() {
+  return CacheService.getScriptCache().get(SCHEMA_CACHE_KEY) === 'ok';
+}
+
+// Call while holding the script lock.
+function ensureSchemaIfStale() {
+  if (!isSchemaFresh()) {
+    ensureSchema();
+  }
+}
+
+function ensureSchemaForRead() {
+  if (!isSchemaFresh()) {
+    withScriptLock(ensureSchemaIfStale);
+  }
+}
+
 function readPlayers() {
-  ensureSchema();
+  ensureSchemaForRead();
   const sheet = getPlayersSheet();
   return readSheetObjects(sheet);
 }
 
 function readTeams() {
-  ensureSchema();
+  ensureSchemaForRead();
   const spreadsheet = getSpreadsheet();
   const sheet = getOrCreateSheet(spreadsheet, TEAMS_SHEET_NAME, TEAMS_HEADERS);
   const rows = readSheetObjects(sheet);
@@ -249,7 +308,7 @@ function readTeams() {
 }
 
 function migratePlayersSheetName() {
-  const result = ensureSchema();
+  const result = withScriptLock(ensureSchema);
   const sheet = getPlayersSheet();
   return Object.assign({}, result, {
     ok: true,
@@ -258,11 +317,54 @@ function migratePlayersSheetName() {
 }
 
 function migrateSchema() {
-  const result = ensureSchema();
+  const result = withScriptLock(ensureSchema);
   return Object.assign({}, result, {
     ok: true,
     action: 'migrateSchema',
   });
+}
+
+// Runs add/update/delete. Returns the plain-text answer the frontend checks:
+// 'Added', 'Updated', 'Deleted', 'ID not found', 'ID not found for update' or 'Error: ...'.
+function handlePlayerWrite(body) {
+  ensureSchemaIfStale();
+  const sheet = getPlayersSheet();
+  const action = body.action;
+  const id = normalizeId(body.id);
+
+  const lowerBody = {};
+  for (const key in body) {
+    lowerBody[normalizeKey(key)] = body[key];
+  }
+  if (id) {
+    lowerBody.id = id;
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data.length > 0 ? data[0] : getHeaders(sheet);
+  const rowIndex = findRowIndexById(data, id);
+
+  if (action === 'delete') {
+    if (rowIndex === -1) return 'ID not found';
+    sheet.deleteRow(rowIndex + 1);
+    return 'Deleted';
+  }
+
+  if (action === 'add') {
+    if (!id) return 'Error: missing id';
+    if (rowIndex !== -1) return 'Error: id ' + id + ' already exists';
+    sheet.appendRow(buildRowFromPayload(headers, lowerBody, null));
+    return 'Added';
+  }
+
+  if (action === 'update') {
+    if (rowIndex === -1) return 'ID not found for update';
+    const newRow = buildRowFromPayload(headers, lowerBody, data[rowIndex]);
+    sheet.getRange(rowIndex + 1, 1, 1, newRow.length).setValues([newRow]);
+    return 'Updated';
+  }
+
+  return 'Action unknown';
 }
 
 function doGet(e) {
@@ -293,8 +395,6 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    ensureSchema();
-    const sheet = getPlayersSheet();
     const body = JSON.parse(e.postData.contents);
     const action = body.action;
 
@@ -310,47 +410,7 @@ function doPost(e) {
       return jsonOutput(readTeams());
     }
 
-    const lowerBody = {};
-    for (const key in body) {
-      lowerBody[normalizeKey(key)] = body[key];
-    }
-
-    if (action === 'delete') {
-      const idToDelete = body.id;
-      const rowIndex = findRowIndexById(sheet, idToDelete);
-
-      if (rowIndex !== -1) {
-        sheet.deleteRow(rowIndex + 1);
-        return textOutput('Deleted');
-      }
-
-      return textOutput('ID not found');
-    }
-
-    const headers = getHeaders(sheet);
-
-    if (action === 'add') {
-      const newRow = buildRowFromPayload(headers, lowerBody, null);
-      sheet.appendRow(newRow);
-      return textOutput('Added');
-    }
-
-    if (action === 'update') {
-      const idToUpdate = body.id;
-      const data = sheet.getDataRange().getValues();
-      const rowIndex = findRowIndexById(sheet, idToUpdate);
-
-      if (rowIndex !== -1) {
-        const existingRow = data[rowIndex];
-        const newRow = buildRowFromPayload(headers, lowerBody, existingRow);
-        sheet.getRange(rowIndex + 1, 1, 1, newRow.length).setValues([newRow]);
-        return textOutput('Updated');
-      }
-
-      return textOutput('ID not found for update');
-    }
-
-    return textOutput('Action unknown');
+    return textOutput(withScriptLock(() => handlePlayerWrite(body)));
   } catch (err) {
     return textOutput('Error: ' + err.toString());
   }

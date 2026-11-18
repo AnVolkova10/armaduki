@@ -1,28 +1,31 @@
 # Apps Script
 
-Versioned source for the Google Apps Script web app used by Armaduki.
+Versioned source for the Google Apps Script web app used by Armaduki. `Code.gs` and `appsscript.json` are pushed and deployed with [clasp](https://github.com/google/clasp), Google's Apps Script CLI, from this folder. No copy/paste in the Apps Script editor.
 
-Before deploying:
+One-time setup (per machine):
 
-- Keep the real spreadsheet ID from the current Apps Script in `SPREADSHEET_ID`.
-- Deploy a new web app version after changing the remote Apps Script code.
-- Run `?action=migrateSchema` after deploy to rename legacy `db` to `Players`, create missing sheets, and append missing columns.
-- Run `?action=read` after deploy to confirm the app still returns player rows.
-- Run `?action=readTeams` after deploy to confirm the app returns the team catalog.
+1. Turn on "Google Apps Script API" at https://script.google.com/home/usersettings.
+2. Log in with `npx @google/clasp login` (opens the browser; credentials stay in `~/.clasprc.json`, never in the repo).
+3. Create `apps-script/.clasp.json` (gitignored) with the script id from Apps Script > Project Settings > IDs:
 
-Deploy steps:
+   ```json
+   { "scriptId": "<script id>", "rootDir": "" }
+   ```
 
-1. Open the existing Google Apps Script project for Armaduki.
-2. Copy the local `apps-script/Code.gs` contents into the remote `Code.gs`.
-3. Keep the real `SPREADSHEET_ID` value from the remote script; do not paste the repo placeholder.
-4. Click `Deploy` > `Manage deployments`.
-5. Edit the existing web app deployment.
-6. Choose `Version` > `New version`, then deploy.
-7. Keep using the same `/exec` web app URL. If the URL did not change, `.env` and Vercel env vars do not need updates.
-8. Open `WEB_APP_URL?action=migrateSchema` and confirm it returns `ok: true`.
-9. Open `WEB_APP_URL?action=read` and confirm it returns player rows.
-10. Open `WEB_APP_URL?action=readTeams` and confirm it returns team rows or `[]`.
-11. If a brand new web app URL was created by mistake, update `VITE_APPS_SCRIPT_URL` locally and in Vercel before using production.
+4. Set the spreadsheet id once in Apps Script > Project Settings > Script Properties: property `SPREADSHEET_ID`, value = the id in the sheet URL (`docs.google.com/spreadsheets/d/<id>/edit`). `Code.gs` reads it from there, so the id is never committed. Without it, every request answers `Missing script property SPREADSHEET_ID`.
+
+`.claspignore` limits pushes to `Code.gs` and `appsscript.json`; `npx @google/clasp status` lists what would be pushed.
+
+Deploy steps (run from `apps-script/`; the production deployment id is the part between `/s/` and `/exec` in `VITE_APPS_SCRIPT_URL`):
+
+1. `npx @google/clasp push`: replaces the remote project files with `Code.gs` + `appsscript.json`. The live web app does not change yet.
+2. `npx @google/clasp version "short description"`: creates an immutable version and prints its number.
+3. `npx @google/clasp redeploy <deploymentId> -V <version> -d "short description"`: points the existing production deployment at that version. The `/exec` URL stays the same, so `.env` and Vercel need no changes.
+4. Open `WEB_APP_URL?action=migrateSchema` and confirm it returns `ok: true`.
+5. Open `WEB_APP_URL?action=read` and confirm it returns player rows.
+6. Open `WEB_APP_URL?action=readTeams` and confirm it returns team rows or `[]`.
+
+Rollback: `npx @google/clasp redeploy <deploymentId> -V <previous version>`. `npx @google/clasp deployments` and `npx @google/clasp versions` list what exists. Do not use `npx @google/clasp deploy` for production: it creates a new deployment with a new URL.
 
 Current migration status:
 
@@ -36,6 +39,16 @@ Current migration status:
 - `action=readTeams` returns the `Teams` catalog for the frontend with safe defaults.
 - `update` preserves existing cell values for columns missing from the incoming payload.
 - `delete` and `update` resolve the `id` column by header name instead of assuming it is the first column.
+- `id` matching trims spaces and compares as text, so `12`, `"12"` and `" 12 "` match.
+- `add`, `update` and `delete` run under a `LockService` script lock, so two writes never interleave (for example a delete shifting rows while an update writes).
+- `add` answers `Error: id X already exists` when the id is taken and `Error: missing id` without id, instead of appending a duplicate row.
+- Normal requests run `ensureSchema()` at most once every 6 hours (`CacheService` key `SCHEMA_CACHE_KEY`), which saves a dozen Spreadsheet calls per request. `action=migrateSchema` always runs it. Change `SCHEMA_CACHE_KEY` when headers change.
+
+Write answers (plain text, checked by the frontend):
+
+- `Added`, `Updated`, `Deleted`: success.
+- `ID not found`: delete of a row that is already gone; the frontend treats it as deleted.
+- `ID not found for update`, `Action unknown`, `Error: ...`: failure; the frontend shows it with a `Retry` button.
 
 Sheet schemas:
 
@@ -69,7 +82,7 @@ Optional Phase 2 fields:
 - `active`: empty means active; `false`, `no`, `0`, `inactive`, and `off` are read as inactive by the frontend parser.
 - `notes`: internal free text.
 
-Phase 2 safety note: the frontend reads these new fields but only writes them back once the matching modal controls exist. `shirtNumber` is written when edited from the modal; the other Phase 2 fields are still read-only from the frontend. This prevents manual Sheet edits from being overwritten by stale in-memory values.
+Safety note: `update` payloads only contain the fields that changed in the app (base and Phase 2 fields alike), so manual Sheet edits to other columns are never overwritten by stale in-memory values. Phase 2 fields without modal controls (`groups`, `availability`, `birthYear`, `secondaryRole`, `active`, `notes`) are therefore never written by `update`.
 
 ### Teams
 
