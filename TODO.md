@@ -1,436 +1,163 @@
-# Armaduki Phase 2 TODO
-
-Estado: super TODO de Fase 2, ordenado para ejecutar de a un paso chico.
-
-## Reglas de ejecucion
-
-- [ ] Tomar solo 1 item por iteracion.
-- [ ] No tocar otros modulos salvo dependencias directas del item.
-- [ ] Al cerrar un item, probar en local antes de pasar al siguiente.
-- [ ] Al cerrar cambios de codigo, anotar pasos cortos y simples de prueba manual.
-- [ ] Disenar y validar siempre con enfoque mobile-first: layout, interacciones y legibilidad.
-- [ ] Si un item requiere Sheet/App Script, actualizar primero el contrato de datos y confirmar backward compatibility.
-- [ ] Mantener la UI mayormente en ingles por ahora.
-- [ ] Antes de tocar el generador, dejar `npm run lint`, `npm run build` y prueba manual definida.
-
-## Fase 0 - Baseline tecnico
-
-- [x] F2-00.1 Arreglar lint de hooks en `PersonForm`: memoizacion de inverse wants/avoids.
-- [x] F2-00.2 Arreglar lint de hooks en `PersonForm`: evitar `setState` sincronico en effect para GK.
-- [x] F2-00.3 Arreglar lint de hooks en `PeoplePage`: dependencia faltante de `fetchPeople`/`people.length`.
-- [x] F2-00.4 Arreglar lint de hooks en `PeoplePage` y `MatchPage`: privacidad sin `setState` sincronico en effect.
-- [x] F2-00.5 Corregir encoding roto visible en footer y botones de atributos.
-- [x] F2-00.6 Correr `npm run lint` y `npm run build`.
-- [x] F2-00.7 Asegurar que el footer siempre quede visible abajo, incluso con poco contenido.
-- [x] F2-00.8 Permitir cerrar modales con tecla Escape.
-
-## Fase 1 - Reglas reales del generador
-
-- [x] F2-01.1 Auditar README vs generador: stages de wants, regla emergency GK, max ATT, 3 GK y fallback.
-- [x] F2-01.2 Decidir y documentar la regla real de emergency GK: cantidad requerida y si cuenta `low`.
-- [x] F2-01.3 Decidir y documentar la regla real para 3 GK seleccionados.
-- [x] F2-01.4 Alinear README con el comportamiento real confirmado.
-- [x] F2-01.5 Ajustar semantica de goalkeeper: `good` suma plus porque le gusta atajar, `low` ataja pero mal, `no` no ataja.
-- [x] F2-01.6 Incluir el plus/penalidad de goalkeeper en el score y en el analisis.
-- [x] F2-01.7 Ajustar owner bias para usar `Power` y ATT con spread hard `abs(T1 ATT - T2 ATT) <= 1`.
-
-### Auditoria F2-01.1 - README vs generador actual
-
-- Wants stages: README describe `STRICT`, `RELAXED_UNILATERAL` y `RELAXED_MUTUAL`, pero `generateTeams` solo ejecuta `strict`; los modos relajados existen en helpers/tipos pero hoy son inalcanzables.
-- Emergency GK: la auditoria original detecto que README decia `3` jugadores `gkWillingness: yes`; el codigo exige `2` jugadores capaces. Desde F2-01.5 cuenta `good + low` y lee datos legacy `yes` como `good`.
-- Max ATT: la auditoria original detecto que README declaraba max `2 ATT` por team. El codigo no tiene hard max `2 ATT`; desde F2-01.7 exige spread hard `abs(T1 ATT - T2 ATT) <= 1` y mantiene ajuste soft para ordenar opciones validas.
-- 3 GK seleccionados: el codigo valida max `1` GK por team. Con 3 GK de rol no puede existir split estricto valido en 2 equipos, entonces cae a fallback.
-- Fallback: README dice fallback si fallan staged constraints; en codigo hay dos niveles: primero un fallback social-hard que conserva avoids + wants strict y relaja reglas no sociales, despues un snake split por power que ignora constraints si no existe split social-hard.
-- Scoring: README dice que el score numerico usa rating + atributos, pero el codigo tambien suma ajustes soft de GK y ATT.
-
-### Decisiones F2-01.2 / F2-01.3 - Reglas confirmadas
-
-- Wants queda estricto. Si no hay solucion estricta, el algoritmo no debe relajar wants automaticamente antes de fallback.
-- Emergency GK mantiene el algoritmo actual: si un team no tiene GK real, necesita jugadores capaces de ese lado. `good` y `low` cuentan como capaces; `no` no cuenta.
-- `good`: cuenta como capaz y suma un plus chico porque ademas ataja bien o le gusta atajar.
-- `low`: cuenta como capaz de emergencia, pero no suma plus y por ahora no penaliza.
-- `no`: no cuenta como opcion de arquero.
-- Si un team tiene GK real, la regla de emergency GK no aplica para ese team. En el resumen debe decir algo tipo "GK real presente, emergency keepers not needed" en vez de mezclar o contar posibles innecesariamente.
-- Si un team no tiene GK real, el resumen debe mostrar claramente cuantos capaces tiene y si pasa/falla la regla.
-- Si se seleccionan 3 GK de rol, no bloquear. Generar igual con warning claro porque es raro pero posible, y explicar si se uso fallback.
-- ATT queda sin hard max `2 ATT`, pero con spread hard: diferencia maxima `1` entre equipos. Ejemplos: con `4 ATT` debe ser `2/2`; con `5 ATT` puede ser `2/3`.
-- Owner bias usa `Power` (`rating + atributos ponderados`), no solo rating total.
-- Fallback queda asi: primero social-hard con owner bias y ATT/DEF spread, despues snake split si no hay alternativa.
-- Bonus por mismo equipo queda para mas adelante, despues de tener el campo `teams` cargado y visible.
-
-## Fase 2 - Limpieza UX inmediata
-
-- [x] F2-03.1 Reemplazar opcion `Clear All` por `Clear Links` en People.
-- [x] F2-03.2 Reemplazar opcion `Clear All` por `Clear Links` en Match.
-- [x] F2-03.3 Reemplazar confirmacion `Clear all links?` por copy consistente con `Clear Links`.
-- [x] F2-03.4 Mantener `Clear Wants`, `Clear Avoids`, `Clear Filters` y `Clear Selection` sin cambiar comportamiento.
-- [x] F2-03.5 Agregar el icono de la pelota rojo en la UI donde corresponda.
-- [x] F2-03.6 Agregar indicador visual de color cuando la seleccion llega a 10/10.
-- [x] F2-03.7 En lineups/resultados, mostrar la puntuacion de cada jugadora solo cuando el ojito/privacy mode esta apagado.
-- [x] F2-09.1 Al generar equipos, crear un ref al bloque de resultado.
-- [x] F2-09.2 Cuando aparece `generatedTeams`, hacer `scrollIntoView` hasta el resultado.
-- [x] F2-09.3 Validar que el scroll no dispare si hay error o si se limpia la seleccion.
-
-## Fase 3 - Contrato unico de Sheets y nuevos campos
-
-- [x] F2-04.0 Auditar App Script actual contra headers reales de `db`: `id`, `name`, `nickname`, `role`, `rating`, `avatar`, `gkWillingness`, `wantsWith`, `avoidsWith`, `attributes`.
-- [x] F2-04.0.1 Definir schema unico de `db` para no tocar Excel dos veces: campos actuales + `shirtNumber`, `primaryTeam`, `teams`, `groups`, `availability`, `birthYear`, `secondaryRole`, `active`, `notes`.
-- [x] F2-04.0.1.1 Migrar nombre de pestana `db` a `Players` desde App Script: si existe `Players` usarla, si solo existe `db` renombrarla, si no existe ninguna crear `Players`. Codigo local preparado en `apps-script/Code.gs`; deploy/run probado contra Apps Script.
-- [x] F2-04.0.2 Definir schema de pestana `Teams`: `teamId`, `name`, `color1`, `color2`, `crest`.
-- [x] F2-04.0.2.1 Definir schema de pestana `Groups`: `groupId`, `name`, `place`, `notes`.
-- [x] F2-04.0.3 Definir schema de pestana `RelationshipHistory`: `sourceId`, `targetId`, `wantsCount`, `avoidsCount`, `updatedAt`.
-- [x] F2-04.0.4 Definir schema de pestana `MatchHistory`: `matchId`, `createdAt`, `selectedIds`, `team1Ids`, `team2Ids`, `score`, `stage`, `socialSatisfactionPct`, `isTest`.
-- [x] F2-04.0.5 Actualizar App Script con helper `ensureSchema()` que cree pestanas faltantes y agregue columnas faltantes automaticamente sin borrar datos existentes.
-- [x] F2-04.0.6 Agregar accion App Script `action=migrateSchema` para correr migracion controlada desde URL/script antes de depender de columnas nuevas.
-- [x] F2-04.0.7 Corregir App Script para que `update` preserve valores existentes si el payload no trae una columna nueva, en vez de vaciar celdas faltantes.
-- [x] F2-04.0.8 Corregir App Script para buscar la columna `id` por header normalizado y no asumir que siempre es la primera columna.
-- [x] F2-04.0.9 Mantener backward compatibility: si faltan columnas/pestanas, la app sigue leyendo jugadores actuales y usa defaults seguros.
-- [x] F2-04.0.10 Documentar paso de deploy de App Script despues de cambiar el codigo del web app.
-- [x] F2-04.1 Agregar a tipos `shirtNumber?: string`, `primaryTeam?: string`, `teams: string[]`, `groups: string[]`, `availability: string[]`, `birthYear?: string`, `secondaryRole?: Role`, `active?: boolean`, `notes?: string`.
-- [x] F2-04.2 Actualizar parser de Sheets para leer campos nuevos aunque falten columnas.
-- [x] F2-04.3 Actualizar payloads `add`/`update` para enviar campos nuevos sin romper datos viejos.
-- [x] F2-04.3.0 Preservar columnas nuevas de Sheets omitiendolas del payload mientras no esten editables en UI.
-- [x] F2-04.4 Documentar columnas nuevas requeridas en Sheet/App Script.
-- [x] F2-05.1 Agregar `numero de camiseta` al modal dentro de una seccion colapsable `Extra info`.
-- [x] F2-05.2 Planificar `equipo` con multiples valores en el modal; ejecucion dividida en F2-05.2.x.
-- [x] F2-05.2.0 Cargar equipos manualmente en la pestana `Teams` por ahora; no crear equipos desde el modal de jugadora.
-- [x] F2-05.2.1 Agregar accion App Script `action=readTeams` que lea la pestana `Teams` con defaults seguros.
-- [x] F2-05.2.2 Agregar tipos frontend para catalogo de equipos (`TeamCatalog`/similar) con `teamId`, `name`, `color1`, `color2`, `crest`.
-- [x] F2-05.2.3 Agregar store/cliente para cargar `teamsCatalog` desde `readTeams`.
-- [x] F2-05.2.4 Agregar selector compacto de equipos en `Extra info`: seleccion multiple, colores por equipo y estado vacio si no hay equipos cargados.
-- [x] F2-05.2.5 Agregar seleccion de equipo principal: si se elige el primer equipo y no hay `primaryTeam`, queda como principal por defecto.
-- [x] F2-05.2.6 Permitir cambiar el equipo principal entre los equipos seleccionados.
-- [x] F2-05.2.7 Guardar `primaryTeam` cuando exista UI de equipo principal; `teams` ya se guarda desde F2-05.2.4 preservando ediciones manuales de Sheets.
-- [ ] F2-05.3 Agregar `grupo/cancha habitual` y `dia/lugar` con multiples valores al modal.
-- [x] F2-05.4 Actualizar labels del modal de arquero a `good`, `low`, `no`.
-- [x] F2-05.5 Mostrar camiseta en tarjeta sin romper privacidad ni mobile.
-- [ ] F2-05.6 Mostrar equipo en tarjeta.
-- [x] F2-05.7 Mostrar equipo con senal/swatch de dos colores.
-- [ ] F2-05.8 Agregar `anio de nacimiento` o edad calculada al modal solo si aporta al armado de partidos.
-- [ ] F2-05.9 Agregar `segunda posicion` al modal como campo opcional.
-- [ ] F2-05.10 Agregar `active` para ocultar jugadoras inactivas sin borrarlas.
-- [ ] F2-05.11 Agregar `notes` como campo opcional de uso interno.
-
-### Auditoria F2-04.0 - App Script y headers actuales
-
-- Headers reales vistos en `db`: `id`, `name`, `nickname`, `role`, `rating`, `avatar`, `gkWillingness`, `wantsWith`, `avoidsWith`, `attributes`.
-- Los headers actuales coinciden con el contrato que lee el frontend. `normalizeKey` en App Script y frontend permite que `gkWillingness` llegue como `gkwillingness`.
-- `gkWillingness` todavia tiene valores legacy `yes` en la Sheet; el frontend ya los lee como `good`, asi que no bloquea.
-- `doGet` actual siempre lee `db`; para Phase 2 va a hacer falta soportar acciones/pestanas nuevas como `readTeams`, `readRelationshipHistory` y eventualmente `readMatchHistory`.
-- `doPost update` arma una fila completa desde headers y pone `""` si el payload no trae una columna. Riesgo: al agregar columnas nuevas, un update viejo puede vaciar datos no enviados.
-- `delete` y `update` buscan el id con `row[0]`; funciona hoy porque `id` esta en la primera columna, pero conviene buscar la columna `id` por header normalizado.
-- No existe migracion automatica de schema: hoy si falta una columna o pestana hay que tocar Sheets manualmente.
-- Proximo paso tecnico antes de campos nuevos: implementar App Script idempotente con `ensureSchema()` + `migrateSchema`, preservar valores existentes en updates y crear columnas/pestanas faltantes sin borrar datos.
-
-### Schema F2-04.0.1 - `db`
-
-- Nombre canonico de la pestana: `Players`. La pestana legacy `db` queda solo como alias de migracion.
-- Orden canonico de columnas: `id`, `name`, `nickname`, `role`, `rating`, `avatar`, `gkWillingness`, `wantsWith`, `avoidsWith`, `attributes`, `shirtNumber`, `primaryTeam`, `teams`, `groups`, `availability`, `birthYear`, `secondaryRole`, `active`, `notes`.
-- La migracion de App Script debe agregar columnas faltantes al final y no reordenar columnas existentes para evitar riesgo sobre la Sheet actual.
-- `id`: requerido, string/numerico estable. No se renumera cuando se borra o agrega gente.
-- `name`: opcional, texto libre con tildes preservadas.
-- `nickname`: requerido para que la fila sea valida.
-- `role`: requerido, enum `GK | FLEX | DEF | MID | ATT`; default seguro `FLEX`.
-- `rating`: requerido, numero `1..10`; default seguro `5`.
-- `avatar`: opcional, URL o data URL.
-- `gkWillingness`: enum `good | low | no`; legacy `yes` se lee como `good`; default seguro `no`.
-- `wantsWith`: opcional, IDs separados por pipe, ejemplo `10|14|22`; vacio significa sin wants.
-- `avoidsWith`: opcional, IDs separados por pipe; vacio significa sin avoids.
-- `attributes`: JSON string con `shooting`, `control`, `passing`, `defense`, `pace`, `vision`, `grit`, `stamina`; cada valor es `high | mid | low`; si falta o es invalido, default `mid`.
-- `shirtNumber`: opcional, string para permitir numeros especiales o vacio; no participa del algoritmo.
-- `primaryTeam`: opcional, un solo `teamId` que representa el equipo principal actual de la jugadora. Si esta vacio, no hay equipo principal.
-- `teams`: opcional, `teamId`s separados por pipe, ejemplo `armaduki|femix|las-pibas`; depende de la pestana `Teams`. Una jugadora puede no tener equipo, puede tener mas de dos equipos, y `primaryTeam` deberia estar incluido en `teams` cuando exista.
-- `groups`: opcional, `groupId`s separados por pipe, ejemplo `segurola|palermo`; representa grupos/canchas habituales donde suele jugar. Una jugadora puede no tener grupo.
-- `availability`: opcional, tokens/labels separados por pipe para dia/lugar, ejemplo `martes|jueves-noche`; sirve para disponibilidad, no para identidad del grupo/cancha.
-- `birthYear`: opcional, string de 4 digitos; se prefiere anio de nacimiento antes que edad fija para no quedar desactualizado.
-- `secondaryRole`: opcional, enum `GK | FLEX | DEF | MID | ATT`; vacio significa sin segunda posicion.
-- `active`: opcional, boolean/string; default `true` si esta vacio o falta para no ocultar jugadoras existentes.
-- `notes`: opcional, texto libre interno; no se muestra en cards ni afecta generador por ahora.
-
-### Migracion F2-04.0.1.1 - `db` a `Players`
-
-- App Script debe reemplazar `SHEET_NAME = 'db'` por constantes por pestana: `PLAYERS_SHEET_NAME = 'Players'`, `LEGACY_PLAYERS_SHEET_NAME = 'db'`, `TEAMS_SHEET_NAME = 'Teams'`, `GROUPS_SHEET_NAME = 'Groups'`, `RELATIONSHIP_HISTORY_SHEET_NAME = 'RelationshipHistory'`, `MATCH_HISTORY_SHEET_NAME = 'MatchHistory'`.
-- `getPlayersSheet()` debe resolver asi: usar `Players` si existe; si no existe y existe `db`, renombrar `db` a `Players`; si no existe ninguna, crear `Players` con headers canonicos.
-- La app/frontend no deberia depender del nombre de la pestana, solo de las respuestas del App Script.
-- Despues de migrar, no volver a crear ni escribir en `db`.
-
-### Schema F2-04.0.2 - `Teams`
-
-- Nombre canonico de la pestana: `Teams`.
-- Orden canonico de columnas: `teamId`, `name`, `color1`, `color2`, `crest`.
-- `teamId`: requerido, string estable en kebab-case o slug simple, ejemplo `armaduki`, `femix`, `las-pibas`. Es el valor que se guarda en `Players.teams`.
-- `name`: requerido, nombre visible del equipo, con tildes preservadas si corresponde.
-- `color1`: opcional, color principal en hex, ejemplo `#e9252a`; default visual si falta: rojo Armaduki.
-- `color2`: opcional, color secundario en hex para swatch/circulo de dos colores; si falta, se usa `color1`.
-- `crest`: opcional, URL/data URL/emoji corto para escudo o identificador visual del equipo.
-- `Players.primaryTeam` guarda el `teamId` principal actual, y `Players.teams` guarda multiples `teamId` separados por pipe, ejemplo `armaduki|femix|las-pibas`.
-- Decision UI: los equipos se cargan a mano en `Teams`; el modal de jugadora solo selecciona equipos existentes. Si se selecciona un primer equipo y `primaryTeam` esta vacio, ese equipo queda como principal por defecto. Despues se puede cambiar el principal entre los equipos seleccionados.
-- Si un `teamId` aparece en `Players.teams` pero no existe en `Teams`, la app debe mostrar el id como texto simple y no romper filtros ni cards.
-- La migracion de App Script debe crear `Teams` con headers si no existe, pero no necesita cargar equipos iniciales automaticamente.
-- Todas las columnas salvo `teamId` y `name` son opcionales para empezar simple.
-- Posibles columnas futuras si hacen falta: `shortName`, `category`, `homePlace`, `notes`, `sortOrder`, `active`.
-
-### Schema F2-04.0.2.1 - `Groups`
-
-- Nombre canonico de la pestana: `Groups`.
-- Orden canonico de columnas: `groupId`, `name`, `place`, `notes`.
-- `groupId`: requerido, string estable en kebab-case o slug simple, ejemplo `segurola`, `palermo`, `villa-urquiza`.
-- `name`: requerido, nombre visible del grupo/cancha habitual, ejemplo `Canchita de Segurola`.
-- `place`: opcional, texto libre para ubicacion/cancha habitual. Varios grupos pueden compartir el mismo lugar.
-- `notes`: opcional, texto libre interno.
-- `Players.groups` guarda multiples `groupId` separados por pipe, ejemplo `segurola|palermo`.
-- Una jugadora puede pertenecer a varios grupos. `Groups` existe principalmente para filtrar jugadoras por grupo/cancha habitual en People y Match.
-- Si un `groupId` aparece en `Players.groups` pero no existe en `Groups`, la app debe mostrar el id como texto simple y no romper filtros ni cards.
-- `Groups` representa pertenencia/habito de juego, no disponibilidad. Ejemplo: suele jugar en `Canchita de Segurola`; para dias/horarios sigue existiendo `Players.availability`.
-- La migracion de App Script debe crear `Groups` con headers si no existe, pero no necesita cargar grupos iniciales automaticamente.
-- Posibles columnas futuras si hacen falta: `shortName`, `city`, `zone`, `sortOrder`, `active`.
-
-### Schema F2-04.0.3 - `RelationshipHistory`
-
-- Nombre canonico de la pestana: `RelationshipHistory`.
-- Orden canonico de columnas: `sourceId`, `targetId`, `wantsCount`, `avoidsCount`, `updatedAt`.
-- `sourceId`: requerido, `Players.id` de la jugadora que define la relacion.
-- `targetId`: requerido, `Players.id` de la jugadora relacionada.
-- El par `sourceId -> targetId` es dirigido. `10 -> 14` y `14 -> 10` son relaciones historicas distintas.
-- Debe haber como maximo una fila por par dirigido `sourceId + targetId`.
-- `wantsCount`: entero >= 0; default `0` si falta o esta vacio.
-- `avoidsCount`: entero >= 0; default `0` si falta o esta vacio. `noWants` se modela como `avoids` para mantener el lenguaje actual de la app.
-- `updatedAt`: timestamp ISO/string de la ultima vez que se incremento `wantsCount` o `avoidsCount`.
-- `RelationshipHistory` es historial acumulado, no fuente de verdad de relaciones actuales. Las relaciones actuales siguen viviendo en `Players.wantsWith` y `Players.avoidsWith`.
-- App Script debe incrementar el contador solo cuando en un `update`/`add` aparece una relacion nueva que antes no estaba para ese `sourceId`.
-- Si una relacion se elimina, no se decrementa el contador historico.
-- Si una relacion cambia de want a avoid, se incrementa `avoidsCount` si ese avoid es nuevo; el `wantsCount` historico queda como estaba.
-- Si la pestana no existe o esta vacia, el selector de Wants/Avoids debe funcionar igual con historial vacio.
-- La migracion de App Script debe crear `RelationshipHistory` con headers si no existe, pero no debe generar filas historicas falsas desde el estado actual.
-
-### Schema F2-04.0.4 - `MatchHistory`
-
-- Nombre canonico de la pestana: `MatchHistory`.
-- Orden canonico de columnas: `matchId`, `createdAt`, `selectedIds`, `team1Ids`, `team2Ids`, `score`, `stage`, `socialSatisfactionPct`, `isTest`.
-- `matchId`: requerido, id unico del registro. Puede ser timestamp ISO compacto o UUID generado por App Script/frontend.
-- `createdAt`: requerido, timestamp ISO/string de cuando se guardo el partido.
-- `selectedIds`: requerido, `Players.id`s seleccionados separados por pipe, ejemplo `10|14|22|31|40|...`.
-- `team1Ids`: requerido, IDs de Team 1 separados por pipe, en el orden mostrado/copied.
-- `team2Ids`: requerido, IDs de Team 2 separados por pipe, en el orden mostrado/copied.
-- `score`: requerido si existe resultado generado; numero del score de analisis guardado.
-- `stage`: requerido si existe resultado generado; enum actual `STRICT | RELAXED_UNILATERAL | RELAXED_MUTUAL | FALLBACK`.
-- `socialSatisfactionPct`: requerido si existe resultado generado; numero `0..100`.
-- `isTest`: boolean/string; `true` para pruebas de armado, `false` para partido real/final. Default seguro `true` si falta, para no contar pruebas como partidos reales por accidente.
-- `MatchHistory` es historico de equipos generados, separado de `RelationshipHistory`.
-- Guardar historial no debe cambiar el generador ni las relaciones actuales.
-- Decision pendiente para F2-11.4: como resolver en UI si se guarda automaticamente como test, con boton explicito, o con acciones tipo `Save as test` / `Save as real match`.
-- La migracion de App Script debe crear `MatchHistory` con headers si no existe, pero no debe crear filas iniciales.
-
-### Implementacion F2-04.0.5 - `ensureSchema()`
-
-- `apps-script/Code.gs` define headers canonicos para `Players`, `Teams`, `Groups`, `RelationshipHistory` y `MatchHistory`.
-- `ensureSchema()` crea pestanas faltantes y agrega columnas faltantes al final de cada header.
-- No reordena columnas existentes y no borra datos existentes.
-- `readPlayers()` y `doPost()` llaman `ensureSchema()` antes de leer/escribir para mantener backward compatibility.
-- Para que el schema nuevo no provoque perdida de datos, tambien se implemento F2-04.0.7/F2-04.0.8: `update` preserva celdas existentes no enviadas y `delete/update` buscan `id` por header normalizado.
-- Validacion manual pendiente al deployar Apps Script: correr `?action=migrateSchema`, confirmar que existen las pestanas nuevas y que `Players` conserva sus datos con columnas nuevas al final. Despues correr `?action=read` para confirmar que la app sigue devolviendo jugadoras.
-
-### Implementacion F2-04.0.6 - `migrateSchema`
-
-- `apps-script/Code.gs` expone `action=migrateSchema` por GET y POST.
-- La accion corre `ensureSchema()` de forma explicita y devuelve un JSON con `ok`, `action` y nombres de pestanas resultantes.
-- Esta accion es el paso manual recomendado despues de deployar App Script y antes de depender de columnas nuevas desde la UI.
-
-### Implementacion F2-04.0.9 - backward compatibility
-
-- `apps-script/Code.gs` mantiene compatibilidad con Sheet vieja: si falta `Players` usa/renombra `db`; si faltan pestanas o columnas nuevas, las crea/agrega sin borrar datos.
-- `src/store/useAppStore.ts` parsea filas viejas aunque falten columnas opcionales y aplica defaults seguros: `role = FLEX`, `rating = 5`, `gkWillingness = no`, `wantsWith = []`, `avoidsWith = []`, `attributes = mid`.
-- `gkWillingness = yes` sigue leyendo como `good` para datos legacy.
-- Las filas sin `nickname` valido se siguen salteando para evitar jugadoras rotas en UI/generador.
-- Los campos nuevos de Phase 2 quedan tipados y parseados desde F2-04.1/F2-04.2. Por seguridad, no se envian en payloads hasta que F2-05 agregue UI real para editarlos.
-
-### Implementacion F2-04.0.10 - deploy de App Script
-
-- `apps-script/README.md` documenta el flujo operativo para cambios de Apps Script: copiar `Code.gs`, preservar `SPREADSHEET_ID` real, editar el deployment existente, crear `New version` y validar con `migrateSchema` + `read`.
-- Si se mantiene el mismo web app URL `/exec`, no hace falta cambiar `.env` ni variables de Vercel.
-- Si se crea una URL nueva por error, actualizar `VITE_APPS_SCRIPT_URL` local y en Vercel antes de usar produccion.
-
-### Implementacion F2-04.1 - tipos Phase 2
-
-- `src/types/index.ts` agrega campos Phase 2 a `Person`: camiseta, equipo principal, equipos, grupos, disponibilidad, anio de nacimiento, segunda posicion, activo y notas.
-- `src/store/useAppStore.ts` inicializa `teams`, `groups` y `availability` como arrays vacios cuando no hay datos en Sheet.
-- `src/components/PersonForm.tsx` preserva esos campos al editar una jugadora aunque todavia no esten visibles en el modal.
-
-### Implementacion F2-04.2 - parser de campos nuevos
-
-- `src/store/useAppStore.ts` lee de Sheets `shirtNumber`, `primaryTeam`, `teams`, `groups`, `availability`, `birthYear`, `secondaryRole`, `active` y `notes`.
-- Si faltan columnas nuevas, el parser mantiene defaults seguros: arrays vacios, campos opcionales `undefined`, `secondaryRole` vacio y `active = true`.
-- `teams`, `groups` y `availability` se leen como listas separadas por pipe.
-- `active` acepta valores falsos tipo `false`, `no`, `0`, `inactive` u `off`; cualquier valor vacio o no reconocido queda activo para no ocultar jugadoras existentes.
-
-### Implementacion F2-04.3 / F2-04.3.0 - payloads y preservacion de campos nuevos
-
-- `src/store/useAppStore.ts` envia campos Phase 2 en `add` solo si tienen valor real.
-- En `update`, los campos Phase 2 se envian solo si cambiaron contra la version cargada de la jugadora.
-- Esto evita pisar cambios manuales hechos en Sheets con valores viejos o vacios que la app tenga en memoria, y permite limpiar un campo desde UI cuando tenga control visible.
-- `wantsWith` y `avoidsWith` siguen enviandose como antes porque esos campos si se editan desde la UI.
-- `shirtNumber` ya tiene control visible en el modal; `primaryTeam`, `teams`, `groups`, `availability`, `birthYear`, `secondaryRole`, `active` y `notes` quedan listos para enviarse cuando F2-05 agregue controles reales para editarlos.
-
-### Implementacion F2-04.4 - documentacion de columnas
-
-- `apps-script/README.md` documenta schemas de `Players`, `Teams`, `Groups`, `RelationshipHistory` y `MatchHistory`.
-- La documentacion separa campos requeridos, campos opcionales actuales y campos opcionales Phase 2.
-- Tambien aclara que los campos Phase 2 se leen pero todavia no se escriben desde frontend hasta tener controles visibles en el modal.
-
-### Implementacion F2-05.1/F2-05.5 - camiseta
-
-- `src/components/PersonForm.tsx` agrega una seccion colapsable `Extra info`, cerrada por defecto, con el campo `Shirt number`.
-- `src/store/useAppStore.ts` envia campos Phase 2 en `add` solo si tienen valor y en `update` solo cuando cambian.
-- `src/components/PersonCard.tsx` muestra la camiseta en gris, chica, con `#` y debajo de la foto solo si existe.
-
-### Implementacion F2-05.2.0 - carga manual de equipos
-
-- Se valido carga manual inicial en la pestana `Teams`.
-- Por ahora los equipos se administran desde Sheets, no desde el modal.
-- `crest` puede usar rutas servidas por Vercel desde `public/crests`, ejemplo `/crests/cocucha-crest.png`.
-- Siguiente paso: leer `Teams` desde App Script con `action=readTeams`.
-
-### Implementacion F2-05.2.1 - `readTeams`
-
-- `apps-script/Code.gs` expone `action=readTeams` por GET y POST.
-- La accion corre `ensureSchema()` antes de leer, asi que crea la pestana `Teams` si falta.
-- Devuelve objetos frontend-friendly con `teamId`, `name`, `color1`, `color2`, `crest`.
-- Si falta `name`, usa `teamId`; si falta `color2`, usa `color1`; si falta `crest`, devuelve string vacio.
-- Las filas sin `teamId` se ignoran para evitar referencias inestables en `Players.teams`.
-
-### Implementacion F2-05.2.2 - tipo `TeamCatalog`
-
-- `src/types/index.ts` exporta `TeamCatalog` con `teamId`, `name`, `color1`, `color2`, `crest`.
-- Los campos de color y escudo quedan como `string` porque `readTeams` ya devuelve defaults seguros.
-- Todavia no se carga ni se muestra el catalogo en UI; eso queda para `F2-05.2.3` y `F2-05.2.4`.
-
-### Implementacion F2-05.2.3 - store `teamsCatalog`
-
-- `src/store/useAppStore.ts` agrega `teamsCatalog`, `teamsCatalogLoaded`, `isTeamsCatalogLoading` y `teamsCatalogError`.
-- `fetchTeamsCatalog()` llama a `action=readTeams`, parsea filas con defaults seguros y omite filas sin `teamId`.
-- `PeoplePage` y `MatchPage` disparan la carga del catalogo una vez si todavia no fue cargado.
-- Todavia no hay UI para seleccionar equipos; eso queda para `F2-05.2.4`.
-
-### Implementacion F2-05.2.4 - selector multiple de equipos
-
-- `src/components/PersonForm.tsx` agrega selector multiple de equipos dentro de `Extra info`.
-- El selector no usa search por ahora porque el catalogo esperado es chico.
-- Cada equipo se muestra como una pill compacta con fondo de `color1` + `color2`, sin escudo.
-- La pill muestra solo el `name`; el `teamId` queda como valor interno para guardar.
-- Click en una pill selecciona/deselecciona y mantiene el indicador `Add`/`Selected`.
-- Si hay equipo, el modal muestra solo la mini pill con colores del primer equipo y el numero adentro; si no hay equipo, mantiene el numero gris.
-- El cambio de foto queda como overlay sobre la imagen al hover/focus para no ocupar espacio debajo.
-- La lista muestra estado vacio y respeta errores/carga del catalogo.
-- Al guardar el modal, `teams` se actualiza en la jugadora y se refleja en Sheets por el payload Phase 2 existente.
-- `primaryTeam` no se modifica todavia; queda para los pasos de equipo principal.
-- `src/components/PersonCard.tsx` muestra un triangulo en la esquina inferior izquierda con los colores del primer equipo, sin texto.
-
-### Implementacion F2-05.2.5 - default `primaryTeam`
-
-- `src/components/PersonForm.tsx` guarda como `primaryTeam` el primer equipo seleccionado si la jugadora no tenia principal.
-- Si se elimina el equipo principal desde el selector, el siguiente equipo seleccionado pasa a ser principal; si no quedan equipos, se limpia.
-- La mini pill del modal usa solo `primaryTeam`; si falta, no muestra senal aunque existan `teams`.
-- `src/components/PersonCard.tsx` usa solo `primaryTeam` para el triangulo de equipo; si falta, no muestra senal aunque existan `teams`.
-
-### Implementacion F2-05.2.6 - cambiar equipo principal
-
-- `src/components/PersonForm.tsx` permite cambiar `primaryTeam` con una pelotita debajo de cada equipo seleccionado.
-- La pelotita roja indica el equipo principal; la gris indica equipo seleccionado secundario.
-- Click en la pill selecciona/deselecciona el equipo; click en la pelotita cambia `primaryTeam` sin tocar `teams`.
-- Al guardar, `primaryTeam` se envia por el payload Phase 2 existente, preservando campos que no cambian.
-
-## Fase 4 - Filtros y orden
-
-- [ ] F2-06.1 Agregar filtro por `equipo` en People.
-- [ ] F2-06.2 Agregar filtro por `grupo/cancha habitual` y `dia/lugar` en People.
-- [ ] F2-06.3 Agregar filtro por `equipo` en Match.
-- [ ] F2-06.4 Agregar filtro por `grupo/cancha habitual` y `dia/lugar` en Match.
-- [ ] F2-06.5 Agregar orden por camiseta/equipo/grupo/dia-lugar donde sume.
-- [ ] F2-06.6 Revisar duplicacion de filtros entre People y Match; extraer helper solo si simplifica.
-
-## Fase 5 - Historial de wants/noWants
-
-- [ ] F2-07.1 Confirmar contrato de pestana `RelationshipHistory` definido en F2-04.0.3.
-- [ ] F2-07.2 Crear lectura normalizada de `RelationshipHistory` con defaults si esta vacia.
-- [ ] F2-07.3 Modelar `noWants` como `avoids` para mantener el lenguaje actual del app.
-- [ ] F2-07.4 Agregar cliente `action=readRelationshipHistory`.
-- [ ] F2-07.5 Documentar cambio requerido en App Script: al agregar un nuevo want/avoid, incrementar contador historico.
-- [ ] F2-07.6 Definir comportamiento si el historial no existe todavia: selector funciona igual con historial vacio.
-
-## Fase 6 - Selector searchable de relaciones
-
-- [ ] F2-08.1 Agregar buscador al selector de Wants.
-- [ ] F2-08.2 Agregar buscador al selector de Avoids.
-- [ ] F2-08.3 Ordenar seleccionados primero.
-- [ ] F2-08.4 Luego ordenar por historial del par `currentPlayer -> target`.
-- [ ] F2-08.5 Si no hay historial del par, ordenar por popularidad global.
-- [ ] F2-08.6 Si empatan, ordenar alfabeticamente por nickname.
-- [ ] F2-08.7 Mantener hints de relaciones inversas actuales.
-- [ ] F2-08.8 Validar mobile: listas scrolleables y botones legibles.
-
-## Fase 7 - Bonus soft por equipo (mas adelante)
-
-- [ ] F2-10.0 No iniciar esta fase hasta tener el campo `teams` cargado, visible y probado con datos reales.
-- [ ] F2-10.1 Agregar scoring soft `+1` por cada pareja del mismo equipo dentro del mismo team.
-- [ ] F2-10.2 No permitir que el bonus rompa avoids ni constraints fuertes.
-- [ ] F2-10.3 Incluir el bonus en el breakdown de analisis.
-- [ ] F2-10.4 Agregar test de mismo equipo que verifica que mejora score sin forzar split imposible.
-- [ ] F2-10.5 Revisar si el peso `+1` es suficiente despues de probar datos reales.
-
-## Fase 8 - Historial de partidos
-
-- [ ] F2-11.1 Confirmar contrato de pestana `MatchHistory` definido en F2-04.0.4.
-- [ ] F2-11.2 Guardar fecha/id, seleccionados, team1, team2, score, stage y social satisfaction.
-- [ ] F2-11.3 Agregar accion App Script para guardar historial al confirmar/generar.
-- [ ] F2-11.4 Decidir si guardar automaticamente al generar o con boton explicito.
-- [ ] F2-11.5 Mantener este historial separado de `RelationshipHistory`.
-
-## Backlog posterior
-
-- [ ] F2-12.1 Soporte de suplentes: 10 titulares + 1 o 2 suplentes en gris y salida/copia clara.
-- [ ] F2-12.2 Permitir partidos con tamano variable sin romper balanceador.
-- [ ] F2-12.3 Aplicacion para equipos de F6, F7, etc.
-- [ ] F2-12.4 Auth/roles para edicion.
-- [ ] F2-12.5 Preparar app para multi-grupo/multi-liga.
-- [ ] F2-12.6 Definir alcance a mediano plazo: uso personal o abrir a mas grupos.
-- [ ] F2-12.7 Aclarar requisito pendiente "sugerencia #1 no entendida" y convertirlo en item tecnico concreto.
-- [ ] F2-12.8 Aclarar requisito pendiente "pregunta #10 no entendida" y convertirlo en item tecnico concreto.
-
-## Criterios de cierre de Phase 2
-
-- [ ] `npm run lint` pasa.
-- [ ] `npm run build` pasa.
-- [ ] QA manual de los cambios principales queda definido y probado.
-- [ ] Campos nuevos leen y escriben contra Sheet sin romper jugadores existentes.
-- [ ] Selector de Wants/Avoids es buscable y ordena por historial cuando existe.
-- [ ] Generar equipos scrollea al resultado.
-- [ ] Bonus de mismo equipo aparece en analisis y no rompe reglas fuertes.
-- [ ] Footer queda siempre visible abajo.
-- [ ] Modales cierran con Escape.
-
-## Revision tecnica (nov 2026)
-
-Hecho:
-
-- [x] RV-01 Sync con Sheets: se lee la respuesta del Apps Script (antes `no-cors` hacia que todo error pareciera "Synced"). Errores reales con aviso abajo y boton `Retry`; escrituras en cola y en orden; timeout 60s; aviso al cerrar la pestana con cambios sin guardar.
-- [x] RV-02 `update` envia solo los campos que cambiaron: no pisa ediciones manuales de Sheets ni reenvia el avatar en cada guardado.
-- [x] RV-03 IDs: el id nuevo es el mayor id visto en ids y links + 1 (antes, borrar la ultima jugadora y crear otra reusaba el id y heredaba sus wants/avoids). Borrar jugadora limpia sus links en el resto. Filas sin id o con id duplicado muestran warning.
-- [x] RV-04 Clear links: solo jugadoras con links, 4 requests a la vez, payload minimo (antes: N requests simultaneos con payload completo, podian fallar en silencio).
-- [x] RV-05 Generador: el fallback elige el split que rompe menos reglas (avoids > wants > owner bias > ATT/DEF spread > limites GK/DEF). Antes el snake podia juntar avoids sin necesidad y con 3 GK podia armar 3/0. El analisis explica el por que en `[Fallback]`. La etapa estricta da resultados identicos (test diferencial contra la version anterior).
-- [x] RV-06 `npm test`: tests del generador con el runner nativo de Node.
-- [x] RV-07 Modal: no se cierra al soltar una seleccion de texto afuera; avatar comprimido bajo 45k chars (limite de celda 50k); error visible si la imagen no se puede leer; links a ids borrados se descartan.
-- [x] RV-08 Mobile/a11y: inputs de 16px en mobile (sin zoom en iOS), modal con `dvh`, acciones de card visibles en tablets, cards seleccionables con teclado.
-- [x] RV-09 `apps-script/Code.gs`: lock en escrituras, `add` rechaza ids duplicados, ids con espacios, `ensureSchema()` cacheado 6h. El `SPREADSHEET_ID` pasa a Propiedades del script (ya no va en el codigo).
-- [x] RV-09.1 Deploy con `clasp` desde `apps-script/` (push, version, redeploy del mismo deployment). Sin copiar/pegar. Config local en `apps-script/.clasp.json` (gitignored).
-
-Pendiente / a decidir:
-
-- [x] RV-10.1 `SPREADSHEET_ID` cargado en Propiedades del script; `Code.gs` nuevo subido con `clasp` como version 19 y probado en un deployment temporal (lectura identica a la version 18, escrituras de prueba sin cambios en la Sheet).
-- [x] RV-10.2 Produccion pasada a la version 19 con `npx @google/clasp redeploy <deploymentId> -V 19` desde `apps-script/` (la URL no cambia). Rollback: el mismo comando con `-V 18`.
-- [ ] RV-11 Probar en local contra la Sheet real con una jugadora de prueba: crear, editar rating, borrar; ver que no aparezca el aviso rojo. Si aparece `Apps Script answered: ...` con un texto de exito distinto, ajustar `SUCCESS_RESPONSES` en el store.
-- [ ] RV-12 Privacidad: definir que tiene que ocultar privacy mode (hoy el analisis sigue mostrando totales de rating por equipo) y que datos deberia devolver `action=read`.
-- [ ] RV-13 Seguridad: agregar autenticacion a las escrituras del Apps Script (ver F2-12.4).
-- [ ] RV-14 Default de `gkWillingness`: el modal usa `low` y el parser de Sheets usa `no`. Unificar.
-- [ ] RV-15 Extraer filtros/orden duplicados de People y Match (F2-06.6) antes de Fase 4.
-- [ ] RV-16 `npm audit fix`: react-router 7.13 -> 7.18 (los advisories son de SSR/RSC, no aplican a esta SPA, pero es un update menor).
-- [x] RV-17 Borrar deployments viejos del Apps Script (@1 a @14). Quedan solo el de produccion y @HEAD.
+# TODO - armaduki
+
+Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fase 2, febrero a noviembre de 2026) está archivada en `docs/TODO - v1.md`, con sus decisiones y esquemas.
+
+## Cómo usar este TODO
+
+- [x] Se lee y se ejecuta de arriba hacia abajo, de a un ítem por vez. Un ítem no toca otros módulos salvo lo que necesita.
+- [x] Los sprints son por objetivo, no por fecha. Al cerrar cada uno, Ángela lo revisa antes de seguir.
+- [x] Primero la base (Sprints 1 a 5), después las funciones nuevas (Sprints 6 a 10).
+- [x] En cada sprint va solo lo que se puede hacer ya. Lo que espera una decisión va en «Cosas por cerrar», con quién decide y un default para seguir.
+- [x] Un ítem nuevo se conversa antes de construirlo. Lo que sugiere Claude está marcado como **Propuesta**: Ángela lo acepta o lo descarta.
+- [x] Lo que Ángela anota en Notion (Personal / Projects / armaduki) se pasa acá antes de hacerlo.
+- [x] Los ítems que vienen de la v1 conservan su código entre paréntesis (`F2-…`, `RV-…`).
+- [x] Cada ítem se prueba en local al cerrarlo. Cada sprint cierra con lint, tests, build, commit y pasos cortos de prueba manual.
+- [x] Mobile-first: cada cambio de UI se diseña y se prueba primero en el teléfono.
+- [x] La UI de la app sigue en inglés; este TODO y las conversaciones, en castellano.
+- [x] El generador no cambia sin tests: `npm test`, lint y build antes y después. Cómo funciona: `docs/GENERADOR.md`.
+- [x] Si un ítem toca la planilla o el Apps Script, primero se actualiza el contrato de datos y se confirma que lo anterior sigue andando. La planilla solo suma columnas, así la versión anterior del backend siempre sirve para volver atrás.
+- [x] El backend se publica con `clasp` desde `apps-script/` (pasos en `apps-script/README.md`): versión nueva, prueba en una implementación temporal y recién ahí producción.
+
+## Decisiones cerradas
+
+- [x] Backend: Google Sheets + Apps Script, publicado con `clasp`. Producción usa la versión 19 (18/11/2026).
+- [x] El ID de la planilla vive en las propiedades del script, no en el código; el Script ID, en `apps-script/.clasp.json`, que git ignora.
+- [x] Una sola implementación del backend en producción, más `@HEAD`; las viejas se borraron (18/11). Las versiones quedan en el historial del script.
+- [x] `main` publica en Vercel. El repo es público: ningún ID, clave ni dato de la planilla entra al repo.
+- [x] Nada de Claude web: ni artifacts, ni Claude Docs, ni conectores de claude.ai. Notion entra como servidor local.
+- [x] Reglas del generador de la v1 (F2-01.2, F2-01.3, F2-01.5, F2-01.7): wants estrictos; si un equipo no tiene GK, necesita 2 arqueras de emergencia (`good` o `low`); 3 GK no se bloquea; ATT con diferencia máxima de 1 entre equipos; owner bias por Power.
+- [x] Los equipos se cargan a mano en la pestaña `Teams`; el modal solo los elige (F2-05.2.0).
+- [x] Orden de los sprints: la base, el generador y el rediseño van antes de las funciones nuevas (18/11).
+- [x] Fecha de nacimiento: opcional; se guarda la fecha y se muestra la edad (18/11).
+
+## Sprint 0 - Revisión técnica (hecho)
+
+Objetivo: que lo que ya existe funcione bien antes de sumar cosas. El detalle está en la sección «Revisión técnica» de la v1.
+
+- [x] **Ángela:** guardó desde el sitio publicado y todo anduvo bien (18/11) (RV-11).
+- [x] Cada guardado se confirma con la respuesta del Apps Script: si falla, aparece un aviso con `Retry`. Los guardados van de a uno y en orden (RV-01).
+- [x] Un cambio manda solo los campos que cambiaron (RV-02).
+- [x] Un ID nuevo nunca reusa uno viejo; borrar a alguien limpia sus links; aviso si la planilla tiene IDs repetidos o vacíos (RV-03). La planilla real está limpia.
+- [x] Clear links solo toca a quien tiene links (RV-04).
+- [x] Generador: cuando ningún reparto cumple todo, elige el que rompe menos reglas y explica por qué; la etapa estricta da lo mismo que antes (RV-05). Tests con `npm test` (RV-06).
+- [x] Arreglos del modal, el avatar y la vista en el teléfono (RV-07, RV-08).
+- [x] Apps Script: candado en las escrituras, rechazo de IDs repetidos, chequeo de esquema cacheado e ID de la planilla en propiedades (RV-09). Publicado con `clasp` en la versión 19 y probado en una implementación temporal y en producción (RV-10).
+- [x] Implementaciones viejas del backend borradas (RV-17).
+- [x] De los criterios de cierre de la Fase 2 ya se cumplían lint, build, el scroll al resultado (F2-09), el footer abajo (F2-00.7) y Escape en los modales (F2-00.8). Los demás son objetivo de los Sprints 6, 8 y 10.
+
+## Sprint 1 - Lo que anotaste en Notion
+
+Objetivo: los pedidos chicos que anotaste en Notion. Solo frontend. El tercero, «Terminar Fase 2», quedó repartido en los Sprints 6 a 10.
+
+- [ ] «sort selected»: un orden «Selected first» en Match que deje arriba a las elegidas. Ver «Cosas por cerrar».
+- [ ] «que en el navbar aparezcan los seleccionados»: en Match, las elegidas en una tira fija arriba, visible al scrollear; tocar una la saca de la selección.
+
+## Sprint 2 - El generador: cómo funciona y qué mejorar
+
+Objetivo: entender el algoritmo y decidir si se mejora. La explicación completa, con cómo era antes de la revisión, está en `docs/GENERADOR.md`.
+
+- [ ] **Ángela:** leer `docs/GENERADOR.md`.
+- [ ] Decidir la prioridad del fallback (ver «Cosas por cerrar»).
+- [ ] Elegir cuáles de las «Ideas para mejorarlo» se prueban. Cada una se prueba con tests y con repartos reales antes de quedar.
+
+## Sprint 3 - Base técnica
+
+Objetivo: dejar el código y las herramientas listos para crecer. **Propuesta**, salvo los ítems con código.
+
+- [ ] Unificar búsqueda, filtros y orden de Players y Match en un solo lugar, antes de sumar filtros nuevos (F2-06.6, RV-15).
+- [ ] Pasar al repo los tests que se usaron en la revisión, el del backend (`Code.gs` en Node contra una planilla en memoria) y el de punta a punta del store, y sumarlos a `npm test`.
+- [ ] Script de publicación del backend en el repo (`npm run backend:release`): versión, implementación temporal con pruebas, pase a producción y limpieza, sin imprimir IDs.
+- [ ] Una sola lectura al abrir: jugadoras y equipos en un pedido.
+- [ ] Actualizar dependencias menores con `npm audit fix`: react-router 7.13 → 7.18 (RV-16).
+- [ ] Borrar archivos de la plantilla que no se usan: `src/assets/react.svg` y `public/vite.svg`.
+
+## Sprint 4 - Clave y privacidad
+
+Objetivo: proteger los datos con una clave.
+
+- [ ] Pedir una clave para guardar, como en VolkosFood (RV-13, F2-12.4). **Propuesta.**
+- [ ] Pedir la clave también para leer. **Propuesta.**
+- [ ] Abrir al instante con la última lectura guardada en el dispositivo y actualizar detrás, una vez que la clave esté puesta. **Propuesta.**
+- [ ] Aplicar en toda la app lo que se decida que oculta privacy mode (RV-12). Ver «Cosas por cerrar».
+
+## Sprint 5 - Rediseño con Fable
+
+Objetivo: darle a la app el mismo nivel de diseño que VolkosFood. Se hace en una sesión con Claude Fable 5.2, el modelo del rediseño de VolkosFood.
+
+- [ ] Escribir la dirección de diseño en `docs/DESIGN_DIRECTION.md` (idea, decisiones, lenguaje visual, movimiento y flujos), partiendo de lo que ya es armaduki: oscuro, rojo, la pelota, mobile-first y privacy mode. **Ángela la aprueba antes de tocar la UI.**
+- [ ] Rediseñar Players, Match, el resultado de equipos, el análisis y el modal de jugadora.
+- [ ] Recorrido en escritorio y en el teléfono contra una API local, sin tocar la planilla real.
+- [ ] Revisión de Ángela antes de seguir.
+
+## Sprint 6 - Campos de jugadora
+
+Objetivo: cargar desde el modal los datos que la planilla ya tiene (resto de la Fase 2). Las columnas ya existen; los esquemas están en `apps-script/README.md`.
+
+- [ ] Grupo o cancha habitual y día/lugar, con varios valores (F2-05.3). Los grupos se cargan en la pestaña `Groups`.
+- [ ] Mostrar el equipo en la tarjeta (F2-05.6).
+- [ ] Segunda posición, opcional (F2-05.9).
+- [ ] `active`: ocultar jugadoras inactivas sin borrarlas (F2-05.10).
+- [ ] Notas internas, opcionales (F2-05.11).
+- [ ] Fecha de nacimiento, opcional: se guarda la fecha y se muestra la edad (F2-05.8). **Propuesta:** guardarla en una columna nueva `birthDate` (AAAA-MM-DD) y dejar sin uso `birthYear`. Va después de la clave (Sprint 4) por ser un dato personal.
+- [ ] Al cerrar: los campos nuevos leen y escriben sin romper a las jugadoras existentes (criterio de cierre de la Fase 2).
+
+## Sprint 7 - Filtros y orden
+
+Objetivo: encontrar rápido a quién elegir. Usa la búsqueda unificada del Sprint 3.
+
+- [ ] Filtro por equipo en Players y en Match (F2-06.1, F2-06.3).
+- [ ] Filtro por grupo o cancha y por día/lugar en Players y en Match (F2-06.2, F2-06.4).
+- [ ] Orden por camiseta, equipo, grupo o día/lugar donde sume (F2-06.5).
+
+## Sprint 8 - Wants y avoids con historial
+
+Objetivo: elegir relaciones más rápido, empezando por las de siempre.
+
+- [ ] Confirmar el contrato de la pestaña `RelationshipHistory` (F2-07.1). Un «no quiero» se guarda como avoid (F2-07.3).
+- [ ] Apps Script: al agregar un want o un avoid nuevo, sumar 1 a su contador (F2-07.5).
+- [ ] Leer el historial con la acción `readRelationshipHistory` y valores por defecto si está vacío (F2-07.2, F2-07.4). Sin historial, el selector funciona igual (F2-07.6).
+- [ ] Buscador en los selectores de Wants y Avoids (F2-08.1, F2-08.2).
+- [ ] Orden del selector: seleccionadas primero, después el historial del par, después la popularidad general y, si empatan, alfabético (F2-08.3 a F2-08.6).
+- [ ] Mantener las pistas de relación inversa (F2-08.7) y validar en el teléfono: listas con scroll y botones legibles (F2-08.8).
+- [ ] Al cerrar: los selectores buscan y ordenan por historial cuando existe (criterio de cierre de la Fase 2).
+
+## Sprint 9 - Historial de partidos
+
+Objetivo: guardar los partidos que se jugaron.
+
+- [ ] Confirmar el contrato de la pestaña `MatchHistory` (F2-11.1), separado de `RelationshipHistory` (F2-11.5).
+- [ ] Acción del Apps Script para guardar un partido (F2-11.3): fecha e id, seleccionadas, Team 1, Team 2, score, etapa y social satisfaction (F2-11.2).
+- [ ] Guardar desde el resultado. Ver «Cosas por cerrar» (F2-11.4).
+
+## Sprint 10 - Bonus por mismo equipo
+
+Objetivo: que las que juegan juntas en un equipo real tiendan a caer juntas, sin romper reglas. Empieza cuando `teams` esté cargado y probado con datos reales (F2-10.0).
+
+- [ ] Sumar +1 al score por cada pareja del mismo equipo dentro del mismo team (F2-10.1), sin romper avoids ni reglas fuertes (F2-10.2).
+- [ ] Mostrar el bonus en el análisis (F2-10.3).
+- [ ] Test que muestre que mejora el score sin forzar un reparto imposible (F2-10.4).
+- [ ] Revisar si +1 alcanza después de probar con datos reales (F2-10.5).
+- [ ] Al cerrar: el bonus aparece en el análisis y no rompe reglas fuertes (criterio de cierre de la Fase 2).
+
+## Cosas por cerrar
+
+- [ ] **Prioridad del fallback del generador.** En la v1 se decidió primero social-hard y después snake. En la revisión pasó a «el reparto que rompe menos reglas», en este orden: avoids > wants > owner bias > spread ATT/DEF > límites GK/DEF. Ya está publicado. Explicado en `docs/GENERADOR.md`; se decide en el Sprint 2. Decide: Ángela. Default: dejarlo así.
+- [ ] **Qué es «sort selected».** Decide: Ángela. Default: un orden «Selected first» en Match.
+- [ ] **«Fable 2.5».** Se entendió Claude Fable 5.2, el modelo del rediseño de VolkosFood. Decide: Ángela. Default: Fable 5.2.
+- [ ] **Default de arquera (`gkWillingness`).** El modal crea jugadoras con `low`, pero una fila de la planilla sin el dato se lee como `no` (RV-14). Decide: Ángela. Default: `no` en los dos, para que lo desconocido no cuente como arquera de emergencia.
+- [ ] **Qué oculta privacy mode** (RV-12). Hoy oculta los ratings individuales, pero el análisis sigue mostrando el total de rating por equipo. Decide: Ángela. Default: ocultar también esos totales.
+- [ ] **Guardar partidos: automático o con botón** (F2-11.4). Decide: Ángela. Default: botón explícito, con «prueba» o «partido real».
+- [ ] **Alcance** (F2-12.6): uso personal o abrir a más grupos. Cambia cuánto pesan la clave, los roles y el multi-grupo. Decide: Ángela. Default: uso personal.
+- [ ] **Requisitos dudosos de la v1:** «sugerencia #1 no entendida» (F2-12.7) y «pregunta #10 no entendida» (F2-12.8). Decide: Ángela. Default: se descartan si nadie los recuerda.
+
+## Backlog · Nice to have
+
+- [ ] Suplentes: 10 titulares y 1 o 2 suplentes en gris, con una copia clara (F2-12.1).
+- [ ] Partidos de otro tamaño sin romper el balanceador (F2-12.2), y equipos de F6, F7, etc. (F2-12.3).
+- [ ] Roles para editar (F2-12.4), si el alcance pasa a más grupos. Para el uso personal alcanza la clave del Sprint 4.
+- [ ] Multi-grupo o multi-liga (F2-12.5).
+- [ ] Navegación en la URL: el botón atrás cierra el modal y vuelve de pantalla, como en VolkosFood. Puede entrar en el rediseño. **Propuesta.**
+- [ ] Pedir confirmación al cerrar el modal con cambios sin guardar. **Propuesta.**
+- [ ] Que «Copy Teams» no se confunda con apodos de más de una palabra. **Propuesta.**
+- [ ] Mostrar los escudos (`crest`) de los equipos. **Propuesta.**
+- [ ] Accesibilidad de diálogos y menús: el foco queda dentro del diálogo y los menús usan los roles correctos. **Propuesta.**

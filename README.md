@@ -12,6 +12,8 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
 
 ## Core generation rules
 
+A plain-language walkthrough in Spanish, including how the fallback worked before the November 2026 review and ideas to improve it: `docs/GENERADOR.md`.
+
 - Input must be exactly 10 players.
 - Teams are 5 vs 5.
 - Strict-stage hard constraints per team:
@@ -141,4 +143,4 @@ Sync behavior:
 
 ## Roadmap
 
-Current work is tracked in `TODO.md` and implemented in small, isolated iterations.
+Current work is tracked in `TODO.md` (v2), in sprints by goal, and implemented in small, isolated iterations. The finished v1 plan (Phase 2) is archived in `docs/TODO - v1.md`.
