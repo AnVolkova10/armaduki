@@ -426,7 +426,7 @@ Hecho:
 Pendiente / a decidir:
 
 - [x] RV-10.1 `SPREADSHEET_ID` cargado en Propiedades del script; `Code.gs` nuevo subido con `clasp` como version 19 y probado en un deployment temporal (lectura identica a la version 18, escrituras de prueba sin cambios en la Sheet).
-- [ ] RV-10.2 Pasar produccion a la version 19: desde `apps-script/`, `npx @google/clasp redeploy <deploymentId> -V 19` (la URL no cambia). Mientras tanto produccion sigue en la version 18, compatible con el frontend nuevo.
+- [x] RV-10.2 Produccion pasada a la version 19 con `npx @google/clasp redeploy <deploymentId> -V 19` desde `apps-script/` (la URL no cambia). Rollback: el mismo comando con `-V 18`.
 - [ ] RV-11 Probar en local contra la Sheet real con una jugadora de prueba: crear, editar rating, borrar; ver que no aparezca el aviso rojo. Si aparece `Apps Script answered: ...` con un texto de exito distinto, ajustar `SUCCESS_RESPONSES` en el store.
 - [ ] RV-12 Privacidad: definir que tiene que ocultar privacy mode (hoy el analisis sigue mostrando totales de rating por equipo) y que datos deberia devolver `action=read`.
 - [ ] RV-13 Seguridad: agregar autenticacion a las escrituras del Apps Script (ver F2-12.4).
