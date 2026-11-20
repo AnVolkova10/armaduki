@@ -124,13 +124,14 @@ Prueba (en https://armaduki.vercel.app, mejor desde el teléfono):
 3. «Generate Teams»: el resultado aparece debajo de la lista.
 4. En la computadora, el lápiz y el tacho aparecen al pasar el mouse por la tarjeta.
 
-## Sprint 4 - Clave y privacidad (hecho, falta tu paso y tu prueba)
+## Sprint 4 - Clave y privacidad (hecho, faltan tus dos pasos y tu prueba)
 
 Objetivo: proteger los datos con una clave, con el mismo esquema que VolkosFood.
 
-- [ ] **Ángela:** prender la clave. En el editor de Apps Script del proyecto: Configuración del proyecto (el engranaje) → Propiedades del script → Agregar propiedad de script → nombre `ACCESS_KEY`, valor: la clave → Guardar. Funciona al instante. Para apagarla, borrar la propiedad.
+- [ ] **Ángela:** publicar el backend con la clave (será la versión 21): `npm run backend:release -- "access key"`, vos o yo con tu OK. Hasta entonces la app nueva anda con la versión 20, sin pedir clave. Publicarlo no cambia nada mientras la propiedad no exista.
+- [ ] **Ángela:** después, prender la clave. En el editor de Apps Script del proyecto: Configuración del proyecto (el engranaje) → Propiedades del script → Agregar propiedad de script → nombre `ACCESS_KEY`, valor: la clave → Guardar. Funciona al instante. Para apagarla, borrar la propiedad.
 - [ ] **Ángela:** probarlo con los pasos de abajo.
-- [x] La clave se pide para leer y para guardar (RV-13, F2-12.4): sin ella el backend responde «unauthorized» antes de abrir la planilla. Backend versión 21. Mientras la propiedad no exista, todo sigue abierto como hasta ahora.
+- [x] La clave se pide para leer y para guardar (RV-13, F2-12.4): sin ella el backend responde «unauthorized» antes de abrir la planilla. Está en `apps-script/Code.gs`, todavía sin publicar. Mientras la propiedad no exista, todo sigue abierto como hasta ahora.
 - [x] El penal de entrada: un dispositivo sin la clave ve un arco, la pelota y la arquera en lugar de la app. Escribir la clave es patear: si está bien, gol y entra; si está mal, la arquera ataja; si no hay respuesta, palo. Mientras el backend contesta, la pelota se carga y la arquera se mueve en la línea.
 - [x] El dispositivo guarda la clave recién cuando el backend la aceptó. Si el backend la rechaza más adelante (por ejemplo, porque cambió), el dispositivo la olvida, borra su copia y vuelve al penal.
 - [x] Abre al instante con la última lectura guardada en el dispositivo y actualiza detrás. Con la copia en pantalla se puede elegir enseguida; agregar, editar, borrar y limpiar links esperan a la lectura nueva (dice «Updating from Google Sheets...»). Si la actualización falla, por ejemplo sin señal en la cancha, queda un botón «Saved copy · Refresh» para reintentar. Al llegar la lectura nueva, lo elegido que ya no existe sale de la selección.
