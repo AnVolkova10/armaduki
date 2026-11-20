@@ -95,13 +95,19 @@ export interface AppsScriptEnv {
   sheet(name: string): MemorySheet | null;
   lockEvents: string[];
   openedIds: string[];
+  /** Sets or clears the ACCESS_KEY script property. */
+  setAccessKey(key: string | null): void;
 }
 
 const CODE_GS = fs.readFileSync(new URL('../../apps-script/Code.gs', import.meta.url), 'utf8');
 
 export function loadAppsScript(
   sheets: MemorySheet[],
-  { spreadsheetId = 'test-sheet-id', source = CODE_GS }: { spreadsheetId?: string | null; source?: string } = {},
+  {
+    spreadsheetId = 'test-sheet-id',
+    accessKey = null,
+    source = CODE_GS,
+  }: { spreadsheetId?: string | null; accessKey?: string | null; source?: string } = {},
 ): AppsScriptEnv {
   const all = [...sheets];
   const spreadsheet = {
@@ -114,6 +120,8 @@ export function loadAppsScript(
     },
   };
   const cache = new Map<string, string>();
+  // Mutable, like editing the script property while the app is in use.
+  const properties = { accessKey };
   const lockEvents: string[] = [];
   const openedIds: string[] = [];
 
@@ -143,7 +151,8 @@ export function loadAppsScript(
     },
     PropertiesService: {
       getScriptProperties: () => ({
-        getProperty: (key: string) => (key === 'SPREADSHEET_ID' ? spreadsheetId : null),
+        getProperty: (key: string) =>
+          key === 'SPREADSHEET_ID' ? spreadsheetId : key === 'ACCESS_KEY' ? properties.accessKey : null,
       }),
     },
     CacheService: {
@@ -163,12 +172,15 @@ export function loadAppsScript(
     sheet: (name) => spreadsheet.getSheetByName(name),
     lockEvents,
     openedIds,
+    setAccessKey: (key) => {
+      properties.accessKey = key;
+    },
   };
 }
 
 /** GET like the web app URL: `?action=...`. JSON answers come back parsed. */
-export function get(env: AppsScriptEnv, action?: string): unknown {
-  const out = env.doGet({ parameter: action ? { action } : {} });
+export function get(env: AppsScriptEnv, action?: string, key?: string): unknown {
+  const out = env.doGet({ parameter: { ...(action ? { action } : {}), ...(key === undefined ? {} : { key }) } });
   return out.mime === 'JSON' ? JSON.parse(out.content) : out.content;
 }
 

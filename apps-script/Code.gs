@@ -2,6 +2,11 @@
 // so this file can be pushed from the repo as-is and the id never lands in git.
 const SPREADSHEET_ID_PROPERTY = 'SPREADSHEET_ID';
 
+// When this script property holds a key, every request must send it: reads and saves alike.
+// Empty or missing: everything is open. The key is never in the code or in the repo.
+const ACCESS_KEY_PROPERTY = 'ACCESS_KEY';
+const UNAUTHORIZED = 'unauthorized';
+
 const PLAYERS_SHEET_NAME = 'Players';
 const LEGACY_PLAYERS_SHEET_NAME = 'db';
 const TEAMS_SHEET_NAME = 'Teams';
@@ -103,6 +108,13 @@ function getSpreadsheet() {
 
   cachedSpreadsheet = SpreadsheetApp.openById(spreadsheetId);
   return cachedSpreadsheet;
+}
+
+// No key stored: everything is open. A stored key must match exactly; spaces around either
+// one are ignored, so a stray space typed in the property cannot lock everyone out.
+function isKeyAccepted(key) {
+  const expected = normalizeId(PropertiesService.getScriptProperties().getProperty(ACCESS_KEY_PROPERTY));
+  return !expected || normalizeId(key) === expected;
 }
 
 function withScriptLock(callback) {
@@ -346,6 +358,7 @@ function handlePlayerWrite(body) {
 
   const lowerBody = {};
   for (const key in body) {
+    if (key === 'key') continue; // the access key is not a column
     lowerBody[normalizeKey(key)] = body[key];
   }
   if (id) {
@@ -383,6 +396,11 @@ function doGet(e) {
   try {
     const action = e && e.parameter && e.parameter.action ? e.parameter.action : 'read';
 
+    // Checked before the spreadsheet is opened, for every action.
+    if (!isKeyAccepted(e && e.parameter ? e.parameter.key : '')) {
+      return jsonOutput({ error: UNAUTHORIZED });
+    }
+
     if (action === 'readAll') {
       return jsonOutput(readAll());
     }
@@ -413,6 +431,11 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     const action = body.action;
+
+    // Checked before the spreadsheet is opened, for every action.
+    if (!isKeyAccepted(body.key)) {
+      return textOutput('Error: ' + UNAUTHORIZED);
+    }
 
     if (action === 'migratePlayersSheet') {
       return jsonOutput(migratePlayersSheetName());

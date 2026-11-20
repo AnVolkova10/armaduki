@@ -27,3 +27,6 @@ dist-ssr
 
 # clasp (Apps Script CLI): holds the script id, kept out of git
 apps-script/.clasp.json
+
+# Backend release: the access key for the probes (never commit it)
+.env.release

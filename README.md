@@ -6,6 +6,7 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
 
 - One screen for everything: manage players (name, nickname, role, rating, attributes, wants, avoids, avatar) with the edit and delete icons on each card, and tap cards to pick exactly 10 for a match.
 - Generate 2 balanced teams using tactical + social rules.
+- Access key: when the backend has one, a device without it sees a penalty instead of the app. Typing the key takes the shot: the right key scores and the app opens, a wrong key is saved by the keeper, and no answer hits the post.
 - Show analysis with balance metrics and social satisfaction.
 - Copy team output in one click.
 
@@ -106,7 +107,15 @@ npm run dev
 - `npm run preview` - preview production build
 - `npm run lint` - run ESLint
 - `npm test` - run every test in `tests/` with Node's built-in test runner (needs Node 22.18+ for TypeScript): the team generator, the player list filters and sorts, `Code.gs` against in-memory sheets, the store end to end against `Code.gs`, and the backend release script with a fake clasp. None of them reach the real sheet.
-- `npm run backend:release -- "what changed"` - publish `apps-script/` to production with checks and automatic rollback; `npm run backend:release -- --check` only shows the production version. Details in `apps-script/README.md`.
+- `npm run backend:release -- "what changed"` - publish `apps-script/` to production with checks and automatic rollback; `npm run backend:release -- --check` only shows the production version, whether production asks for the access key and whether the one in `.env.release` is accepted. Details in `apps-script/README.md`.
+
+## Access key and the copy on the device
+
+- The key lives in the Apps Script property `ACCESS_KEY` (see `apps-script/README.md`). It is never in the code, in `.env`, in Vercel or in this repo. Empty or missing: anyone with the URL can read and save.
+- With a key set, every request must carry it: `&key=` on reads and `"key"` in the body of saves. Anything else answers `unauthorized` before the spreadsheet is opened.
+- A device keeps the key (in `localStorage`) only after the backend accepted it, and keeps a copy of the last read so the app opens at once. With that copy on screen picking players works right away; adding, editing, deleting and clearing links wait until the sheet has answered.
+- If the backend refuses the key (it changed, or was never typed), the device forgets the key and the copy, and the gate comes back.
+- Privacy mode hides ratings: the numbers on the cards, the score filter and sort, each team's Power and rating total, and the rating difference in the result header.
 
 ## Data contract (Sheets/App Script)
 

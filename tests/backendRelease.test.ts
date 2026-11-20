@@ -24,6 +24,8 @@ interface FakeOptions {
   redeployVersionOverride?: number;
   dirty?: string[];
   testsFail?: boolean;
+  /** The ACCESS_KEY the fake web app asks for. */
+  backendKey?: string;
 }
 
 function fakeDeps(options: FakeOptions = {}) {
@@ -72,6 +74,12 @@ function fakeDeps(options: FakeOptions = {}) {
     const url = String(input);
     if (!url.startsWith(PROD_URL) && !url.startsWith(TEMP_URL)) throw new Error(`unexpected fetch ${url}`);
     if (isBroken(url)) return new Response('<html>Script function not found</html>');
+    const sentKey = init.method === 'POST'
+      ? (JSON.parse(String(init.body)) as { key?: string }).key ?? ''
+      : new URL(url).searchParams.get('key') ?? '';
+    if (options.backendKey && sentKey !== options.backendKey) {
+      return new Response(init.method === 'POST' ? 'Error: unauthorized' : JSON.stringify({ error: 'unauthorized' }));
+    }
     if (init.method === 'POST') return new Response('ID not found for update');
     const action = new URL(url).searchParams.get('action');
     const players = [{ id: 1 }, { id: 2 }];
@@ -190,6 +198,31 @@ test('a URL that is not a deployment of this script stops it', async () => {
   await assert.rejects(release(input({ productionUrl: other }), fake.deps), /not a deployment of the script/);
   assert.deepEqual(commands(fake.calls), ['deployments']);
   assert.throws(() => deploymentIdFromUrl('https://example.com/exec'), /must look like/);
+});
+
+test('with a key on the backend, the probes send it and it is never printed', async () => {
+  const fake = fakeDeps({ backendKey: 'pelota-de-trapo' });
+  const result = await release(input({ accessKey: 'pelota-de-trapo' }), fake.deps);
+  assert.equal(result.status, 'released');
+  assert.ok(fake.logs.every((line) => !line.includes('pelota-de-trapo')));
+
+  const noKey = fakeDeps({ backendKey: 'pelota-de-trapo' });
+  await assert.rejects(release(input(), noKey.deps), /unauthorized.*BACKEND_ACCESS_KEY in \.env\.release.*Production did not change/);
+  assert.equal(noKey.production().versionNumber, 19);
+});
+
+test('--check says whether production asks for a key and whether ours is accepted', async () => {
+  const check = async (options: FakeOptions, accessKey?: string) => {
+    const fake = fakeDeps(options);
+    await release(input({ checkOnly: true, description: '', accessKey }), fake.deps);
+    return fake.logs.join('\n');
+  };
+  assert.match(await check({}), /asks for no access key/);
+  assert.match(await check({ backendKey: 'pelota-de-trapo' }), /asks for the access key\. There is none in \.env\.release/);
+  assert.match(await check({ backendKey: 'pelota-de-trapo' }, 'pelota-de-trapo'), /The one in \.env\.release is accepted/);
+  const refused = await check({ backendKey: 'pelota-de-trapo' }, 'otra-cosa');
+  assert.match(refused, /The one in \.env\.release is REFUSED/);
+  assert.ok(!refused.includes('otra-cosa'));
 });
 
 test('descriptions and masking', () => {

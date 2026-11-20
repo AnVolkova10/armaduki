@@ -12,7 +12,9 @@
 //   npm run backend:release -- --check          check the setup and show the production version; changes nothing
 //
 // Needs Node 22.18+ (it runs as TypeScript), `npx @google/clasp login` done once, and
-// apps-script/.clasp.json (see apps-script/README.md).
+// apps-script/.clasp.json (see apps-script/README.md). When the backend asks for the access key
+// (script property ACCESS_KEY), put it in .env.release as BACKEND_ACCESS_KEY: git ignores that
+// file, and the script sends the key without ever printing it.
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -54,6 +56,8 @@ export interface ReleaseInput {
   description: string;
   checkOnly: boolean;
   allowDirty: boolean;
+  /** The access key the probes send ('' when the backend asks for none). Never printed. */
+  accessKey?: string;
 }
 
 export interface ReleaseResult {
@@ -152,33 +156,48 @@ async function requestJson(deps: ReleaseDeps, url: string, init?: RequestInit): 
   throw new ReleaseError(`no answer (${lastError instanceof Error ? lastError.message : String(lastError)})`);
 }
 
+/**
+ * Does this web app ask for a key, and is ours accepted? An unknown action answers before the
+ * spreadsheet is opened: "unauthorized" when the key is missing or wrong, "Action unknown" otherwise.
+ */
+export async function probeAccessKey(deps: ReleaseDeps, url: string, accessKey: string): Promise<{ required: boolean; accepted: boolean }> {
+  const refused = (answer: unknown) => (answer as { error?: unknown } | null)?.error === 'unauthorized';
+  const required = refused(await requestJson(deps, `${url}?action=keyCheck`));
+  const accepted = required && Boolean(accessKey)
+    ? !refused(await requestJson(deps, `${url}?action=keyCheck&key=${encodeURIComponent(accessKey)}`))
+    : !required;
+  return { required, accepted };
+}
+
 /** Read-only checks of a deployed web app. Returns a short summary without data. */
-export async function probeWebApp(deps: ReleaseDeps, url: string): Promise<string> {
-  const all = (await requestJson(deps, `${url}?action=readAll`)) as {
+export async function probeWebApp(deps: ReleaseDeps, url: string, accessKey = ''): Promise<string> {
+  const keyParam = accessKey ? `&key=${encodeURIComponent(accessKey)}` : '';
+  const all = (await requestJson(deps, `${url}?action=readAll${keyParam}`)) as {
     players?: unknown;
     teams?: unknown;
     teamsError?: unknown;
     error?: unknown;
   };
   if (!all || !Array.isArray(all.players)) {
-    throw new ReleaseError(`readAll did not return players${all?.error ? ` (${String(all.error)})` : ''}`);
+    const hint = all?.error === 'unauthorized' ? ': the backend asks for the access key; set BACKEND_ACCESS_KEY in .env.release' : '';
+    throw new ReleaseError(`readAll did not return players${all?.error ? ` (${String(all.error)})` : ''}${hint}`);
   }
   if (!Array.isArray(all.teams) || all.teamsError) {
     throw new ReleaseError(`readAll did not return teams${all.teamsError ? ` (${String(all.teamsError)})` : ''}`);
   }
 
-  const players = await requestJson(deps, `${url}?action=read`);
+  const players = await requestJson(deps, `${url}?action=read${keyParam}`);
   if (!Array.isArray(players) || players.length !== all.players.length) {
     throw new ReleaseError('read and readAll disagree on the players');
   }
 
-  const teams = await requestJson(deps, `${url}?action=readTeams`);
+  const teams = await requestJson(deps, `${url}?action=readTeams${keyParam}`);
   if (!Array.isArray(teams)) throw new ReleaseError('readTeams did not return a list');
 
   const write = await requestJson(deps, url, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify({ action: 'update', id: PROBE_ID }),
+    body: JSON.stringify(accessKey ? { action: 'update', id: PROBE_ID, key: accessKey } : { action: 'update', id: PROBE_ID }),
   });
   if (write !== 'ID not found for update') {
     throw new ReleaseError(`the write check answered "${String(write).slice(0, 80)}"`);
@@ -196,6 +215,8 @@ export async function release(input: ReleaseInput, deps: ReleaseDeps): Promise<R
   const say = (line: string) => deps.log(mask(line));
   const productionId = deploymentIdFromUrl(input.productionUrl);
   mask.add(productionId, '<production>');
+  const accessKey = (input.accessKey ?? '').trim();
+  mask.add(accessKey, '<key>');
 
   const deployments = parseDeployments(await deps.clasp(['deployments']));
   const production = deployments.find((deployment) => deployment.deploymentId === productionId);
@@ -213,6 +234,10 @@ export async function release(input: ReleaseInput, deps: ReleaseDeps): Promise<R
   const dirty = await deps.dirtyBackendFiles();
   if (input.checkOnly) {
     if (dirty.length > 0) say(`Uncommitted backend changes: ${dirty.join(', ')}.`);
+    const key = await probeAccessKey(deps, input.productionUrl, accessKey);
+    if (!key.required) say('Production asks for no access key: anyone with the URL can read and save.');
+    else if (!accessKey) say('Production asks for the access key. There is none in .env.release (BACKEND_ACCESS_KEY).');
+    else say(`Production asks for the access key. The one in .env.release is ${key.accepted ? 'accepted' : 'REFUSED'}.`);
     say('Check only: nothing changed.');
     return { status: 'checked', productionVersion: previousVersion };
   }
@@ -251,7 +276,7 @@ export async function release(input: ReleaseInput, deps: ReleaseDeps): Promise<R
 
     say('Checking the temporary deployment...');
     try {
-      say(`Temporary deployment OK: ${await probeWebApp(deps, webAppUrl(temporary.deploymentId))}.`);
+      say(`Temporary deployment OK: ${await probeWebApp(deps, webAppUrl(temporary.deploymentId), accessKey)}.`);
     } catch (error) {
       throw new ReleaseError(`Temporary deployment check failed: ${errorText(error)}. Production did not change.`);
     }
@@ -266,7 +291,7 @@ export async function release(input: ReleaseInput, deps: ReleaseDeps): Promise<R
         throw new ReleaseError(`production answered version ${moved?.versionNumber ?? 'unknown'}`);
       }
       say(`Production moved to version ${version}. Checking it...`);
-      say(`Production OK: ${await probeWebApp(deps, input.productionUrl)}.`);
+      say(`Production OK: ${await probeWebApp(deps, input.productionUrl, accessKey)}.`);
     } catch (error) {
       say(`Problem after moving production (${errorText(error)}). Going back to version ${previousVersion}...`);
       try {
@@ -329,6 +354,14 @@ function readProductionUrl(): string {
   return match[1];
 }
 
+/** BACKEND_ACCESS_KEY from the terminal or from .env.release (ignored by git). */
+function readAccessKey(): string {
+  if (process.env.BACKEND_ACCESS_KEY) return process.env.BACKEND_ACCESS_KEY;
+  const file = path.join(projectRoot, '.env.release');
+  const env = fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+  return /^\s*BACKEND_ACCESS_KEY\s*=\s*["']?([^"'\r\n]*)["']?\s*$/m.exec(env)?.[1] ?? '';
+}
+
 function createRealDeps(): ReleaseDeps {
   const npmCli = process.env.npm_execpath ?? '';
   if (!/npm-cli\.js$/.test(npmCli)) {
@@ -375,7 +408,9 @@ async function main() {
   const mask = createMasker();
 
   try {
-    await release({ productionUrl: readProductionUrl(), description, checkOnly, allowDirty }, createRealDeps());
+    const accessKey = readAccessKey();
+    mask.add(accessKey, '<key>');
+    await release({ productionUrl: readProductionUrl(), description, checkOnly, allowDirty, accessKey }, createRealDeps());
   } catch (error) {
     console.error(mask(error instanceof ReleaseError ? error.message : `Unexpected error: ${errorText(error)}`));
     process.exitCode = 1;

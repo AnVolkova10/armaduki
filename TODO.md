@@ -31,6 +31,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 - [x] Los equipos se cargan a mano en la pestaña `Teams`; el modal solo los elige (F2-05.2.0).
 - [x] Orden de los sprints: la base, el generador y el rediseño van antes de las funciones nuevas (18/11).
 - [x] Fecha de nacimiento: opcional; se guarda la fecha y se muestra la edad (18/11).
+- [x] Clave (20/11): vive en la propiedad `ACCESS_KEY` del script; nunca en el código, en `.env`, en Vercel ni en el repo, que es público. Con la clave cargada no se lee ni se guarda sin ella. Cada dispositivo la escribe una vez, en el penal de entrada.
 - [x] Players y Match son una sola pantalla (19/11): tocar la tarjeta la elige; editar y borrar siguen en la tarjeta, para borrar rápido (con confirmación); el resultado aparece debajo de la lista.
 
 ## Sprint 0 - Revisión técnica (hecho)
@@ -105,11 +106,11 @@ Prueba (en https://armaduki.vercel.app, mejor desde el teléfono):
 3. «+ Add Player» → «Extra info»: la lista de equipos carga.
 4. La app abre con un solo pedido. En la computadora se ve con F12 → Network, filtrando por `exec`: aparece `readAll` y ya no `read` ni `readTeams`.
 
-## Sprint 3b - Players y Match en una sola pantalla (hecho, falta tu prueba)
+## Sprint 3b - Players y Match en una sola pantalla (hecho)
 
 Objetivo: elegir, editar y armar el partido en el mismo lugar, sin acordarse en qué pantalla se está (pedido de Ángela, 19/11).
 
-- [ ] **Ángela:** probarlo con los pasos de abajo.
+- [x] **Ángela:** probarlo con los pasos de abajo.
 - [x] Una sola pantalla, «Players», en `src/pages/PlayersPage.tsx`: tocar una tarjeta la elige; el lápiz y el tacho de la tarjeta editan y borran (en la computadora aparecen al pasar el mouse; en el teléfono están siempre); el resultado aparece debajo de la lista. Arriba: «+ Add Player», el contador, «Clear» (selección, filtros, wants, avoids y links) y «Generate Teams».
 - [x] Con 10 elegidas, las demás tarjetas no se pueden elegir, pero se pueden editar y borrar.
 - [x] Se fueron las pestañas del header; `/match` y cualquier dirección vieja llevan a la pantalla única.
@@ -123,14 +124,27 @@ Prueba (en https://armaduki.vercel.app, mejor desde el teléfono):
 3. «Generate Teams»: el resultado aparece debajo de la lista.
 4. En la computadora, el lápiz y el tacho aparecen al pasar el mouse por la tarjeta.
 
-## Sprint 4 - Clave y privacidad
+## Sprint 4 - Clave y privacidad (hecho, falta tu paso y tu prueba)
 
-Objetivo: proteger los datos con una clave.
+Objetivo: proteger los datos con una clave, con el mismo esquema que VolkosFood.
 
-- [ ] Pedir una clave para guardar, como en VolkosFood (RV-13, F2-12.4). **Propuesta.**
-- [ ] Pedir la clave también para leer. **Propuesta.**
-- [ ] Abrir al instante con la última lectura guardada en el dispositivo y actualizar detrás, una vez que la clave esté puesta. **Propuesta.**
-- [ ] Aplicar en toda la app lo que se decida que oculta privacy mode (RV-12). Ver «Cosas por cerrar».
+- [ ] **Ángela:** prender la clave. En el editor de Apps Script del proyecto: Configuración del proyecto (el engranaje) → Propiedades del script → Agregar propiedad de script → nombre `ACCESS_KEY`, valor: la clave → Guardar. Funciona al instante. Para apagarla, borrar la propiedad.
+- [ ] **Ángela:** probarlo con los pasos de abajo.
+- [x] La clave se pide para leer y para guardar (RV-13, F2-12.4): sin ella el backend responde «unauthorized» antes de abrir la planilla. Backend versión 21. Mientras la propiedad no exista, todo sigue abierto como hasta ahora.
+- [x] El penal de entrada: un dispositivo sin la clave ve un arco, la pelota y la arquera en lugar de la app. Escribir la clave es patear: si está bien, gol y entra; si está mal, la arquera ataja; si no hay respuesta, palo. Mientras el backend contesta, la pelota se carga y la arquera se mueve en la línea.
+- [x] El dispositivo guarda la clave recién cuando el backend la aceptó. Si el backend la rechaza más adelante (por ejemplo, porque cambió), el dispositivo la olvida, borra su copia y vuelve al penal.
+- [x] Abre al instante con la última lectura guardada en el dispositivo y actualiza detrás. Con la copia en pantalla se puede elegir enseguida; agregar, editar, borrar y limpiar links esperan a la lectura nueva (dice «Updating from Google Sheets...»). Si la actualización falla, por ejemplo sin señal en la cancha, queda un botón «Saved copy · Refresh» para reintentar. Al llegar la lectura nueva, lo elegido que ya no existe sale de la selección.
+- [x] Privacy mode (RV-12): ahora también oculta el total de rating de cada equipo en el análisis.
+- [x] `npm run backend:release` manda la clave en sus pruebas (la toma de `.env.release`, que git ignora) y `-- --check` dice si producción pide clave y si la del archivo es aceptada.
+- [x] Verificado: lint, tipos, 84 tests, build y pruebas en Edge contra una API local, en tamaño teléfono y computadora (no en un teléfono real): sin clave, clave equivocada, sin respuesta, clave correcta, volver a entrar con la copia guardada y un solo pedido, sin señal sobre la copia guardada, clave cambiada en el backend y backend sin clave.
+
+Prueba (después de prender la clave; en https://armaduki.vercel.app, mejor desde el teléfono):
+
+1. Abrí la app: aparece el penal. Escribí cualquier cosa y tocá «Shoot»: la arquera ataja.
+2. Escribí la clave: gol, y entra a la app.
+3. Cerrá y volvé a abrir: entra directo, con la lista al instante, y a los segundos se actualiza.
+4. Para volver a ver el penal: una ventana privada, o borrar los datos del sitio en el navegador.
+5. Con privacy mode prendido, generá equipos: en el análisis, la línea «Rating» muestra la diferencia pero no el total de cada equipo.
 
 ## Sprint 5 - Rediseño con Fable
 
@@ -205,7 +219,7 @@ Objetivo: que las que juegan juntas en un equipo real tiendan a caer juntas, sin
 - [x] **Qué es «sort selected».** «Sort: selected» en Match y en Players: deja arriba a las elegidas (19/11).
 - [ ] **«Fable 2.5».** Se entendió Claude Fable 5.2, el modelo del rediseño de VolkosFood. Decide: Ángela. Default: Fable 5.2.
 - [ ] **Default de arquera (`gkWillingness`).** El modal crea jugadoras con `low`, pero una fila de la planilla sin el dato se lee como `no` (RV-14). Decide: Ángela. Default: `no` en los dos, para que lo desconocido no cuente como arquera de emergencia.
-- [ ] **Qué oculta privacy mode** (RV-12). Hoy oculta los ratings individuales, pero el análisis sigue mostrando el total de rating por equipo. Decide: Ángela. Default: ocultar también esos totales.
+- [x] **Qué oculta privacy mode** (RV-12). Se aplicó el default (20/11): oculta también el total de rating de cada equipo en el análisis. La diferencia entre equipos se sigue viendo, porque el score la necesita para entenderse.
 - [ ] **Guardar partidos: automático o con botón** (F2-11.4). Decide: Ángela. Default: botón explícito, con «prueba» o «partido real».
 - [ ] **Alcance** (F2-12.6): uso personal o abrir a más grupos. Cambia cuánto pesan la clave, los roles y el multi-grupo. Decide: Ángela. Default: uso personal.
 - [ ] **Requisitos dudosos de la v1:** «sugerencia #1 no entendida» (F2-12.7) y «pregunta #10 no entendida» (F2-12.8). Decide: Ángela. Default: se descartan si nadie los recuerda.
@@ -215,6 +229,8 @@ Objetivo: que las que juegan juntas en un equipo real tiendan a caer juntas, sin
 - [ ] Suplentes: 10 titulares y 1 o 2 suplentes en gris, con una copia clara (F2-12.1).
 - [ ] Partidos de otro tamaño sin romper el balanceador (F2-12.2), y equipos de F6, F7, etc. (F2-12.3).
 - [ ] Roles para editar (F2-12.4), si el alcance pasa a más grupos. Para el uso personal alcanza la clave del Sprint 4.
+- [ ] Un lugar en la app para olvidar la clave en ese dispositivo (hoy: borrar los datos del sitio). **Propuesta.**
+- [ ] Frenar los intentos de clave repetidos desde el backend. **Propuesta.**
 - [ ] Multi-grupo o multi-liga (F2-12.5).
 - [ ] Variedad en el generador: «otro reparto» entre los casi iguales, o no repetir los equipos de la última fecha (con el historial del Sprint 9).
 - [ ] Fotos más livianas: las fotos guardadas en la planilla son casi todo lo que baja al abrir la app (medido el 19/11). Achicarlas al guardarlas, o traerlas aparte de la lectura inicial. Se complementa con abrir con la última lectura guardada (Sprint 4). **Propuesta.**

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { clearSavedRead, readAccessKey, readSavedRead, saveAccessKey, saveRead } from '../services/deviceStorage';
 import type { Attributes, AttributeLevel, GeneratedTeams, GKWillingness, Person, Role, TeamCatalog } from '../types';
 
 // Google Apps Script Web App URL
@@ -23,6 +24,26 @@ function debugLog(...args: unknown[]) {
 }
 
 type LoadStatus = 'idle' | 'loading' | 'loaded' | 'error';
+
+/**
+ * open: the app is usable. asking: a device with no key and no saved copy waits for the first
+ * answer. locked: the backend refused, and the gate asks for the key.
+ */
+export type Access = 'open' | 'asking' | 'locked';
+export type UnlockResult = 'open' | 'wrong' | 'unreachable';
+type LoadResult = 'ok' | 'refused' | 'failed';
+
+const UNAUTHORIZED = 'unauthorized';
+
+class UnauthorizedError extends Error {}
+
+// The key this device sends with every request. It is stored on the device only after the
+// backend accepted it (see unlock).
+let accessKey = readAccessKey();
+
+function isUnauthorized(value: unknown): boolean {
+  return Boolean(value) && typeof value === 'object' && (value as { error?: unknown }).error === UNAUTHORIZED;
+}
 
 interface SyncOperation {
   label: string;
@@ -406,13 +427,17 @@ async function postAppsScriptPayload(payload: SheetsPayload): Promise<void> {
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(accessKey ? { ...payload, key: accessKey } : payload),
       signal: controller.signal,
     });
     const responseText = (await response.text()).trim();
 
     if (!response.ok) {
       throw new Error(`Apps Script returned HTTP ${response.status}.`);
+    }
+
+    if (responseText === `Error: ${UNAUTHORIZED}`) {
+      throw new UnauthorizedError('The access key was refused. Enter it again and retry.');
     }
 
     if (!SUCCESS_RESPONSES[payload.action].includes(responseText)) {
@@ -471,7 +496,8 @@ function isReadAllPayload(value: unknown): value is ReadAllPayload {
 }
 
 async function getAppsScriptJson(action: 'readAll' | 'read' | 'readTeams'): Promise<unknown> {
-  const response = await fetch(`${APPS_SCRIPT_URL}?action=${action}`);
+  const keyParam = accessKey ? `&key=${encodeURIComponent(accessKey)}` : '';
+  const response = await fetch(`${APPS_SCRIPT_URL}?action=${action}${keyParam}`);
   if (!response.ok) {
     throw new Error(`Apps Script returned HTTP ${response.status}`);
   }
@@ -507,6 +533,11 @@ function parseTeamsCatalog(rawData: unknown): TeamCatalog[] {
   return teamsCatalog;
 }
 
+/** The selected players as text, to tell whether a fresh read changed any of them. */
+function describeSelection(state: { people: Person[]; selectedIds: Set<string> }): string {
+  return JSON.stringify(state.people.filter((person) => state.selectedIds.has(person.id)));
+}
+
 type RelationshipKind = 'wantsWith' | 'avoidsWith';
 
 interface AppStore {
@@ -515,6 +546,13 @@ interface AppStore {
   teamsCatalog: TeamCatalog[];
   selectedIds: Set<string>;
   generatedTeams: GeneratedTeams | null;
+
+  // Access (see Access) and whether the sheet answered in this visit. While isFresh is false
+  // the screen may show the copy saved on the device: picking works, editing waits.
+  access: Access;
+  isFresh: boolean;
+  /** A read is running (the first one, or a refresh behind the saved copy). */
+  isReading: boolean;
 
   // Loading state
   peopleStatus: LoadStatus;
@@ -531,6 +569,8 @@ interface AppStore {
   // Actions - Data fetching
   fetchPeople: () => Promise<void>;
   fetchTeamsCatalog: () => Promise<void>;
+  /** Tries a key typed at the gate. It is kept on the device only if the backend accepts it. */
+  unlock: (key: string) => Promise<UnlockResult>;
 
   // Actions - People management
   addPerson: (person: Person) => Promise<void>;
@@ -562,7 +602,31 @@ const useAppStore = create<AppStore>()((set, get) => {
   let syncQueue: Promise<void> = Promise.resolve();
   let nextFailedOperationId = 1;
 
+  let inflightLoad: Promise<LoadResult> | null = null;
+
   const findPerson = (id: string) => get().people.find((person) => person.id === id);
+
+  // The backend refused this device's key: nothing of the roster stays on screen or on the device.
+  const lock = () => {
+    accessKey = '';
+    saveAccessKey('');
+    clearSavedRead();
+    set({
+      access: 'locked',
+      isFresh: false,
+      isReading: false,
+      people: [],
+      teamsCatalog: [],
+      teamsCatalogLoaded: false,
+      isTeamsCatalogLoading: false,
+      teamsCatalogError: null,
+      selectedIds: new Set(),
+      generatedTeams: null,
+      peopleStatus: 'idle',
+      error: null,
+      dataWarning: null,
+    });
+  };
 
   /** Queues a write. Writes run strictly in order; a failure is kept for retry and never blocks the queue. */
   const runSyncOperation = (operation: SyncOperation): Promise<void> => {
@@ -575,6 +639,7 @@ const useAppStore = create<AppStore>()((set, get) => {
         debugLog(`Sync success: ${operation.label}`);
       } catch (syncError) {
         console.error(`Sync failed (${operation.label}):`, syncError);
+        if (syncError instanceof UnauthorizedError) lock();
         const failed: FailedSyncOperation = {
           ...operation,
           id: nextFailedOperationId++,
@@ -676,44 +741,44 @@ const useAppStore = create<AppStore>()((set, get) => {
     }
   };
 
-  return {
-    // Initial state
-    people: [],
-    teamsCatalog: [],
-    selectedIds: new Set(),
-    generatedTeams: null,
-    peopleStatus: 'idle',
-    isTeamsCatalogLoading: false,
-    error: null,
-    dataWarning: null,
-    teamsCatalogError: null,
-    teamsCatalogLoaded: false,
-    pendingSyncCount: 0,
-    syncErrors: [],
-    privacyMode: true,
+  // Loads players and the Teams catalog with one request (`readAll`). Three outcomes:
+  // ok, refused (the key is wrong or missing: the gate takes over) and failed (no answer).
+  // A backend older than `readAll` answers { error: 'Action unknown' }; then the two separate
+  // reads run instead, so rolling the Apps Script back never breaks loading.
+  const load = (): Promise<LoadResult> => {
+    if (inflightLoad) return inflightLoad;
 
-    togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
+    if (!APPS_SCRIPT_URL) {
+      set({
+        access: 'open',
+        peopleStatus: 'error',
+        error: MISSING_URL_MESSAGE,
+        teamsCatalogLoaded: true,
+        teamsCatalogError: MISSING_URL_MESSAGE,
+      });
+      return Promise.resolve('failed');
+    }
 
-    // Loads players and the Teams catalog with one request (`readAll`). A backend older than
-    // `readAll` answers { error: 'Action unknown' }; then the two separate reads run instead,
-    // so rolling the Apps Script back never breaks loading.
-    fetchPeople: async () => {
-      if (get().peopleStatus === 'loading') return;
+    // With a saved copy on screen the list stays; without one the loader shows.
+    const hadCopy = get().peopleStatus === 'loaded';
+    // Players picked on a saved copy, to compare with what the sheet says now.
+    const pickedOnCopy = !get().isFresh ? describeSelection(get()) : null;
+    set({
+      isReading: true,
+      peopleStatus: hadCopy ? 'loaded' : 'loading',
+      error: null,
+      isTeamsCatalogLoading: true,
+      teamsCatalogError: null,
+    });
 
-      if (!APPS_SCRIPT_URL) {
-        set({
-          peopleStatus: 'error',
-          error: MISSING_URL_MESSAGE,
-          teamsCatalogLoaded: true,
-          teamsCatalogError: MISSING_URL_MESSAGE,
-        });
-        return;
-      }
-
-      set({ peopleStatus: 'loading', error: null, isTeamsCatalogLoading: true, teamsCatalogError: null });
-
+    inflightLoad = (async (): Promise<LoadResult> => {
       try {
         const rawData = await getAppsScriptJson('readAll');
+
+        if (isUnauthorized(rawData)) {
+          lock();
+          return 'refused';
+        }
 
         if (isReadAllPayload(rawData)) {
           applyPeopleRows(rawData.players);
@@ -726,7 +791,21 @@ const useAppStore = create<AppStore>()((set, get) => {
               failTeamsCatalog(teamsError);
             }
           }
-          return;
+          saveRead({ players: rawData.players, teams: Array.isArray(rawData.teams) ? rawData.teams : [] });
+          set((state) => {
+            // The fresh read replaces a saved copy: a pick that is gone from the sheet goes away,
+            // and a result made with data that changed is no longer valid.
+            const existing = new Set(state.people.map((person) => person.id));
+            const selectedIds = new Set([...state.selectedIds].filter((id) => existing.has(id)));
+            const changed = pickedOnCopy !== null && pickedOnCopy !== describeSelection({ ...state, selectedIds });
+            return {
+              access: 'open',
+              isFresh: true,
+              selectedIds: selectedIds.size === state.selectedIds.size ? state.selectedIds : selectedIds,
+              generatedTeams: changed ? null : state.generatedTeams,
+            };
+          });
+          return 'ok';
         }
 
         debugLog('readAll not available, using read + readTeams:', rawData);
@@ -735,14 +814,86 @@ const useAppStore = create<AppStore>()((set, get) => {
           loadTeamsCatalog(),
         ]);
         if (peopleResult.status === 'rejected') throw peopleResult.reason;
+        set({ access: 'open', isFresh: true });
+        return 'ok';
       } catch (fetchError) {
         console.error('Error fetching people data:', fetchError);
-        set({
-          error: `Error loading data from Google Sheets. ${getErrorMessage(fetchError)}`,
-          peopleStatus: 'error',
-        });
-        if (get().isTeamsCatalogLoading) failTeamsCatalog(fetchError);
+        set((state) => ({
+          // A device still waiting at the gate goes in to see the usual error and its retry.
+          access: state.access === 'asking' ? 'open' : state.access,
+          error: hadCopy
+            ? `Couldn't refresh from Google Sheets. ${getErrorMessage(fetchError)} Showing the copy saved on this device; editing waits for a fresh read.`
+            : `Error loading data from Google Sheets. ${getErrorMessage(fetchError)}`,
+          peopleStatus: hadCopy ? 'loaded' : 'error',
+        }));
+        if (get().isTeamsCatalogLoading) {
+          if (hadCopy) set({ isTeamsCatalogLoading: false });
+          else failTeamsCatalog(fetchError);
+        }
+        return 'failed';
+      } finally {
+        inflightLoad = null;
+        set({ isReading: false });
       }
+    })();
+
+    return inflightLoad;
+  };
+
+  // A copy of the last read, if this device has one: the app opens with it and refreshes behind.
+  const savedRead = readSavedRead();
+  const savedPeople = savedRead ? parsePeopleRows(savedRead.players).people : [];
+  let savedTeams: TeamCatalog[] = [];
+  try {
+    savedTeams = savedRead ? parseTeamsCatalog(savedRead.teams) : [];
+  } catch {
+    savedTeams = [];
+  }
+  const hasSavedCopy = savedPeople.length > 0;
+
+  return {
+    // Initial state
+    people: savedPeople,
+    teamsCatalog: savedTeams,
+    selectedIds: new Set(),
+    generatedTeams: null,
+    // A device with no key and nothing saved waits at the gate for the first answer.
+    access: hasSavedCopy || accessKey ? 'open' : 'asking',
+    isFresh: false,
+    isReading: false,
+    peopleStatus: hasSavedCopy ? 'loaded' : 'idle',
+    isTeamsCatalogLoading: false,
+    error: null,
+    dataWarning: null,
+    teamsCatalogError: null,
+    teamsCatalogLoaded: hasSavedCopy,
+    pendingSyncCount: 0,
+    syncErrors: [],
+    privacyMode: true,
+
+    togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
+
+    fetchPeople: async () => {
+      await load();
+    },
+
+    unlock: async (key) => {
+      // A read sent before the key was typed would answer for the old key: let it finish first.
+      if (inflightLoad) await inflightLoad;
+      accessKey = key.trim();
+      const result = await load();
+
+      if (result === 'ok') {
+        saveAccessKey(accessKey);
+        return 'open';
+      }
+
+      accessKey = '';
+      if (result === 'refused') return 'wrong';
+
+      // No answer: stay at the gate, with nothing saved, so the same key can be tried again.
+      set({ access: 'locked', peopleStatus: 'idle', error: null, isTeamsCatalogLoading: false });
+      return 'unreachable';
     },
 
     fetchTeamsCatalog: async () => {

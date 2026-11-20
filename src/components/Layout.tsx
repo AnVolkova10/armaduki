@@ -1,12 +1,24 @@
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import './Layout.css';
 
 import useAppStore from '../store/useAppStore';
 import { AppNotices } from './AppNotices';
+import { Gate } from './Gate';
 
 export function Layout() {
     const privacyMode = useAppStore((state) => state.privacyMode);
     const togglePrivacyMode = useAppStore((state) => state.togglePrivacyMode);
+    const access = useAppStore((state) => state.access);
+
+    // The gate covers the app while the backend has not let this device in, and stays up
+    // until its own exit (the goal) has played. It comes back if the device is locked again.
+    const [gateUp, setGateUp] = useState(access !== 'open');
+    const [seenAccess, setSeenAccess] = useState(access);
+    if (access !== seenAccess) {
+        setSeenAccess(access);
+        if (access !== 'open') setGateUp(true);
+    }
 
     return (
         <div className="layout">
@@ -17,9 +29,11 @@ export function Layout() {
                 </div>
             </header>
             <main className="main">
-                <Outlet />
+                {/* Locked: nothing of the roster is on screen, and nothing asks the backend. */}
+                {access !== 'locked' && <Outlet />}
             </main>
             <AppNotices />
+            {gateUp && <Gate onGone={() => setGateUp(false)} />}
             <footer className="footer">
                 <div className="footer-signature">
                     Ángela Curzi 2026

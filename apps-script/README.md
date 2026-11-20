@@ -14,6 +14,13 @@ One-time setup (per machine):
 
 4. Set the spreadsheet id once in Apps Script > Project Settings > Script Properties: property `SPREADSHEET_ID`, value = the id in the sheet URL (`docs.google.com/spreadsheets/d/<id>/edit`). `Code.gs` reads it from there, so the id is never committed. Without it, every request answers `Missing script property SPREADSHEET_ID`.
 
+Access key (optional, since version 21): the script property `ACCESS_KEY`.
+
+- Without a value, anyone with the `/exec` URL can read and save. That URL is inside the published site, so the key is what protects the sheet.
+- With a value, a request that does not carry the same key answers `{ "error": "unauthorized" }` (GET) or `Error: unauthorized` (POST) before the spreadsheet is opened. The app sends it as `&key=` on reads and as `"key"` in the body of saves, and shows the gate until the key is typed on that device.
+- To turn it on: Apps Script editor > Project Settings > Script Properties > Add script property, name `ACCESS_KEY`, value = the key > Save. It works at once, with no new version. To turn it off, delete the property.
+- The key lives in three places: the script property, each device (typed once at the gate) and, for publishing, `.env.release` as `BACKEND_ACCESS_KEY` (ignored by git). If it changes, change it in all three. It never goes in the code, `.env`, Vercel or the docs.
+
 `.claspignore` limits pushes to `Code.gs` and `appsscript.json`; `npx @google/clasp status` lists what would be pushed.
 
 Publishing (from the project root): `npm run backend:release -- "short description"` does the whole release and stops at the first problem:
@@ -25,7 +32,7 @@ Publishing (from the project root): `npm run backend:release -- "short descripti
 5. moves production (the deployment in `VITE_APPS_SCRIPT_URL`) to the new version and checks it again. If that fails, production goes back to the previous version;
 6. deletes the temporary deployment.
 
-It refuses to run with uncommitted changes in `Code.gs` or `appsscript.json` (`--allow-dirty` skips that check), never prints deployment ids, and only deletes the temporary deployment it created. It runs clasp 3.4.1 through `npx` without a shell. `npm run backend:release -- --check` only shows the version production is on and changes nothing. Needs Node 22.18+, the one-time setup above and `VITE_APPS_SCRIPT_URL` in `.env`.
+It refuses to run with uncommitted changes in `Code.gs` or `appsscript.json` (`--allow-dirty` skips that check), never prints deployment ids, and only deletes the temporary deployment it created. It runs clasp 3.4.1 through `npx` without a shell. `npm run backend:release -- --check` only shows the version production is on, whether it asks for the access key and whether the one in `.env.release` is accepted; it changes nothing. With `ACCESS_KEY` set, the checks of a release need `BACKEND_ACCESS_KEY` in `.env.release`: the script sends it and never prints it. Needs Node 22.18+, the one-time setup above and `VITE_APPS_SCRIPT_URL` in `.env`.
 
 By hand, from `apps-script/` (the production deployment id is the part between `/s/` and `/exec` in `VITE_APPS_SCRIPT_URL`):
 
@@ -48,6 +55,7 @@ Current migration status:
 - `action=migrateSchema` runs `ensureSchema()` explicitly from the deployed web app URL.
 - `action=migratePlayersSheet` remains available as a focused legacy rename action.
 - `action=readTeams` returns the `Teams` catalog for the frontend with safe defaults.
+- Every action checks `ACCESS_KEY` first (see above): reads, saves and migrations.
 - `action=readAll` returns `{ players, teams }` in one execution; the app uses it on open. A `Teams` failure comes back as `teamsError` and does not block the players. An unknown action answers `{ error: 'Action unknown' }`, which the app uses to fall back to `read` + `readTeams` on older versions.
 - `update` preserves existing cell values for columns missing from the incoming payload.
 - `delete` and `update` resolve the `id` column by header name instead of assuming it is the first column.

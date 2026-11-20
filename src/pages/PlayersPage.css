@@ -203,6 +203,27 @@
   font-size: 0.875rem;
 }
 
+.players-page .players-refreshing {
+  color: var(--accent);
+}
+
+.players-page .players-refresh {
+  margin-right: 0.6rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.65);
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.players-page .clear-links-option:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .players-page .team-result-scroll-anchor {
   scroll-margin-top: 5rem;
 }

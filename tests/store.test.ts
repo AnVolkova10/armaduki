@@ -35,7 +35,24 @@ const backend = loadAppsScript([players, teams]);
 // ---------------------------------------------------------------------------
 // fetch stand-in
 // ---------------------------------------------------------------------------
+// The device's storage: Node's own localStorage needs a file, so the store gets this one.
+const storage = new Map<string, string>();
+Object.defineProperty(globalThis, 'localStorage', {
+  configurable: true,
+  value: {
+    getItem: (name: string) => storage.get(name) ?? null,
+    setItem: (name: string, value: string) => void storage.set(name, String(value)),
+    removeItem: (name: string) => void storage.delete(name),
+  },
+});
+const KEY_STORAGE = 'armaduki-access-key';
+const COPY_STORAGE = 'armaduki-last-read-v1';
+const KEY = 'pelota-de-trapo'; // the tests' own key; the real one is only in Script Properties
+
 const gets: string[] = [];
+/** The key each GET carried ('' when none). */
+const getKeys: string[] = [];
+let networkDown = false;
 const posts: Record<string, unknown>[] = [];
 let failNextPosts: ('network' | 'error-text')[] = [];
 let answerReadAllLikeOldBackend = false;
@@ -45,9 +62,12 @@ globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}
   if (url.origin !== TEST_ORIGIN) throw new Error(`test fetch refuses ${url.origin}`);
   await new Promise((resolve) => setTimeout(resolve, 5 + Math.random() * 15));
 
+  if (networkDown) throw new TypeError('Failed to fetch');
+
   if (!init.method || init.method === 'GET') {
     const action = url.searchParams.get('action') ?? 'read';
     gets.push(action);
+    getKeys.push(url.searchParams.get('key') ?? '');
     if (answerReadAllLikeOldBackend && action === 'readAll') {
       return new Response(JSON.stringify({ error: 'Action unknown' }));
     }
@@ -266,9 +286,155 @@ test('changing the selection clears generated teams', () => {
   assert.equal(S().generatedTeams, null);
 });
 
+// ---------------------------------------------------------------------------
+// access key and the copy saved on the device (Sprint 4)
+// ---------------------------------------------------------------------------
+test('reads so far sent no key and left a copy on the device', () => {
+  assert.ok(getKeys.every((key) => key === ''));
+  assert.equal(storage.get(KEY_STORAGE), undefined);
+  assert.ok(storage.has(COPY_STORAGE));
+});
+
+test('when the backend asks for a key, a device without it is locked out with one request', async () => {
+  backend.setAccessKey(KEY);
+  resetStore();
+  gets.length = 0;
+  await S().fetchPeople();
+
+  assert.deepEqual(gets, ['readAll'], 'no fallback reads after a refusal');
+  assert.equal(S().access, 'locked');
+  assert.deepEqual(S().people, []);
+  assert.equal(S().error, null);
+  assert.equal(storage.has(COPY_STORAGE), false, 'the saved copy is wiped');
+});
+
+test('a wrong key stays locked and is not kept on the device', async () => {
+  assert.equal(await S().unlock('not-the-key'), 'wrong');
+  assert.equal(S().access, 'locked');
+  assert.equal(storage.get(KEY_STORAGE), undefined);
+  assert.equal(S().people.length, 0);
+});
+
+test('with no answer the gate stays, nothing is saved, and the same key can be tried again', async () => {
+  networkDown = true;
+  try {
+    assert.equal(await S().unlock(KEY), 'unreachable');
+  } finally {
+    networkDown = false;
+  }
+  assert.equal(S().access, 'locked');
+  assert.equal(S().error, null);
+  assert.equal(storage.get(KEY_STORAGE), undefined);
+});
+
+test('the right key opens the app, is kept on the device and travels with reads and writes', async () => {
+  gets.length = 0;
+  getKeys.length = 0;
+  assert.equal(await S().unlock(` ${KEY} `), 'open');
+
+  assert.equal(S().access, 'open');
+  assert.equal(S().isFresh, true);
+  assert.ok(S().people.length > 0);
+  assert.deepEqual(gets, ['readAll']);
+  assert.deepEqual(getKeys, [KEY]);
+  assert.equal(storage.get(KEY_STORAGE), KEY);
+  assert.ok(storage.has(COPY_STORAGE));
+
+  await S().updatePerson({ ...findPerson('Ana'), rating: 8 });
+  await settle();
+  assert.equal(posts.at(-1)?.key, KEY);
+  assert.equal(sheetRow(1)?.rating, 8);
+  assert.equal(S().syncErrors.length, 0);
+});
+
+test('reopening the app shows the saved copy at once and refreshes with one request', async () => {
+  server.moduleGraph.invalidateAll();
+  const reopened = (await server.ssrLoadModule('/src/store/useAppStore.ts')).default as typeof useAppStore;
+  assert.notEqual(reopened, store, 'a new instance, like a page reload');
+
+  const atOpen = reopened.getState();
+  assert.equal(atOpen.access, 'open');
+  assert.equal(atOpen.peopleStatus, 'loaded');
+  assert.equal(atOpen.isFresh, false, 'editing waits for the sheet');
+  // The copy is the last read: edits made after it show up with the refresh.
+  assert.ok(atOpen.people.some((p) => p.nickname === 'Ana'));
+  assert.equal(atOpen.teamsCatalog.length, 1);
+
+  players.getRange(2, HEADERS.indexOf('rating') + 1, 1, 1).setValues([[6]]); // edited in the sheet meanwhile
+  gets.length = 0;
+  getKeys.length = 0;
+  await atOpen.fetchPeople();
+
+  assert.deepEqual(gets, ['readAll']);
+  assert.deepEqual(getKeys, [KEY]);
+  assert.equal(reopened.getState().isFresh, true);
+  assert.equal(reopened.getState().people.find((p) => p.nickname === 'Ana')?.rating, 6);
+});
+
+test('a fresh read over a saved copy drops picks that are gone and results made with old data', async () => {
+  server.moduleGraph.invalidateAll();
+  const reopened = (await server.ssrLoadModule('/src/store/useAppStore.ts')).default as typeof useAppStore;
+  const [first, second] = reopened.getState().people;
+  reopened.getState().toggleSelection(first.id);
+  reopened.getState().toggleSelection(second.id);
+  reopened.setState({ generatedTeams: { primary: {}, secondary: null, secondaryReason: null, comparison: null } as never });
+
+  await reopened.getState().fetchPeople(); // nothing changed in the sheet
+  assert.equal(reopened.getState().selectedIds.size, 2);
+  assert.notEqual(reopened.getState().generatedTeams, null, 'same data: the result stays');
+
+  server.moduleGraph.invalidateAll();
+  const again = (await server.ssrLoadModule('/src/store/useAppStore.ts')).default as typeof useAppStore;
+  again.getState().toggleSelection(first.id);
+  again.getState().toggleSelection(second.id);
+  again.setState({ generatedTeams: { primary: {}, secondary: null, secondaryReason: null, comparison: null } as never });
+  const row = players.records().findIndex((r) => String(r.id) === second.id) + 2;
+  const removed = players.data()[row - 1];
+  players.deleteRow(row); // deleted from another device meanwhile
+  try {
+    await again.getState().fetchPeople();
+    assert.deepEqual([...again.getState().selectedIds], [first.id]);
+    assert.equal(again.getState().generatedTeams, null);
+    assert.equal(again.getState().isReading, false);
+  } finally {
+    players.appendRow(removed);
+    await S().fetchPeople();
+  }
+});
+
+test('a reopened app that cannot reach the sheet keeps the saved copy and says so', async () => {
+  server.moduleGraph.invalidateAll();
+  const offline = (await server.ssrLoadModule('/src/store/useAppStore.ts')).default as typeof useAppStore;
+  networkDown = true;
+  try {
+    await offline.getState().fetchPeople();
+  } finally {
+    networkDown = false;
+  }
+  const state = offline.getState();
+  assert.equal(state.peopleStatus, 'loaded');
+  assert.ok(state.people.length > 0);
+  assert.equal(state.isFresh, false);
+  assert.match(state.error ?? '', /Couldn't refresh.*copy saved on this device/);
+});
+
+test('if the key changes on the backend, the next save fails and the device is locked again', async () => {
+  backend.setAccessKey('another-key');
+  await S().updatePerson({ ...findPerson('Ana'), rating: 1 });
+  await settle();
+
+  assert.equal(S().access, 'locked');
+  assert.deepEqual(S().people, []);
+  assert.equal(storage.get(KEY_STORAGE), undefined);
+  assert.equal(storage.has(COPY_STORAGE), false);
+  assert.match(S().syncErrors.at(-1)?.detail ?? '', /access key was refused/);
+  assert.equal(sheetRow(1)?.rating, 6, 'sheet unchanged');
+  backend.setAccessKey(null);
+});
+
 test('no unexpected console errors', () => {
   const unexpected = consoleErrors.filter(
-    (line) => !/Sync failed|Error fetching teams catalog: .*Teams is broken/.test(line),
+    (line) => !/Sync failed|Error fetching teams catalog: .*Teams is broken|Error fetching (people data|teams catalog): TypeError: Failed to fetch/.test(line),
   );
   assert.deepEqual(unexpected, []);
 });

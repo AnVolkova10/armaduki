@@ -189,3 +189,66 @@ test('without the SPREADSHEET_ID property, reads and writes fail loudly', () => 
   assert.match((get(env, 'readAll') as { error: string }).error, /Missing script property SPREADSHEET_ID/);
   assert.match(post(env, { action: 'update', id: '1', rating: 8 }), /^Error: .*Missing script property SPREADSHEET_ID/);
 });
+
+// ---------------------------------------------------------------------------
+// Access key (Sprint 4). The real key lives in Script Properties; tests use their own word.
+// ---------------------------------------------------------------------------
+const KEY = 'pelota-de-trapo';
+
+test('with ACCESS_KEY set, every GET without the right key is refused before the sheet is opened', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])], { accessKey: KEY });
+
+  for (const action of ['readAll', 'read', 'readTeams', 'migrateSchema', 'migratePlayersSheet', 'nope', undefined]) {
+    assert.deepEqual(get(env, action), { error: 'unauthorized' }, `${action} without key`);
+    assert.deepEqual(get(env, action, 'wrong'), { error: 'unauthorized' }, `${action} with a wrong key`);
+  }
+  assert.deepEqual(env.openedIds, [], 'the spreadsheet was never opened');
+});
+
+test('with ACCESS_KEY set, every POST without the right key is refused and writes nothing', () => {
+  const players = createSheet('Players', [HEADERS, ana]);
+  const env = loadAppsScript([players], { accessKey: KEY });
+
+  for (const action of ['add', 'update', 'delete', 'migrateSchema', 'readTeams', 'nope']) {
+    assert.equal(post(env, { action, id: '1', rating: 2 }), 'Error: unauthorized');
+    assert.equal(post(env, { action, id: '1', rating: 2, key: 'wrong' }), 'Error: unauthorized');
+  }
+  assert.deepEqual(env.openedIds, []);
+  assert.equal(players.data().length, 2);
+  assert.equal(players.data()[1][4], 7);
+});
+
+test('the right key reads and saves, and is never written to the sheet', () => {
+  const players = createSheet('Players', [HEADERS, ana]);
+  const env = loadAppsScript([players], { accessKey: KEY });
+
+  assert.equal((get(env, 'readAll', KEY) as { players: Rows }).players.length, 1);
+  assert.equal(post(env, { action: 'update', id: '1', rating: 9, key: KEY }), 'Updated');
+  assert.equal(post(env, { action: 'add', id: '2', nickname: 'Bea', key: ` ${KEY} ` }), 'Added', 'spaces around are fine');
+  assert.equal(players.data()[1][4], 9);
+  assert.ok(!JSON.stringify(players.data()).includes(KEY), 'the key is not stored in any cell');
+});
+
+test('spaces typed around the key in the property do not lock anyone out', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])], { accessKey: `  ${KEY} ` });
+  assert.equal((get(env, 'read', KEY) as Rows).length, 1);
+  assert.deepEqual(get(env, 'read', 'wrong'), { error: 'unauthorized' });
+
+  const blank = loadAppsScript([createSheet('Players', [HEADERS, ana])], { accessKey: '   ' });
+  assert.equal((get(blank, 'read') as Rows).length, 1, 'a property with only spaces is no key');
+});
+
+test('without ACCESS_KEY everything stays open, with or without a key in the request', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])], { accessKey: '' });
+  assert.equal((get(env, 'read') as Rows).length, 1);
+  assert.equal((get(env, 'read', 'anything') as Rows).length, 1);
+  assert.equal(post(env, { action: 'update', id: '1', rating: 3, key: 'anything' }), 'Updated');
+});
+
+test('setting the key later locks requests that were open before', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])]);
+  assert.equal((get(env, 'read') as Rows).length, 1);
+  env.setAccessKey(KEY);
+  assert.deepEqual(get(env, 'read'), { error: 'unauthorized' });
+  assert.equal((get(env, 'read', KEY) as Rows).length, 1);
+});

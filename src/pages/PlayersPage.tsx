@@ -45,9 +45,14 @@ export function PlayersPage() {
         clearAvoidsRelationships,
         setError,
         privacyMode,
+        access,
+        isFresh,
+        isReading,
     } = useAppStore();
     const isLoading = peopleStatus === 'loading';
     const isLoaded = peopleStatus === 'loaded';
+    // Opened from the copy saved on this device: picking works at once, editing waits for the sheet.
+    const canEdit = isLoaded && isFresh;
 
     const [showForm, setShowForm] = useState(false);
     const [editingPerson, setEditingPerson] = useState<Person | undefined>();
@@ -72,12 +77,13 @@ export function PlayersPage() {
         selectedCount > MATCH_SIZE ? 'selection-count--over' : '',
     ].filter(Boolean).join(' ');
 
-    // One request loads players and the Teams catalog (see fetchPeople).
+    // One request loads players and the Teams catalog (see fetchPeople). It also runs behind a
+    // saved copy, until the sheet has answered once in this visit.
     useEffect(() => {
-        if (peopleStatus === 'idle') {
+        if (access !== 'locked' && !isFresh && peopleStatus !== 'loading' && peopleStatus !== 'error') {
             void fetchPeople();
         }
-    }, [fetchPeople, peopleStatus]);
+    }, [access, fetchPeople, isFresh, peopleStatus]);
 
     useEffect(() => {
         const handleDocumentClick = (event: MouseEvent) => {
@@ -234,8 +240,8 @@ export function PlayersPage() {
                     <ActionButton
                         variant="primary"
                         onClick={() => setShowForm(true)}
-                        disabled={!isLoaded}
-                        title={isLoaded ? undefined : 'Players must load from Google Sheets first'}
+                        disabled={!canEdit}
+                        title={canEdit ? undefined : 'Players must load from Google Sheets first'}
                     >
                         + Add Player
                     </ActionButton>
@@ -281,6 +287,7 @@ export function PlayersPage() {
                                 <button
                                     type="button"
                                     className="clear-links-option clear-links-option--positive"
+                                    disabled={!canEdit}
                                     onClick={handleClearWantsRelationships}
                                 >
                                     Clear Wants
@@ -288,6 +295,7 @@ export function PlayersPage() {
                                 <button
                                     type="button"
                                     className="clear-links-option clear-links-option--negative"
+                                    disabled={!canEdit}
                                     onClick={handleClearAvoidsRelationships}
                                 >
                                     Clear Avoids
@@ -295,6 +303,7 @@ export function PlayersPage() {
                                 <button
                                     type="button"
                                     className="clear-links-option clear-links-option--light"
+                                    disabled={!canEdit}
                                     onClick={handleClearAllRelationships}
                                 >
                                     Clear Links
@@ -318,7 +327,7 @@ export function PlayersPage() {
             {error && (
                 <div className="error">
                     {error}
-                    {peopleStatus === 'error' && (
+                    {(peopleStatus === 'error' || !isFresh) && (
                         <button className="btn btn-secondary" onClick={() => void fetchPeople()}>
                             Retry
                         </button>
@@ -363,6 +372,7 @@ export function PlayersPage() {
                             onSelect={() => handlePersonSelect(person.id)}
                             onEdit={() => handleEdit(person)}
                             onDelete={() => handleDelete(person.id)}
+                            actionsDisabled={!canEdit}
                         />
                     ))}
                 </div>
@@ -370,6 +380,13 @@ export function PlayersPage() {
 
             {isLoaded && people.length > 0 && (
                 <div className="players-count">
+                    {/* On a saved copy: either the refresh is running, or it failed and can be asked again here. */}
+                    {!isFresh && isReading && <span className="players-refreshing">Updating from Google Sheets... </span>}
+                    {!isFresh && !isReading && (
+                        <button type="button" className="players-refresh" onClick={() => void fetchPeople()}>
+                            Saved copy · Refresh
+                        </button>
+                    )}
                     {isFiltered
                         ? `Showing ${visiblePeople.length} of ${people.length} players`
                         : `Total: ${people.length} players`}

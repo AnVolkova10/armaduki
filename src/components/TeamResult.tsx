@@ -13,6 +13,14 @@ interface AnalysisSection {
     lines: string[];
 }
 
+/**
+ * Privacy mode hides ratings, and each team's rating total gives them away almost as much as
+ * the numbers on the cards. The difference between the teams stays: the score needs it to make sense.
+ */
+function hideRatingTotals(line: string): string {
+    return line.replace(/^Rating: T1 \([^)]*\) vs T2 \([^)]*\) -> /, 'Rating: ');
+}
+
 function renderAnalysisLine(line: string) {
     const parts = line.split(/(T1|T2|\[(?:GK|FLEX|DEF|MID|ATT)\])/g);
 
@@ -282,9 +290,10 @@ export function TeamResult({ result }: TeamResultProps) {
                                         {section.lines.map((line, lineIndex) => {
                                             const trimmed = line.trimStart();
                                             const isSubline = line.startsWith('  - ');
-                                            const displayLine = trimmed.startsWith('- ')
+                                            const fullLine = trimmed.startsWith('- ')
                                                 ? trimmed.slice(2)
                                                 : trimmed;
+                                            const displayLine = privacyMode ? hideRatingTotals(fullLine) : fullLine;
 
                                             return (
                                                 <div

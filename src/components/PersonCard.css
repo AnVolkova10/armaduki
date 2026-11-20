@@ -293,13 +293,18 @@
   transition: all 0.15s;
 }
 
-.actions button:hover {
+.actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.actions button:hover:not(:disabled) {
   background: #222;
   color: #fff;
 }
 
-.actions .delete-btn:hover,
-.actions .delete-btn:focus-visible {
+.actions .delete-btn:hover:not(:disabled),
+.actions .delete-btn:focus-visible:not(:disabled) {
   background: rgba(239, 68, 68, 0.16);
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.55);

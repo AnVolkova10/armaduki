@@ -1,0 +1,514 @@
+/* The penalty at the door. data-shot on .gate drives every animation of the scene:
+   idle (keeper waits), aiming (run-up, loops until the backend answers), goal, saved, post. */
+
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: 20px 16px;
+  overflow-y: auto;
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(220, 38, 38, 0.16) 0%, transparent 62%),
+    linear-gradient(180deg, #0d0d0f 0%, #050505 100%);
+}
+
+.gate-card {
+  width: min(440px, 100%);
+  display: grid;
+  justify-items: center;
+  animation: gate-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.gate-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 14px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.gate-brand img {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.gate-scene {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 14px;
+  border: 1px solid #262626;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  overflow: hidden;
+  animation: gate-scene-in 0.4s ease both;
+}
+
+.gate-caption {
+  min-height: 1.5em;
+  margin: 14px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: center;
+}
+
+.gate[data-shot='goal'] .gate-caption {
+  color: #fff;
+}
+
+.gate[data-shot='saved'] .gate-caption,
+.gate[data-shot='post'] .gate-caption {
+  color: #f87171;
+}
+
+/* Hidden but in place while the first read asks, so the card does not jump when it comes in. */
+.gate-form {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 12px;
+  visibility: hidden;
+}
+
+.gate-form[data-shown] {
+  visibility: visible;
+  animation: gate-form-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.gate-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 16px; /* under 16px iOS zooms on focus */
+  letter-spacing: 0.08em;
+}
+
+.gate-input:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.gate-shoot {
+  min-height: 46px;
+  padding: 0 22px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.gate-shoot:hover:not(:disabled),
+.gate-shoot:focus-visible:not(:disabled) {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.gate-shoot:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.gate-shoot:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---------- The scene at rest ---------- */
+
+.gate-keeper,
+.gate-arm,
+.gate-ball,
+.gate-ball-spin,
+.gate-ball-ring,
+.gate-net-bulge,
+.gate-word,
+.gate-keeper-shadow,
+.gate-ball-shadow {
+  transform-box: fill-box;
+}
+
+.gate-keeper {
+  transform-origin: 50% 100%;
+  animation: keeper-ready 1.9s ease-in-out infinite alternate;
+}
+
+.gate-keeper-shadow {
+  transform-origin: 50% 50%;
+  animation: keeper-ready 1.9s ease-in-out infinite alternate;
+}
+
+.gate-arm-left {
+  transform-origin: 92% 6%;
+  animation: arm-left-ready 0.95s ease-in-out infinite alternate;
+}
+
+.gate-arm-right {
+  transform-origin: 8% 6%;
+  animation: arm-right-ready 0.95s ease-in-out infinite alternate;
+}
+
+.gate-ball,
+.gate-ball-spin,
+.gate-ball-ring,
+.gate-net-bulge,
+.gate-word {
+  transform-origin: 50% 50%;
+}
+
+.gate-ball-ring,
+.gate-net-bulge,
+.gate-flash,
+.gate-word,
+.gate-confetti rect {
+  opacity: 0;
+}
+
+.gate-word {
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 46px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  fill: #fff;
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 6px;
+}
+
+.gate-word-saved,
+.gate-word-post {
+  fill: #fca5a5;
+}
+
+.gate-crowd {
+  animation: crowd-twinkle 2.6s ease-in-out infinite alternate;
+}
+
+/* ---------- Run-up: loops until the answer arrives ---------- */
+
+.gate[data-shot='aiming'] .gate-keeper,
+.gate[data-shot='aiming'] .gate-keeper-shadow {
+  animation: keeper-tense 0.42s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-ball {
+  animation: ball-charge 0.34s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-ball-ring {
+  animation: ball-ring 0.8s ease-out infinite;
+}
+
+.gate[data-shot='aiming'] .gate-crowd {
+  animation-duration: 0.5s;
+}
+
+/* ---------- Goal: top corner, the keeper goes the other way ---------- */
+
+.gate[data-shot='goal'] {
+  animation: gate-leave 0.7s ease-in 2.2s forwards;
+}
+
+.gate[data-shot='goal'] .gate-ball {
+  animation: ball-goal 1.5s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+.gate[data-shot='goal'] .gate-ball-spin,
+.gate[data-shot='saved'] .gate-ball-spin,
+.gate[data-shot='post'] .gate-ball-spin {
+  animation: ball-spin 0.6s linear 2;
+}
+
+.gate[data-shot='goal'] .gate-ball-shadow,
+.gate[data-shot='saved'] .gate-ball-shadow {
+  animation: shadow-away 0.3s ease-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-keeper {
+  animation: keeper-beaten 1.1s cubic-bezier(0.3, 0.7, 0.3, 1) forwards;
+}
+
+.gate[data-shot='goal'] .gate-keeper-shadow,
+.gate[data-shot='saved'] .gate-keeper-shadow {
+  animation: keeper-shadow-dive 1.1s ease-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-arm-left,
+.gate[data-shot='saved'] .gate-arm-left {
+  animation: arm-left-reach 0.45s ease-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-arm-right,
+.gate[data-shot='saved'] .gate-arm-right {
+  animation: arm-right-reach 0.45s ease-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-net-bulge {
+  animation: net-bulge 0.7s ease-out 0.5s forwards;
+}
+
+.gate[data-shot='goal'] .gate-net {
+  animation: net-shake 0.5s ease-out 0.52s;
+}
+
+.gate[data-shot='goal'] .gate-flash {
+  animation: flash 0.55s ease-out 0.5s;
+}
+
+.gate[data-shot='goal'] .gate-word-goal {
+  animation: word-pop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) 0.62s forwards;
+}
+
+.gate[data-shot='goal'] .gate-confetti rect {
+  animation: confetti-fall 1.7s cubic-bezier(0.3, 0.4, 0.6, 1) forwards;
+}
+
+/* ---------- Saved: she guesses the side and holds the ball ---------- */
+
+.gate[data-shot='saved'] .gate-ball {
+  animation: ball-saved 2.1s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+}
+
+.gate[data-shot='saved'] .gate-keeper {
+  animation: keeper-save 2.1s cubic-bezier(0.3, 0.7, 0.3, 1) forwards;
+}
+
+.gate[data-shot='saved'] .gate-word-saved {
+  animation: word-pop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) 0.6s forwards;
+}
+
+.gate[data-shot='saved'] .gate-card {
+  animation: gate-shake 0.45s ease-out 0.55s;
+}
+
+/* ---------- Post: no answer, the ball comes back ---------- */
+
+.gate[data-shot='post'] .gate-ball {
+  animation: ball-post 2.1s cubic-bezier(0.3, 0.6, 0.4, 1) forwards;
+}
+
+.gate[data-shot='post'] .gate-keeper {
+  animation: keeper-lean 1.6s ease-in-out forwards;
+}
+
+.gate[data-shot='post'] .gate-goal {
+  animation: frame-rattle 0.4s ease-out 0.5s;
+}
+
+.gate[data-shot='post'] .gate-word-post {
+  animation: word-flash 1.2s ease-out 0.55s forwards;
+}
+
+/* ---------- Leaving without a shot: the backend asked for no key ---------- */
+
+.gate[data-open]:not([data-shot='goal']) {
+  animation: gate-leave 0.45s ease-in forwards;
+}
+
+/* ---------- Keyframes ---------- */
+
+@keyframes gate-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes gate-scene-in {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+@keyframes gate-form-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes gate-leave {
+  to { opacity: 0; transform: scale(1.06); visibility: hidden; }
+}
+
+@keyframes gate-shake {
+  20% { transform: translateX(-7px); }
+  45% { transform: translateX(6px); }
+  70% { transform: translateX(-3px); }
+  100% { transform: none; }
+}
+
+@keyframes keeper-ready {
+  from { transform: translateX(-8px); }
+  to { transform: translateX(8px); }
+}
+
+@keyframes keeper-tense {
+  from { transform: translateX(-17px) scaleY(0.95); }
+  to { transform: translateX(17px) scaleY(0.95); }
+}
+
+@keyframes arm-left-ready {
+  from { transform: rotate(4deg); }
+  to { transform: rotate(18deg); }
+}
+
+@keyframes arm-right-ready {
+  from { transform: rotate(-4deg); }
+  to { transform: rotate(-18deg); }
+}
+
+/* Both hands together over the head. */
+@keyframes arm-left-reach {
+  to { transform: rotate(148deg); }
+}
+
+@keyframes arm-right-reach {
+  to { transform: rotate(-148deg); }
+}
+
+@keyframes crowd-twinkle {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+@keyframes ball-charge {
+  from { transform: scale(1); }
+  to { transform: scale(1.09) translateY(-1px); }
+}
+
+@keyframes ball-ring {
+  from { opacity: 0.75; transform: scale(1); }
+  to { opacity: 0; transform: scale(2.3); }
+}
+
+@keyframes ball-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shadow-away {
+  to { opacity: 0; transform: scale(0.4); }
+}
+
+/* Spot (200, 263) to the top right corner, then it drops inside the net. */
+@keyframes ball-goal {
+  0% { transform: translate(0, 0) scale(1); }
+  34% { transform: translate(104px, -171px) scale(0.5); }
+  42% { transform: translate(100px, -164px) scale(0.5); }
+  100% { transform: translate(96px, -80px) scale(0.5); }
+}
+
+@keyframes keeper-beaten {
+  0% { transform: translate(0, 0) rotate(0); }
+  45% { transform: translate(-4px, -16px) rotate(-58deg); }
+  75% { transform: translate(22px, 3px) rotate(-80deg); }
+  100% { transform: translate(24px, 4px) rotate(-82deg); }
+}
+
+@keyframes keeper-shadow-dive {
+  to { transform: translate(-44px, 0) scaleX(2.3); opacity: 0.3; }
+}
+
+/* Top corner to her left: she flies, catches it with both hands and lands holding it.
+   The ball's stops are where her gloves meet in each pose of keeper-save. */
+@keyframes ball-saved {
+  0% { transform: translate(0, 0) scale(1); }
+  22% { transform: translate(-116px, -174px) scale(0.52); }
+  42% { transform: translate(-118px, -88px) scale(0.52); }
+  100% { transform: translate(-118px, -88px) scale(0.52); }
+}
+
+@keyframes keeper-save {
+  0% { transform: translate(0, 0) rotate(0); }
+  22% { transform: translate(-6px, -30px) rotate(-55deg); }
+  42% { transform: translate(14px, 2px) rotate(-80deg); }
+  100% { transform: translate(14px, 2px) rotate(-80deg); }
+}
+
+/* Right post at (330, 115), then back to the spot. */
+@keyframes ball-post {
+  0% { transform: translate(0, 0) scale(1); }
+  24% { transform: translate(128px, -162px) scale(0.52); }
+  50% { transform: translate(70px, -30px) scale(0.84); }
+  62% { transform: translate(48px, -46px) scale(0.88); }
+  78% { transform: translate(18px, 0) scale(0.97); }
+  86% { transform: translate(9px, -9px) scale(0.99); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes keeper-lean {
+  0% { transform: translate(0, 0) rotate(0); }
+  28% { transform: translate(13px, -2px) rotate(6deg); }
+  100% { transform: translate(0, 0) rotate(0); }
+}
+
+@keyframes frame-rattle {
+  25% { transform: translateX(3px); }
+  50% { transform: translateX(-2.5px); }
+  75% { transform: translateX(1.5px); }
+  100% { transform: none; }
+}
+
+@keyframes net-bulge {
+  0% { opacity: 0.9; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(2.4); }
+}
+
+@keyframes net-shake {
+  30% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, 1px); }
+  100% { transform: none; }
+}
+
+@keyframes flash {
+  0% { opacity: 0; }
+  25% { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+@keyframes word-pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes word-flash {
+  0% { opacity: 0; transform: scale(0.5); }
+  25% { opacity: 1; transform: scale(1); }
+  75% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes confetti-fall {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0); }
+  100% { opacity: 0.9; transform: translate(var(--drift, 0), 330px) rotate(540deg); }
+}
+
+/* Less motion: no loops, and the result shows without the flight. */
+@media (prefers-reduced-motion: reduce) {
+  .gate-keeper,
+  .gate-keeper-shadow,
+  .gate-arm,
+  .gate-crowd,
+  .gate[data-shot='aiming'] .gate-ball,
+  .gate[data-shot='aiming'] .gate-ball-ring {
+    animation: none !important;
+  }
+
+  .gate[data-shot] .gate-ball,
+  .gate[data-shot='goal'] .gate-keeper,
+  .gate[data-shot='saved'] .gate-keeper {
+    animation-duration: 0.01s !important;
+  }
+
+  .gate-confetti,
+  .gate-flash {
+    display: none;
+  }
+}
