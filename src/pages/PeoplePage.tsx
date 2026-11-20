@@ -8,6 +8,7 @@ import { DropdownMenuSelect } from '../components/DropdownMenuSelect';
 import { SheetLoader } from '../components/SheetLoader';
 import type { Person } from '../types';
 import { matchesWordPrefix, normalizeSearch } from '../utils/search';
+import { sortSelectedFirst } from '../utils/selection';
 import './PeoplePage.css';
 
 interface ConfirmState {
@@ -29,12 +30,14 @@ const ROLE_FILTER_OPTIONS = [
 
 const SORT_OPTIONS = [
     { value: 'none', label: 'Sort: none' },
+    { value: 'selected', label: 'Sort: selected' },
     { value: 'score', label: 'Sort: score' },
     { value: 'position', label: 'Sort: position' },
 ];
 
 const SORT_OPTIONS_PRIVACY = [
     { value: 'none', label: 'Sort: none' },
+    { value: 'selected', label: 'Sort: selected' },
     { value: 'position', label: 'Sort: position' },
 ];
 
@@ -149,6 +152,7 @@ export function PeoplePage() {
 
     const visiblePeople = useMemo(() => {
         if (effectiveSortMode === 'none') return filteredPeople;
+        if (effectiveSortMode === 'selected') return sortSelectedFirst(filteredPeople, selectedIds);
 
         const sorted = [...filteredPeople];
         if (effectiveSortMode === 'score') {
@@ -171,7 +175,7 @@ export function PeoplePage() {
         }
 
         return sorted;
-    }, [effectiveScoreSortDirection, effectiveSortMode, filteredPeople]);
+    }, [effectiveScoreSortDirection, effectiveSortMode, filteredPeople, selectedIds]);
 
     const hasActiveSearchOrFilter =
         Boolean(normalizedQuery) || uiRoleFilter !== 'all' || effectiveScoreFilter !== 'all';

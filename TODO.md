@@ -51,18 +51,15 @@ Objetivo: que lo que ya existe funcione bien antes de sumar cosas. El detalle es
 Objetivo: los pedidos chicos que anotaste en Notion. Solo frontend. El tercero, «Terminar Fase 2», quedó repartido en los Sprints 6 a 10.
 
 - [ ] **Ángela:** probarlo con los pasos de abajo.
-- [x] «sort selected»: orden «Sort: selected» en Match, que deja arriba a las elegidas y mantiene el orden de siempre dentro de cada grupo (19/11). Ver «Cosas por cerrar».
-- [x] «que en el navbar aparezcan los seleccionados»: en Match, las elegidas aparecen como chips en una segunda fila del header fijo, en el orden en que se eligieron, con el contador. Tocar un chip la saca de la selección. La fila tiene siempre el mismo alto, para que la lista no salte (19/11).
-- [x] Verificado en Edge, en teléfono y en escritorio, contra una API local: 13 chequeos y ningún error de consola.
+- [x] «sort selected»: orden «Sort: selected» en Match y en Players, que deja arriba a las elegidas y mantiene el orden de siempre dentro de cada grupo (19/11).
+- [x] «que en el navbar aparezcan los seleccionados»: la primera versión (las elegidas como chips en una segunda fila del header de Match) no gustó y se sacó (19/11). Pasa al rediseño (Sprint 5).
+- [x] Verificado en Edge, en teléfono y en escritorio, contra una API local: ningún error de consola.
 
-Prueba (en https://armaduki.vercel.app/match, mejor desde el teléfono):
+Prueba (en https://armaduki.vercel.app, mejor desde el teléfono):
 
-1. Debajo del menú aparece «0/10» y «Tap players to pick 10».
-2. Tocá 3 jugadoras: aparecen arriba como chips, en el orden en que las tocaste, y el contador sube.
-3. Scrolleá: la fila queda fija arriba.
-4. Tocá un chip: esa jugadora se deselecciona.
-5. En el orden, elegí «Sort: selected»: las elegidas quedan primero. Con ese orden, una tarjeta que tocás salta arriba.
-6. Completá 10 y generá los equipos. Si después tocás un chip, el resultado se borra porque cambió la selección.
+1. En Match, tocá algunas jugadoras y elegí «Sort: selected» en el orden: las elegidas quedan primero. Con ese orden, una tarjeta que tocás salta arriba.
+2. En Players, elegí «Sort: selected»: las que dicen «selected» quedan primero.
+3. El header volvió a ser como antes, sin la fila de elegidas.
 
 ## Sprint 2 - El generador: cómo funciona y qué mejorar
 
@@ -98,6 +95,7 @@ Objetivo: darle a la app el mismo nivel de diseño que VolkosFood. Se hace en un
 
 - [ ] Escribir la dirección de diseño en `docs/DESIGN_DIRECTION.md` (idea, decisiones, lenguaje visual, movimiento y flujos), partiendo de lo que ya es armaduki: oscuro, rojo, la pelota, mobile-first y privacy mode. **Ángela la aprueba antes de tocar la UI.**
 - [ ] Rediseñar Players, Match, el resultado de equipos, el análisis y el modal de jugadora.
+- [ ] Repensar cómo mostrar las seleccionadas en el navbar (pedido de Notion). La primera versión, con chips en una segunda fila del header, no gustó (19/11).
 - [ ] Recorrido en escritorio y en el teléfono contra una API local, sin tocar la planilla real.
 - [ ] Revisión de Ángela antes de seguir.
 
@@ -154,7 +152,7 @@ Objetivo: que las que juegan juntas en un equipo real tiendan a caer juntas, sin
 ## Cosas por cerrar
 
 - [ ] **Prioridad del fallback del generador.** En la v1 se decidió primero social-hard y después snake. En la revisión pasó a «el reparto que rompe menos reglas», en este orden: avoids > wants > owner bias > spread ATT/DEF > límites GK/DEF. Ya está publicado. Explicado en `docs/GENERADOR.md`; se decide en el Sprint 2. Decide: Ángela. Default: dejarlo así.
-- [ ] **Qué es «sort selected».** Se hizo con el default en el Sprint 1: «Sort: selected» en Match deja arriba a las elegidas. Se cierra cuando Ángela lo pruebe. Decide: Ángela.
+- [x] **Qué es «sort selected».** «Sort: selected» en Match y en Players: deja arriba a las elegidas (19/11).
 - [ ] **«Fable 2.5».** Se entendió Claude Fable 5.2, el modelo del rediseño de VolkosFood. Decide: Ángela. Default: Fable 5.2.
 - [ ] **Default de arquera (`gkWillingness`).** El modal crea jugadoras con `low`, pero una fila de la planilla sin el dato se lee como `no` (RV-14). Decide: Ángela. Default: `no` en los dos, para que lo desconocido no cuente como arquera de emergencia.
 - [ ] **Qué oculta privacy mode** (RV-12). Hoy oculta los ratings individuales, pero el análisis sigue mostrando el total de rating por equipo. Decide: Ángela. Default: ocultar también esos totales.
