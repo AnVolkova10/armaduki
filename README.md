@@ -26,9 +26,10 @@ A plain-language walkthrough in Spanish, including how the fallback worked befor
   - if a team has a GK role, emergency keeper count does not matter for that team
 - Social hard constraint:
   - players that avoid each other cannot be in the same team
-- Wants constraint:
-  - wants are strict: unilateral + mutual wants must stay together
-  - there is no relaxed wants stage; `RELAXED_*` values stay in `GenerationStage` only for `MatchHistory` compatibility
+- Wants:
+  - mutual wants (both players want each other) are a hard rule: they must stay together
+  - one-way wants are a preference: each one left across teams costs `ONE_WAY_WANT_PENALTY` score points (15, the same as 1.5 rating points of imbalance), and the analysis lists the ones kept and broken
+  - `RELAXED_*` values stay in `GenerationStage` only for `MatchHistory` compatibility
 - ATT handling:
   - there is no hard max `2 ATT` per team
   - `4 ATT` selected must split `2/2`; `5 ATT` selected may split `2/3`
@@ -44,15 +45,16 @@ A plain-language walkthrough in Spanish, including how the fallback worked befor
   - for teams without a GK role, each `good` emergency keeper adds a small bonus
   - `low` counts as a capable emergency keeper but does not add bonus or penalty
   - fallback splits get a penalty when a team without GK role has fewer than `2` capable emergency keepers
-  - social satisfaction is analysis-only (met wants + met dislikes), no social points
+  - broken one-way wants subtract `ONE_WAY_WANT_PENALTY` each; the "balanced" label in the analysis ignores that penalty
+  - ties: higher social satisfaction (met wants + met dislikes) first, then smaller rating gap, then a fixed order by ids
 - Owner bias:
   - player ID from `VITE_OWNER_ID` is forced into the lower/equal `Power` team
   - default owner ID is `10` if env var is missing/empty
 - Fallback (only when no split meets every rule):
-  - picks the split that breaks the fewest rules, in this priority: `avoids` > `wants` > owner bias > ATT/DEF spread > GK/DEF limits (including emergency GK); ties go to the best balance score
-  - if a split keeps avoids + wants + owner bias + ATT/DEF spread, it is used (the old "social-hard" tier), now also preferring fewer GK/DEF limit breaks
+  - picks the split that breaks the fewest rules, in this priority: `avoids` > mutual `wants` > owner bias > ATT/DEF spread > GK/DEF limits (including emergency GK); ties go to the best score
+  - if a split keeps avoids + mutual wants + owner bias + ATT/DEF spread, it is used (the old "social-hard" tier), now also preferring fewer GK/DEF limit breaks
   - avoids are only broken when no avoid-safe split exists at all (the old snake split could break them needlessly)
-  - the analysis adds a `[Fallback]` section: why no strict split exists (3+ GK, 5+ DEF, missing emergency keepers, a wants chain longer than 5, a want/avoid contradiction) and which rules were relaxed, naming the players
+  - the analysis adds a `[Fallback]` section: why no strict split exists (3+ GK, 5+ DEF, missing emergency keepers, a mutual wants chain longer than 5, a mutual want against an avoid) and which rules were relaxed, naming the players
 
 ## Stack
 

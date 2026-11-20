@@ -2,7 +2,13 @@
 // VITE_OWNER_ID is not available here, so the owner id is the default `10`.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { calculateTeamPower, generateTeams } from '../src/services/teamGenerator.ts';
+import {
+  calculateTeamPower,
+  compareSplitsByBalance,
+  generateTeams,
+  ONE_WAY_WANT_PENALTY,
+  type RankableSplit,
+} from '../src/services/teamGenerator.ts';
 import type { GeneratedTeamOption, Person } from '../src/types/index.ts';
 
 function player(id: number, overrides: Partial<Person> = {}): Person {
@@ -76,15 +82,72 @@ test('strict split: 5v5, one GK per team, two DEF split 1/1', () => {
   assert.equal(count(team2.players, 'DEF'), 1);
 });
 
-test('strict split keeps avoids apart and wants together', () => {
+test('strict split keeps avoids apart and mutual wants together', () => {
   const pool = basePool();
   byId(pool, 2).avoidsWith = ['3'];
   byId(pool, 4).wantsWith = ['5'];
+  byId(pool, 5).wantsWith = ['4'];
   const result = generateTeams(pool);
   assert.ok(result);
   assert.equal(result.primary.stage, 'STRICT');
   assert.notEqual(teamOf(result.primary, '2'), teamOf(result.primary, '3'));
   assert.equal(teamOf(result.primary, '4'), teamOf(result.primary, '5'));
+});
+
+test('a one-way want stays together when it costs little', () => {
+  const pool = basePool();
+  byId(pool, 4).wantsWith = ['5'];
+  const result = generateTeams(pool);
+  assert.ok(result);
+  assert.equal(result.primary.stage, 'STRICT');
+  assert.equal(teamOf(result.primary, '4'), teamOf(result.primary, '5'));
+  assert.match(result.primary.explanation ?? '', /One-way wants \(preference, -15 each if broken\): kept 1\/1\./);
+});
+
+test('a one-way want gives way when keeping it makes the teams much more uneven', () => {
+  // P2 and P3 are the two strongest: together they would make one team 10 rating points stronger.
+  const pool = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11].map((id) =>
+    player(id, { role: id === 1 || id === 6 ? 'GK' : 'MID', rating: id === 2 || id === 3 ? 10 : 5 }),
+  );
+  byId(pool, 2).wantsWith = ['3'];
+  const result = generateTeams(pool);
+  assert.ok(result);
+  assert.equal(result.primary.stage, 'STRICT');
+  assert.notEqual(teamOf(result.primary, '2'), teamOf(result.primary, '3'));
+  assert.equal(result.primary.score, 100 - ONE_WAY_WANT_PENALTY);
+  assert.match(result.primary.explanation ?? '', /highly balanced; 1 broken one-way want -15/);
+  assert.match(result.primary.explanation ?? '', /Broken one-way wants: P2 -> P3/);
+});
+
+test('a one-way wants chain of 6 no longer forces a fallback', () => {
+  const pool = basePool();
+  for (const [from, to] of [[2, 3], [3, 4], [4, 5], [5, 7], [7, 8]]) {
+    byId(pool, from).wantsWith = [String(to)];
+  }
+  const result = generateTeams(pool);
+  assert.ok(result);
+  assert.equal(result.primary.stage, 'STRICT');
+});
+
+test('ties: higher social satisfaction first, then smaller rating gap', () => {
+  const split = (overrides: Partial<RankableSplit>): RankableSplit => ({
+    score: 80,
+    socialPct: 100,
+    ratingDiff: 1,
+    displayKey: 'a',
+    ...overrides,
+  });
+  const ranked = [
+    split({ displayKey: 'tie-on-everything-b' }),
+    split({ socialPct: 50, displayKey: 'lower-social' }),
+    split({ ratingDiff: 3, displayKey: 'bigger-gap' }),
+    split({ score: 90, socialPct: 0, ratingDiff: 9, displayKey: 'best-score' }),
+    split({ displayKey: 'tie-on-everything-a' }),
+  ].sort(compareSplitsByBalance);
+  assert.deepEqual(
+    ranked.map((s) => s.displayKey),
+    ['best-score', 'tie-on-everything-a', 'tie-on-everything-b', 'bigger-gap', 'lower-social'],
+  );
 });
 
 test('owner (id 10) lands on the lower or equal Power team', () => {
@@ -118,11 +181,12 @@ test('result does not depend on input order', () => {
   );
 });
 
-test('fallback keeps avoids when only the wants are impossible', () => {
+test('fallback keeps avoids when only the mutual wants are impossible', () => {
   const pool = basePool();
-  // Wants chain six players together: impossible with 5 spots per team.
-  for (const [from, to] of [[2, 3], [3, 4], [4, 5], [5, 7], [7, 8]]) {
-    byId(pool, from).wantsWith = [String(to)];
+  // Mutual wants chain six players together: impossible with 5 spots per team.
+  for (const [a, b] of [[2, 3], [3, 4], [4, 5], [5, 7], [7, 8]]) {
+    byId(pool, a).wantsWith.push(String(b));
+    byId(pool, b).wantsWith.push(String(a));
   }
   byId(pool, 9).avoidsWith = ['11'];
   byId(pool, 11).avoidsWith = ['9'];
@@ -145,14 +209,32 @@ test('fallback with 3 GK splits them 2/1 instead of 3/0', () => {
   assert.match(result.primary.explanation ?? '', /Why: 3 GK selected/);
 });
 
-test('fallback explains a want/avoid contradiction', () => {
+test('fallback explains a mutual want/avoid contradiction', () => {
+  const pool = basePool();
+  byId(pool, 2).wantsWith = ['3'];
+  byId(pool, 3).wantsWith = ['2'];
+  byId(pool, 4).wantsWith = ['3'];
+  byId(pool, 3).avoidsWith = ['4'];
+  // 2 and 3 want each other (rule); 4 wants 3 one way (preference) but 3 avoids 4.
+  byId(pool, 5).wantsWith = ['6'];
+  byId(pool, 6).wantsWith = ['5'];
+  byId(pool, 6).avoidsWith = ['5'];
+  const result = generateTeams(pool);
+  assert.ok(result);
+  assert.equal(result.primary.stage, 'FALLBACK');
+  assert.match(result.primary.explanation ?? '', /P6 avoids P5, but wants links chain them into the same team/);
+  assert.doesNotMatch(result.primary.explanation ?? '', /P3 avoids P4, but wants links/);
+  // Avoids outrank wants, so the two end up apart.
+  assert.notEqual(teamOf(result.primary, '5'), teamOf(result.primary, '6'));
+});
+
+test('a one-way want against an avoid is just a broken preference, not a fallback', () => {
   const pool = basePool();
   byId(pool, 2).wantsWith = ['3'];
   byId(pool, 3).avoidsWith = ['2'];
   const result = generateTeams(pool);
   assert.ok(result);
-  assert.equal(result.primary.stage, 'FALLBACK');
-  assert.match(result.primary.explanation ?? '', /P3 avoids P2, but wants links chain them into the same team/);
-  // Avoids outrank wants, so the two end up apart.
+  assert.equal(result.primary.stage, 'STRICT');
   assert.notEqual(teamOf(result.primary, '2'), teamOf(result.primary, '3'));
+  assert.match(result.primary.explanation ?? '', /Broken one-way wants: P2 -> P3/);
 });

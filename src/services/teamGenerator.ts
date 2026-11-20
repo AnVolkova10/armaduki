@@ -27,6 +27,11 @@ const ATT_IMBALANCE_WEIGHT = 6;
 const ATT_OVERLOAD_WITH_DEF_REWARD = 6;
 const ATT_OVERLOAD_WITHOUT_DEF_PENALTY = 8;
 
+// Mutual wants are a hard rule. A one-way want (A wants B, B does not want A) is a
+// preference: each one left across teams costs this many score points.
+// 10 score points = 1 point of rating difference between the teams.
+export const ONE_WAY_WANT_PENALTY = 15;
+
 const SECONDARY_OPTION_REASON =
   'Second option has lower balance score than Option 1 under the same constraint stage.';
 const NO_SECONDARY_OPTION_REASON = 'No second option available under current constraints.';
@@ -78,11 +83,25 @@ interface AttPreferenceBreakdown {
   overloadedDefCount: number | null;
 }
 
+interface WantsPreferenceBreakdown {
+  /** True when at least one one-way want links two selected players. */
+  applies: boolean;
+  oneWayTotal: number;
+  oneWayBroken: number;
+  adjustment: number;
+}
+
+/** Want links between selected players, worked out once per selection. */
+interface WantLinks {
+  mutualPairs: [string, string][];
+  oneWay: [string, string][];
+}
+
 /** Hard-rule violations of a split. A strict split has every count at 0. */
 interface RuleViolations {
   /** Directed avoid links between players of the same team. */
   avoids: number;
-  /** Directed want links between players of different teams. */
+  /** Mutual want pairs split across teams. One-way wants are a preference, not a rule. */
   wants: number;
   /** 1 when the owner ends up on the stronger (higher Power) team. */
   ownerBias: number;
@@ -107,9 +126,18 @@ const FALLBACK_VIOLATION_PRIORITY: (keyof RuleViolations)[] = [
 interface SplitContext {
   owner: Person | undefined;
   totalDefCount: number;
+  wantLinks: WantLinks;
 }
 
-interface SplitEvaluation {
+/** What the ranking looks at, in order: score, then social satisfaction, then rating gap. */
+export interface RankableSplit {
+  score: number;
+  socialPct: number;
+  ratingDiff: number;
+  displayKey: string;
+}
+
+interface SplitEvaluation extends RankableSplit {
   team1Players: Person[];
   team2Players: Person[];
   stats1: TeamStats;
@@ -118,9 +146,8 @@ interface SplitEvaluation {
   team2GKProfile: TeamGKProfile;
   gkPreference: GKPreferenceBreakdown;
   attPreference: AttPreferenceBreakdown;
-  score: number;
-  ratingDiff: number;
-  displayKey: string;
+  wantsPreference: WantsPreferenceBreakdown;
+  social: SocialSatisfaction;
   violations: RuleViolations;
 }
 
@@ -319,24 +346,47 @@ function countAvoidViolations(players: Person[]): number {
   return violations;
 }
 
-function countBrokenWants(team1: Person[], team2: Person[]): number {
-  const team1Ids = new Set(team1.map((player) => player.id));
-  const team2Ids = new Set(team2.map((player) => player.id));
-  let violations = 0;
+/** Splits the want links between selected players into mutual pairs and one-way links. */
+function classifyWantLinks(players: Person[]): WantLinks {
+  const byId = new Map(players.map((player) => [player.id, player]));
+  const mutualPairs: [string, string][] = [];
+  const oneWay: [string, string][] = [];
+  const seenPairs = new Set<string>();
 
-  for (const player of team1) {
-    for (const targetId of player.wantsWith) {
-      if (team2Ids.has(targetId)) violations++;
+  for (const player of players) {
+    for (const targetId of new Set(player.wantsWith)) {
+      const target = byId.get(targetId);
+      if (!target || target.id === player.id) continue;
+
+      if (!target.wantsWith.includes(player.id)) {
+        oneWay.push([player.id, targetId]);
+        continue;
+      }
+
+      const pairKey = [player.id, targetId].sort().join('|');
+      if (seenPairs.has(pairKey)) continue;
+      seenPairs.add(pairKey);
+      mutualPairs.push([player.id, targetId]);
     }
   }
 
-  for (const player of team2) {
-    for (const targetId of player.wantsWith) {
-      if (team1Ids.has(targetId)) violations++;
-    }
-  }
+  return { mutualPairs, oneWay };
+}
 
-  return violations;
+/** How many links end up with each player on a different team. */
+function countSplitLinks(links: [string, string][], team1Ids: ReadonlySet<string>): number {
+  return links.reduce((count, [a, b]) => count + (team1Ids.has(a) !== team1Ids.has(b) ? 1 : 0), 0);
+}
+
+function getWantsPreference(links: WantLinks, team1Ids: ReadonlySet<string>): WantsPreferenceBreakdown {
+  const oneWayBroken = countSplitLinks(links.oneWay, team1Ids);
+
+  return {
+    applies: links.oneWay.length > 0,
+    oneWayTotal: links.oneWay.length,
+    oneWayBroken,
+    adjustment: oneWayBroken === 0 ? 0 : -oneWayBroken * ONE_WAY_WANT_PENALTY,
+  };
 }
 
 function countRoleSpreadViolations(team1: Person[], team2: Person[], totalDefCount: number): number {
@@ -489,12 +539,18 @@ function evaluateSplit(teamAPlayers: Person[], teamBPlayers: Person[], context: 
   );
 
   const canonical = canonicalizeTeams(teamAPlayers, teamBPlayers, statsA, statsB);
+  const team1Ids = new Set(canonical.team1Players.map((player) => player.id));
   const team1GKProfile = getTeamGKProfile(canonical.team1Players);
   const team2GKProfile = getTeamGKProfile(canonical.team2Players);
   const gkPreference = getGKPreferenceBreakdown(team1GKProfile, team2GKProfile);
   const attPreference = getAttPreferenceBreakdown(canonical.team1Players, canonical.team2Players);
+  const wantsPreference = getWantsPreference(context.wantLinks, team1Ids);
   const score =
-    calculateBalanceScore(canonical.stats1, canonical.stats2) + gkPreference.adjustment + attPreference.adjustment;
+    calculateBalanceScore(canonical.stats1, canonical.stats2) +
+    gkPreference.adjustment +
+    attPreference.adjustment +
+    wantsPreference.adjustment;
+  const social = calculateSocialSatisfaction(canonical.team1Players, canonical.team2Players);
 
   return {
     team1Players: canonical.team1Players,
@@ -505,12 +561,15 @@ function evaluateSplit(teamAPlayers: Person[], teamBPlayers: Person[], context: 
     team2GKProfile,
     gkPreference,
     attPreference,
+    wantsPreference,
+    social,
     score,
+    socialPct: social.percentage,
     ratingDiff: Math.abs(canonical.stats1.rating - canonical.stats2.rating),
     displayKey: canonical.displayKey,
     violations: {
       avoids: countAvoidViolations(canonical.team1Players) + countAvoidViolations(canonical.team2Players),
-      wants: countBrokenWants(canonical.team1Players, canonical.team2Players),
+      wants: countSplitLinks(context.wantLinks.mutualPairs, team1Ids),
       ownerBias: ownerBiasValid ? 0 : 1,
       roleSpread: countRoleSpreadViolations(canonical.team1Players, canonical.team2Players, context.totalDefCount),
       roleLimits:
@@ -526,6 +585,7 @@ function evaluateAllSplits(players: Person[]): SplitEvaluation[] {
   const context: SplitContext = {
     owner: players.find((player) => player.id === OWNER_ID),
     totalDefCount: countRole(players, 'DEF'),
+    wantLinks: classifyWantLinks(players),
   };
 
   return getCombinations(rest, TEAM_SIZE - 1).map((partners) => {
@@ -536,9 +596,17 @@ function evaluateAllSplits(players: Person[]): SplitEvaluation[] {
   });
 }
 
-function compareByBalance(a: SplitEvaluation, b: SplitEvaluation): number {
+/**
+ * Best split first: higher score, then higher social satisfaction (wants and avoids met),
+ * then smaller rating gap, then a fixed order by ids so the result never depends on input order.
+ */
+export function compareSplitsByBalance(a: RankableSplit, b: RankableSplit): number {
   if (a.score !== b.score) {
     return b.score - a.score;
+  }
+
+  if (a.socialPct !== b.socialPct) {
+    return b.socialPct - a.socialPct;
   }
 
   if (a.ratingDiff !== b.ratingDiff) {
@@ -555,7 +623,7 @@ function compareByFewestViolations(a: SplitEvaluation, b: SplitEvaluation): numb
     }
   }
 
-  return compareByBalance(a, b);
+  return compareSplitsByBalance(a, b);
 }
 
 // ---------------------------------------------------------------------------
@@ -616,6 +684,7 @@ function describeLinks(
   linkKey: 'wantsWith' | 'avoidsWith',
   sameTeam: boolean,
   arrows: { oneWay: string; mutual: string },
+  only?: 'mutual' | 'oneWay',
 ): string[] {
   const allPlayers = [...team1, ...team2];
   const byId = new Map(allPlayers.map((player) => [player.id, player]));
@@ -630,6 +699,7 @@ function describeLinks(
       if ((team1Ids.has(source.id) === team1Ids.has(targetId)) !== sameTeam) continue;
 
       const isMutual = target[linkKey].includes(source.id);
+      if ((only === 'mutual' && !isMutual) || (only === 'oneWay' && isMutual)) continue;
       const pairKey = isMutual ? [source.id, targetId].sort().join('|') : `${source.id}->${targetId}`;
       if (processed.has(pairKey)) continue;
       processed.add(pairKey);
@@ -653,9 +723,8 @@ function getMetDislikeDetails(team1: Person[], team2: Person[]): string {
   return metDislikes.length > 0 ? metDislikes.join(', ') : 'No met dislikes';
 }
 
-/** Groups of selected players chained together by wants (in either direction). */
-function getWantsGroups(players: Person[]): Person[][] {
-  const selectedIds = new Set(players.map((player) => player.id));
+/** Groups of selected players chained together by mutual wants, the only wants that are a rule. */
+function getMutualWantGroups(players: Person[], mutualPairs: [string, string][]): Person[][] {
   const parent = new Map(players.map((player) => [player.id, player.id]));
   const find = (id: string): string => {
     let root = id;
@@ -663,12 +732,8 @@ function getWantsGroups(players: Person[]): Person[][] {
     return root;
   };
 
-  for (const player of players) {
-    for (const targetId of player.wantsWith) {
-      if (targetId !== player.id && selectedIds.has(targetId)) {
-        parent.set(find(player.id), find(targetId));
-      }
-    }
+  for (const [a, b] of mutualPairs) {
+    parent.set(find(a), find(b));
   }
 
   const groups = new Map<string, Person[]>();
@@ -735,11 +800,7 @@ ${formatTeamGKEmergencyLine('T2', team2Profile, gkPreference.team2)}
 - Status: ${status}${scoreLine}`;
 }
 
-function createAnalysisExplanation(
-  evaluation: SplitEvaluation,
-  socialSat: SocialSatisfaction,
-  fallbackSection?: string,
-): string {
+function createAnalysisExplanation(evaluation: SplitEvaluation, fallbackSection?: string): string {
   const {
     score,
     stats1,
@@ -750,6 +811,8 @@ function createAnalysisExplanation(
     team2GKProfile,
     gkPreference,
     attPreference,
+    wantsPreference,
+    social: socialSat,
   } = evaluation;
 
   const getFavored = (team1Value: number, team2Value: number): 'T1' | 'T2' | 'Even' => {
@@ -807,20 +870,36 @@ function createAnalysisExplanation(
     staminaPenalty -
     defensePenalty +
     gkPreference.adjustment +
-    attPreference.adjustment;
+    attPreference.adjustment +
+    wantsPreference.adjustment;
 
   const fmt = (value: number): string => {
     return Number.isInteger(value) ? value.toString() : value.toFixed(1);
   };
 
+  // The label describes how even the teams are, so it leaves out the one-way wants penalty.
+  const balanceScore = score - wantsPreference.adjustment;
   const scoreLabel =
-    score >= 70
+    balanceScore >= 70
       ? 'highly balanced'
-      : score >= 40
+      : balanceScore >= 40
         ? 'balanced'
-        : score >= 0
+        : balanceScore >= 0
           ? 'playable but imbalanced'
           : 'imbalanced';
+  const scoreStatus =
+    wantsPreference.oneWayBroken > 0
+      ? `${scoreLabel}; ${wantsPreference.oneWayBroken} broken one-way want${wantsPreference.oneWayBroken === 1 ? '' : 's'} ${formatScoreAdjustment(wantsPreference.adjustment)}`
+      : scoreLabel;
+
+  const oneWayLines = wantsPreference.applies
+    ? [
+        `\n- One-way wants (preference, ${formatScoreAdjustment(-ONE_WAY_WANT_PENALTY)} each if broken): kept ${wantsPreference.oneWayTotal - wantsPreference.oneWayBroken}/${wantsPreference.oneWayTotal}.`,
+        wantsPreference.oneWayBroken > 0
+          ? `\n- Broken one-way wants: ${describeLinks(team1Players, team2Players, 'wantsWith', false, WANTS_ARROWS, 'oneWay').join(', ')}`
+          : '',
+      ].join('')
+    : '';
 
   const gkAnalysisBlock = createGKEmergencyAnalysisBlock(team1GKProfile, team2GKProfile, gkPreference);
 
@@ -835,8 +914,8 @@ function createAnalysisExplanation(
   return `Analysis (Score: ${Math.round(score)})${fallbackBlock}
 
 [Details]
-- Score formula: ${POINTS.RATING_BALANCE_BASE} - rating(${fmt(ratingDiff)}x10=${fmt(ratingPenalty)}) - attrs(${fmt(totalAttrDiff)}x5=${fmt(totalAttrPenalty)}) - pace(${fmt(paceDiff)}x10=${fmt(pacePenalty)}) - stamina(${fmt(staminaDiff)}x8=${fmt(staminaPenalty)}) - defense(${fmt(defDiff)}x5=${fmt(defensePenalty)})${gkPreference.applies ? ` + gkPref(${formatScoreAdjustment(gkPreference.adjustment)})` : ''} + attPref(${formatScoreAdjustment(attPreference.adjustment)}) = ${fmt(scoreRebuilt)}.
-- Current score status: ${Math.round(score)} (${scoreLabel}).
+- Score formula: ${POINTS.RATING_BALANCE_BASE} - rating(${fmt(ratingDiff)}x10=${fmt(ratingPenalty)}) - attrs(${fmt(totalAttrDiff)}x5=${fmt(totalAttrPenalty)}) - pace(${fmt(paceDiff)}x10=${fmt(pacePenalty)}) - stamina(${fmt(staminaDiff)}x8=${fmt(staminaPenalty)}) - defense(${fmt(defDiff)}x5=${fmt(defensePenalty)})${gkPreference.applies ? ` + gkPref(${formatScoreAdjustment(gkPreference.adjustment)})` : ''} + attPref(${formatScoreAdjustment(attPreference.adjustment)})${wantsPreference.applies ? ` + wantsPref(${formatScoreAdjustment(wantsPreference.adjustment)})` : ''} = ${fmt(scoreRebuilt)}.
+- Current score status: ${Math.round(score)} (${scoreStatus}).
 - Favors marker: each balance line shows Favors: T1, T2, or Even.
 
 [Balance]
@@ -860,7 +939,7 @@ ${attPreferenceLine}
 
 [Social]
 - Social Satisfaction: ${socialSat.percentage}% (Wants: ${socialSat.wantsMet}/${socialSat.wantsTotal}, Dislikes: ${socialSat.dislikesMet}/${socialSat.dislikesTotal})
-- Met wants links: ${getMetRelationshipDetails(team1Players, team2Players)}
+- Met wants links: ${getMetRelationshipDetails(team1Players, team2Players)}${oneWayLines}
 - Met dislikes links: ${getMetDislikeDetails(team1Players, team2Players)}`;
 }
 
@@ -886,7 +965,8 @@ function diagnoseRuleConflicts(players: Person[]): string[] {
     );
   }
 
-  const wantsGroups = getWantsGroups(players);
+  // Only mutual wants are a rule, so only they can make every split impossible.
+  const wantsGroups = getMutualWantGroups(players, classifyWantLinks(players).mutualPairs);
   const groupIndexById = new Map<string, number>();
   wantsGroups.forEach((group, index) => {
     group.forEach((player) => groupIndexById.set(player.id, index));
@@ -932,7 +1012,8 @@ function createFallbackSection(players: Person[], evaluation: SplitEvaluation): 
   const brokenAvoids = describeLinks(team1Players, team2Players, 'avoidsWith', true, AVOIDS_ARROWS);
   lines.push(violations.avoids === 0 ? '- Avoids: kept.' : `- Avoids: BROKEN (${brokenAvoids.join(', ')}).`);
 
-  const brokenWants = describeLinks(team1Players, team2Players, 'wantsWith', false, WANTS_ARROWS);
+  // Only mutual wants are a rule; broken one-way wants show up under Social.
+  const brokenWants = describeLinks(team1Players, team2Players, 'wantsWith', false, WANTS_ARROWS, 'mutual');
   lines.push(violations.wants === 0 ? '- Wants: kept.' : `- Wants: BROKEN (${brokenWants.join(', ')}).`);
 
   const owner = players.find((player) => player.id === OWNER_ID);
@@ -984,13 +1065,11 @@ function buildOption(
   stage: GenerationStage,
   fallbackSection?: string,
 ): GeneratedTeamOption {
-  const socialSat = calculateSocialSatisfaction(evaluation.team1Players, evaluation.team2Players);
-
   return {
     team1: { players: evaluation.team1Players, totalRating: evaluation.stats1.rating },
     team2: { players: evaluation.team2Players, totalRating: evaluation.stats2.rating },
-    socialSatisfactionPct: socialSat.percentage,
-    explanation: createAnalysisExplanation(evaluation, socialSat, fallbackSection),
+    socialSatisfactionPct: evaluation.socialPct,
+    explanation: createAnalysisExplanation(evaluation, fallbackSection),
     isFallback: stage === 'FALLBACK',
     score: evaluation.score,
     stage,
@@ -1035,7 +1114,7 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
   const evaluations = evaluateAllSplits(players);
 
   // Strict stage: every hard rule holds. Rank by balance and offer the runner-up as second option.
-  const strictRanked = evaluations.filter(isStrictSplit).sort(compareByBalance);
+  const strictRanked = evaluations.filter(isStrictSplit).sort(compareSplitsByBalance);
   if (strictRanked.length > 0) {
     const primary = buildOption(strictRanked[0], 'STRICT');
     const secondary = strictRanked.length > 1 ? buildOption(strictRanked[1], 'STRICT') : null;

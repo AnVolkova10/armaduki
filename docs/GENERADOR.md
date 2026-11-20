@@ -12,14 +12,14 @@ Prueba todos los repartos posibles de las 10 elegidas en dos equipos de 5 (son 1
 2. Se arman los 126 repartos posibles.
 3. Cada reparto se controla contra las reglas fuertes:
    - **Avoids:** dos que se evitan no van en el mismo equipo.
-   - **Wants:** si una quiere jugar con otra, van juntas. Es estricto aunque el want sea de un solo lado.
+   - **Wants mutuos:** si dos se quieren mutuamente, van juntas. Los wants de un solo lado no son regla sino preferencia (ver el score).
    - **GK y DEF:** máximo 1 GK y 2 DEF por equipo. Si hay exactamente 2 DEF, va una a cada lado.
    - **ATT:** la diferencia de ATT entre equipos es como mucho 1.
    - **Arquera de emergencia:** un equipo sin GK necesita al menos 2 jugadoras que atajen (`good` o `low`).
    - **Owner bias:** la dueña de la app (`VITE_OWNER_ID`) va al equipo con menos Power, o con el mismo.
 4. A cada reparto que cumple todo se le calcula un score (abajo).
 5. El de mayor score es el resultado. El segundo es la «Second Option», con la diferencia contra el primero.
-6. Si dos repartos empatan en score, gana el de menor diferencia de rating y después un orden fijo por ids. La misma selección da siempre el mismo resultado.
+6. Si dos repartos empatan en score, gana el de mayor social satisfaction, después el de menor diferencia de rating y por último un orden fijo por ids. La misma selección da siempre el mismo resultado.
 
 ## El score
 
@@ -35,10 +35,11 @@ Arranca en 100 y resta lo desparejo:
 - **Extra:** −10 por punto de diferencia en pace, −8 en stamina y −5 en defense. Estos tres cuentan dos veces a propósito, para que pesen más.
 - **Arqueras:** en un equipo sin GK, +4 por cada `good` y −12 por cada arquera que falte para llegar a 2.
 - **ATT:** −6 por cada ATT de diferencia. Si hay 5 ATT o más y un equipo tiene más, +6 si ese equipo tiene DEF y −8 si no.
+- **Wants de un solo lado:** −15 por cada uno que queda en equipos distintos (lo mismo que 1,5 puntos de diferencia de rating). El número es la constante `ONE_WAY_WANT_PENALTY`.
 
 El **Power** de un equipo, que usa el owner bias, es la suma de ratings más la suma de atributos.
 
-El análisis muestra esta cuenta completa, el balance de cada atributo, las arqueras, el reparto de ATT y la **social satisfaction**: el porcentaje de wants y avoids cumplidos. La social satisfaction no suma al score; solo se muestra.
+El análisis muestra esta cuenta completa, el balance de cada atributo, las arqueras, el reparto de ATT y la **social satisfaction**: el porcentaje de wants y avoids cumplidos. La social satisfaction no suma al score, pero desempata. Si hay wants de un solo lado, el análisis dice cuántos se respetaron y cuáles se rompieron. La etiqueta «balanced» mira solo lo parejo de los equipos y no descuenta los wants rotos.
 
 ## Cuando ningún reparto cumple todo (fallback)
 
@@ -57,7 +58,7 @@ La revisión encontró dos problemas:
 Un solo paso: entre los 126 repartos elige el que rompe menos reglas, en este orden de importancia:
 
 1. avoids;
-2. wants;
+2. wants mutuos;
 3. owner bias;
 4. spread de ATT/DEF;
 5. límites de GK y DEF, y arquera de emergencia.
@@ -66,22 +67,26 @@ Si empatan, gana el de mejor score.
 
 - Si existe un reparto social-hard, sigue siendo el elegido, como antes, pero ahora con la menor cantidad posible de límites rotos: con 3 GK reparte 2/1.
 - Un avoid solo se rompe si no hay ningún reparto que lo respete.
-- El análisis suma un bloque «Fallback» con el motivo (por ejemplo, «3 GK selected» o una cadena de wants de más de 5) y qué regla se rompió, con nombres.
+- El análisis suma un bloque «Fallback» con el motivo (por ejemplo, «3 GK selected» o una cadena de wants mutuos de más de 5) y qué regla se rompió, con nombres.
 
-Cuando hay solución estricta, el resultado es idéntico al de antes: se comparó contra la versión anterior en 6000 grupos al azar.
+Cuando hay solución estricta, el resultado es idéntico al de antes de la revisión: se comparó contra la versión anterior en 6000 grupos al azar.
 
-Este orden lo propuso Claude en la revisión y está en «Cosas por cerrar» del TODO.
+Desde el Sprint 2 (19/11/2026), los wants de un solo lado no traban: una cadena de 6 de un solo lado ya no lleva al fallback. Sin wants de un solo lado, el resultado es idéntico al de antes del Sprint 2, en estricto y en fallback (comparado en 4500 grupos al azar).
 
-## Ideas para mejorarlo (Propuestas)
+Este orden lo propuso Claude en la revisión y Ángela lo aprobó el 19/11/2026.
 
-Para charlar en el Sprint 2; ninguna está hecha.
+## Ideas para mejorarlo
 
-- **Wants de un solo lado.** Hoy pesan igual que los mutuos, así que una cadena de 6 (A quiere a B, B a C…) obliga al fallback. Opción: mutuos estrictos y los de un solo lado como preferencia, con puntos. La v1 tenía modos así sin usar; se quitaron en la revisión.
-- **Owner bias.** Hoy es una regla fuerte. Podría restar puntos en vez de prohibir, o tener un switch para apagarla.
-- **Pesos del score.** Están elegidos a mano. Con el historial de partidos (Sprint 9) y quién ganó cada uno, se podrían ajustar.
-- **Rating y atributos se superponen.** El rating ya resume el nivel y los atributos lo vuelven a sumar. Ver si conviene pesarlos distinto o usar el rating sugerido del modal.
-- **Variedad.** La misma selección da siempre el mismo reparto. Opciones: «otro reparto» entre los casi iguales, o evitar repetir los equipos de la última fecha, con el historial.
-- **Posiciones.** FLEX y MID no tienen reglas. La segunda posición (Sprint 6) podría servir, por ejemplo para una DEF que también juega de MID.
-- **Social satisfaction.** Podría desempatar entre repartos igual de parejos.
-- **Bonus por mismo equipo:** ya está planeado en el Sprint 10.
+Charladas con Ángela el 19/11/2026. Lo que se hace está en el Sprint 2 del TODO; lo que espera decisión, en «Cosas por cerrar».
+
+- **Wants de un solo lado: hecho (Sprint 2).** Antes pesaban igual que los mutuos, así que una cadena de 6 (A quiere a B, B a C…) obligaba al fallback. Ahora los mutuos siguen estrictos y los de un solo lado restan 15 puntos si se rompen. El 15 se puede ajustar.
+- **Social satisfaction como desempate: hecho (Sprint 2).** Con los wants de un solo lado ya en el score, cambia pocos resultados.
+- **Owner bias: sigue como está,** como regla fuerte y con Power.
+- **Pesos del score: con resultados.** Están elegidos a mano; se ajustan cuando el historial guarde quién ganó cada partido (Sprint 9).
+- **Rating y atributos: propuesta pendiente.** Los ratings coinciden con el sugerido por los atributos, así que el nivel cuenta dos veces: en el rating y en los atributos. La propuesta es esperar los resultados y entonces probar que los atributos midan solo el estilo (que la velocidad o la defensa no queden todas del mismo lado). Sin resultados se pueden comparar fórmulas, pero no saber cuál arma mejores partidos.
+- **Posiciones.** FLEX es comodín: defiende, ataca y a veces ataja. MID juega en el medio, más defensiva que ofensiva. Lo ideal por equipo suele ser GK, DEF, 2 MID y ATT.
+  - **Formación ideal: no se agrega (19/11).** Con los roles de hoy no sería un buen criterio. Se puede repensar con los varios roles.
+  - **Varios roles por jugadora en vez de FLEX: Sprint 6.** Antes hay que decidir si las reglas cuentan el rol principal o el puesto que le toca en el equipo.
+- **Variedad: más adelante** (backlog): «otro reparto» entre los casi iguales, o no repetir los equipos de la última fecha.
+- **Bonus por mismo equipo:** Sprint 10.
 - **Suplentes y otros tamaños** (backlog): con 12 o 14 jugadoras hay más repartos para probar, pero sigue siendo rápido.
