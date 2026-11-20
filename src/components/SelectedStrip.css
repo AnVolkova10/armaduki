@@ -1,0 +1,124 @@
+/* Second row of the sticky header on the Match page. Same height empty or full,
+   so the list below does not jump when the first player is picked. */
+.selected-strip {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+
+/* The count, the empty text and the chips are all 30px tall, so the row never changes height. */
+.selected-strip-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  height: 30px;
+  min-width: 3.1rem;
+  padding: 0 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.selected-strip-count.is-complete {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.65);
+  color: #ef4444;
+}
+
+.selected-strip-empty {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 30px;
+}
+
+/* One line, scrolls sideways: ten wrapped chips would eat a phone screen. */
+.selected-strip-list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+  gap: 0.4rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+  /* Hidden scrollbar: the chip cut at the edge already shows the row scrolls. */
+  scrollbar-width: none;
+}
+
+.selected-strip-list::-webkit-scrollbar {
+  display: none;
+}
+
+/* Flex, not inline: an inline chip that starts with an avatar image sits on the text
+   baseline and the row grows a couple of pixels. */
+.selected-strip-list li {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.selected-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 30px;
+  padding: 0 0.55rem 0 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.selected-chip:hover,
+.selected-chip:focus-visible {
+  border-color: rgba(239, 68, 68, 0.65);
+  outline: none;
+}
+
+.selected-chip-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  font-weight: 700;
+  object-fit: cover;
+}
+
+.selected-chip-name {
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selected-chip-remove {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.selected-chip:hover .selected-chip-remove,
+.selected-chip:focus-visible .selected-chip-remove {
+  color: #ef4444;
+}

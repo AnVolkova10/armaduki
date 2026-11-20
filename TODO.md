@@ -6,6 +6,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 
 - [x] Se lee y se ejecuta de arriba hacia abajo, de a un ítem por vez. Un ítem no toca otros módulos salvo lo que necesita.
 - [x] Los sprints son por objetivo, no por fecha. Al cerrar cada uno, Ángela lo revisa antes de seguir.
+- [x] Cuando Ángela dice «hacé el Sprint N», Claude lo implementa, lo verifica (lint, tests, build y una prueba en navegador contra una API local), hace commit y push a `main`, que publica en Vercel, y le pasa dónde y cómo probarlo. El sprint se cierra cuando ella lo prueba.
 - [x] Primero la base (Sprints 1 a 5), después las funciones nuevas (Sprints 6 a 10).
 - [x] En cada sprint va solo lo que se puede hacer ya. Lo que espera una decisión va en «Cosas por cerrar», con quién decide y un default para seguir.
 - [x] Un ítem nuevo se conversa antes de construirlo. Lo que sugiere Claude está marcado como **Propuesta**: Ángela lo acepta o lo descarta.
@@ -45,12 +46,23 @@ Objetivo: que lo que ya existe funcione bien antes de sumar cosas. El detalle es
 - [x] Implementaciones viejas del backend borradas (RV-17).
 - [x] De los criterios de cierre de la Fase 2 ya se cumplían lint, build, el scroll al resultado (F2-09), el footer abajo (F2-00.7) y Escape en los modales (F2-00.8). Los demás son objetivo de los Sprints 6, 8 y 10.
 
-## Sprint 1 - Lo que anotaste en Notion
+## Sprint 1 - Lo que anotaste en Notion (hecho, falta tu prueba)
 
 Objetivo: los pedidos chicos que anotaste en Notion. Solo frontend. El tercero, «Terminar Fase 2», quedó repartido en los Sprints 6 a 10.
 
-- [ ] «sort selected»: un orden «Selected first» en Match que deje arriba a las elegidas. Ver «Cosas por cerrar».
-- [ ] «que en el navbar aparezcan los seleccionados»: en Match, las elegidas en una tira fija arriba, visible al scrollear; tocar una la saca de la selección.
+- [ ] **Ángela:** probarlo con los pasos de abajo.
+- [x] «sort selected»: orden «Sort: selected» en Match, que deja arriba a las elegidas y mantiene el orden de siempre dentro de cada grupo (19/11). Ver «Cosas por cerrar».
+- [x] «que en el navbar aparezcan los seleccionados»: en Match, las elegidas aparecen como chips en una segunda fila del header fijo, en el orden en que se eligieron, con el contador. Tocar un chip la saca de la selección. La fila tiene siempre el mismo alto, para que la lista no salte (19/11).
+- [x] Verificado en Edge, en teléfono y en escritorio, contra una API local: 13 chequeos y ningún error de consola.
+
+Prueba (en https://armaduki.vercel.app/match, mejor desde el teléfono):
+
+1. Debajo del menú aparece «0/10» y «Tap players to pick 10».
+2. Tocá 3 jugadoras: aparecen arriba como chips, en el orden en que las tocaste, y el contador sube.
+3. Scrolleá: la fila queda fija arriba.
+4. Tocá un chip: esa jugadora se deselecciona.
+5. En el orden, elegí «Sort: selected»: las elegidas quedan primero. Con ese orden, una tarjeta que tocás salta arriba.
+6. Completá 10 y generá los equipos. Si después tocás un chip, el resultado se borra porque cambió la selección.
 
 ## Sprint 2 - El generador: cómo funciona y qué mejorar
 
@@ -142,7 +154,7 @@ Objetivo: que las que juegan juntas en un equipo real tiendan a caer juntas, sin
 ## Cosas por cerrar
 
 - [ ] **Prioridad del fallback del generador.** En la v1 se decidió primero social-hard y después snake. En la revisión pasó a «el reparto que rompe menos reglas», en este orden: avoids > wants > owner bias > spread ATT/DEF > límites GK/DEF. Ya está publicado. Explicado en `docs/GENERADOR.md`; se decide en el Sprint 2. Decide: Ángela. Default: dejarlo así.
-- [ ] **Qué es «sort selected».** Decide: Ángela. Default: un orden «Selected first» en Match.
+- [ ] **Qué es «sort selected».** Se hizo con el default en el Sprint 1: «Sort: selected» en Match deja arriba a las elegidas. Se cierra cuando Ángela lo pruebe. Decide: Ángela.
 - [ ] **«Fable 2.5».** Se entendió Claude Fable 5.2, el modelo del rediseño de VolkosFood. Decide: Ángela. Default: Fable 5.2.
 - [ ] **Default de arquera (`gkWillingness`).** El modal crea jugadoras con `low`, pero una fila de la planilla sin el dato se lee como `no` (RV-14). Decide: Ángela. Default: `no` en los dos, para que lo desconocido no cuente como arquera de emergencia.
 - [ ] **Qué oculta privacy mode** (RV-12). Hoy oculta los ratings individuales, pero el análisis sigue mostrando el total de rating por equipo. Decide: Ángela. Default: ocultar también esos totales.

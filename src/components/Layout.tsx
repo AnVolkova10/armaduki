@@ -1,12 +1,14 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useMatch } from 'react-router-dom';
 import './Layout.css';
 
 import useAppStore from '../store/useAppStore';
 import { AppNotices } from './AppNotices';
+import { SelectedStrip } from './SelectedStrip';
 
 export function Layout() {
     const privacyMode = useAppStore((state) => state.privacyMode);
     const togglePrivacyMode = useAppStore((state) => state.togglePrivacyMode);
+    const isMatchPage = Boolean(useMatch('/match'));
 
     return (
         <div className="layout">
@@ -23,6 +25,7 @@ export function Layout() {
                         Match
                     </NavLink>
                 </nav>
+                {isMatchPage && <SelectedStrip />}
             </header>
             <main className="main">
                 <Outlet />

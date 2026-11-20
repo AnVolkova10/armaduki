@@ -10,6 +10,7 @@
   top: 0;
   z-index: 30;
   display: flex;
+  flex-wrap: wrap; /* lets the Match selection strip take a full-width second row */
   align-items: center;
   justify-content: space-between;
   padding: 1rem 2rem;

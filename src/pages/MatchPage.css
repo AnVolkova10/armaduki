@@ -310,6 +310,7 @@
   font-size: 0.875rem;
 }
 
+/* Clears the sticky header, which on Match includes the selection strip. */
 .match-page .team-result-scroll-anchor {
-  scroll-margin-top: 5rem;
+  scroll-margin-top: 8.5rem;
 }
