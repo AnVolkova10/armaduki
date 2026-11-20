@@ -132,22 +132,11 @@
 
 .gate-gk {
   transform-origin: 160px 150px;
-  animation: gk-bounce 0.75s ease-in-out infinite alternate;
 }
 
 .gate-gk-step,
 .gate-gk-shadow {
   animation: gk-step 2.6s ease-in-out infinite alternate;
-}
-
-.gate-gk-arm-l {
-  transform-origin: 153px 109px;
-  animation: arm-l-ready 1.3s ease-in-out infinite alternate;
-}
-
-.gate-gk-arm-r {
-  transform-origin: 167px 109px;
-  animation: arm-r-ready 1.3s ease-in-out infinite alternate;
 }
 
 .gate-ball,
@@ -170,18 +159,6 @@
 }
 
 /* ---------- Run-up: loops until the answer arrives ---------- */
-
-.gate[data-shot='aiming'] .gate-gk {
-  animation: gk-crouch 0.36s ease-in-out infinite alternate;
-}
-
-.gate[data-shot='aiming'] .gate-gk-arm-l {
-  animation: arm-l-wide 0.36s ease-in-out infinite alternate;
-}
-
-.gate[data-shot='aiming'] .gate-gk-arm-r {
-  animation: arm-r-wide 0.36s ease-in-out infinite alternate;
-}
 
 .gate[data-shot='aiming'] .gate-ball {
   animation: ball-charge 0.3s ease-in-out infinite alternate;
@@ -232,14 +209,6 @@
   animation: gk-beaten 1.1s forwards;
 }
 
-.gate[data-shot='goal'] .gate-gk-arm-l {
-  animation: arm-l-up 0.4s ease-out forwards;
-}
-
-.gate[data-shot='goal'] .gate-gk-arm-r {
-  animation: arm-r-up 0.4s ease-out forwards;
-}
-
 .gate[data-shot='goal'] .gate-net-glow {
   animation: net-glow 0.7s ease-out 0.46s;
 }
@@ -259,14 +228,6 @@
 
 .gate[data-shot='saved'] .gate-gk {
   animation: gk-save 2.8s forwards;
-}
-
-.gate[data-shot='saved'] .gate-gk-arm-l {
-  animation: arm-l-catch 2.8s forwards;
-}
-
-.gate[data-shot='saved'] .gate-gk-arm-r {
-  animation: arm-r-catch 2.8s forwards;
 }
 
 /* Post: no answer. The ball comes back by itself. */
@@ -316,57 +277,6 @@
 @keyframes gk-walk-home {
   0%, 60% { transform: translateX(var(--gk-x)); }
   100% { transform: translateX(-5px); }
-}
-
-@keyframes gk-bounce {
-  from { transform: translateY(0); }
-  to { transform: translateY(-1.6px); }
-}
-
-@keyframes gk-crouch {
-  from { transform: translateY(0) scaleY(0.95); }
-  to { transform: translateY(-1.2px) scaleY(0.93); }
-}
-
-@keyframes arm-l-ready {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(9deg); }
-}
-
-@keyframes arm-r-ready {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(-9deg); }
-}
-
-@keyframes arm-l-wide {
-  from { transform: rotate(24deg); }
-  to { transform: rotate(32deg); }
-}
-
-@keyframes arm-r-wide {
-  from { transform: rotate(-24deg); }
-  to { transform: rotate(-32deg); }
-}
-
-/* Both hands together over her head. */
-@keyframes arm-l-up {
-  to { transform: rotate(150deg); }
-}
-
-@keyframes arm-r-up {
-  to { transform: rotate(-150deg); }
-}
-
-@keyframes arm-l-catch {
-  0% { transform: rotate(0deg); }
-  15%, 58% { transform: rotate(150deg); }
-  82%, 100% { transform: rotate(0deg); }
-}
-
-@keyframes arm-r-catch {
-  0% { transform: rotate(0deg); }
-  15%, 58% { transform: rotate(-150deg); }
-  82%, 100% { transform: rotate(0deg); }
 }
 
 @keyframes ball-charge {
@@ -469,12 +379,429 @@
   100% { transform: none; }
 }
 
+/* ---------- Joints (generated from poses; see the keeper in Gate.tsx) ----------
+   Knees: the thigh turns out, the shin comes back and the body sinks, so the feet stay on the
+   line, apart. Elbows: the upper arm turns out and the forearm comes back in. */
+
+.gate-gk-thigh-l {
+  transform-origin: 155.8px 128px;
+}
+
+.gate-gk-thigh-r {
+  transform-origin: 164.2px 128px;
+}
+
+.gate-gk-shin-l {
+  transform-origin: 155.8px 138px;
+}
+
+.gate-gk-shin-r {
+  transform-origin: 164.2px 138px;
+}
+
+.gate-gk-arm-l {
+  transform-origin: 153px 109px;
+}
+
+.gate-gk-arm-r {
+  transform-origin: 167px 109px;
+}
+
+.gate-gk-fore-l {
+  transform-origin: 153px 118px;
+}
+
+.gate-gk-fore-r {
+  transform-origin: 167px 118px;
+}
+
+@keyframes top-ready {
+  from { transform: translateY(1.11px); }
+  to { transform: translateY(1.23px); }
+}
+
+@keyframes thigh-l-ready {
+  from { transform: rotate(24deg); }
+  to { transform: rotate(27deg); }
+}
+
+@keyframes thigh-r-ready {
+  from { transform: rotate(-24deg); }
+  to { transform: rotate(-27deg); }
+}
+
+@keyframes shin-l-ready {
+  from { transform: rotate(-12deg); }
+  to { transform: rotate(-18deg); }
+}
+
+@keyframes shin-r-ready {
+  from { transform: rotate(12deg); }
+  to { transform: rotate(18deg); }
+}
+
+@keyframes arm-l-ready {
+  from { transform: rotate(66deg); }
+  to { transform: rotate(70deg); }
+}
+
+@keyframes arm-r-ready {
+  from { transform: rotate(-66deg); }
+  to { transform: rotate(-70deg); }
+}
+
+@keyframes fore-l-ready {
+  from { transform: rotate(-14deg); }
+  to { transform: rotate(-16deg); }
+}
+
+@keyframes fore-r-ready {
+  from { transform: rotate(14deg); }
+  to { transform: rotate(16deg); }
+}
+
+.gate .gate-gk-top {
+  animation: top-ready 0.75s ease-in-out infinite alternate;
+}
+
+.gate .gate-gk-thigh-l {
+  animation: thigh-l-ready 0.75s ease-in-out infinite alternate;
+}
+
+.gate .gate-gk-thigh-r {
+  animation: thigh-r-ready 0.75s ease-in-out infinite alternate;
+}
+
+.gate .gate-gk-shin-l {
+  animation: shin-l-ready 0.75s ease-in-out infinite alternate;
+}
+
+.gate .gate-gk-shin-r {
+  animation: shin-r-ready 0.75s ease-in-out infinite alternate;
+}
+
+.gate .gate-gk-arm-l {
+  animation: arm-l-ready 0.75s ease-in-out infinite alternate;
+}
+
+.gate .gate-gk-arm-r {
+  animation: arm-r-ready 0.75s ease-in-out infinite alternate;
+}
+
+.gate .gate-gk-fore-l {
+  animation: fore-l-ready 0.75s ease-in-out infinite alternate;
+}
+
+.gate .gate-gk-fore-r {
+  animation: fore-r-ready 0.75s ease-in-out infinite alternate;
+}
+
+@keyframes top-tense {
+  from { transform: translateY(1.92px); }
+  to { transform: translateY(2.34px); }
+}
+
+@keyframes thigh-l-tense {
+  from { transform: rotate(36deg); }
+  to { transform: rotate(40deg); }
+}
+
+@keyframes thigh-r-tense {
+  from { transform: rotate(-36deg); }
+  to { transform: rotate(-40deg); }
+}
+
+@keyframes shin-l-tense {
+  from { transform: rotate(-34deg); }
+  to { transform: rotate(-41deg); }
+}
+
+@keyframes shin-r-tense {
+  from { transform: rotate(34deg); }
+  to { transform: rotate(41deg); }
+}
+
+@keyframes arm-l-tense {
+  from { transform: rotate(74deg); }
+  to { transform: rotate(78deg); }
+}
+
+@keyframes arm-r-tense {
+  from { transform: rotate(-74deg); }
+  to { transform: rotate(-78deg); }
+}
+
+@keyframes fore-l-tense {
+  from { transform: rotate(-10deg); }
+  to { transform: rotate(-12deg); }
+}
+
+@keyframes fore-r-tense {
+  from { transform: rotate(10deg); }
+  to { transform: rotate(12deg); }
+}
+
+.gate[data-shot='aiming'] .gate-gk-top {
+  animation: top-tense 0.36s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-gk-thigh-l {
+  animation: thigh-l-tense 0.36s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-gk-thigh-r {
+  animation: thigh-r-tense 0.36s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-gk-shin-l {
+  animation: shin-l-tense 0.36s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-gk-shin-r {
+  animation: shin-r-tense 0.36s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-gk-arm-l {
+  animation: arm-l-tense 0.36s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-gk-arm-r {
+  animation: arm-r-tense 0.36s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-gk-fore-l {
+  animation: fore-l-tense 0.36s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-gk-fore-r {
+  animation: fore-r-tense 0.36s ease-in-out infinite alternate;
+}
+
+@keyframes top-beaten {
+  0% { transform: translateY(1.11px); }
+  14% { transform: translateY(2.83px); }
+  52% { transform: translateY(0px); }
+  82%, 100% { transform: translateY(0px); }
+}
+
+@keyframes thigh-l-beaten {
+  0% { transform: rotate(24deg); }
+  14% { transform: rotate(44deg); }
+  52% { transform: rotate(0deg); }
+  82%, 100% { transform: rotate(4deg); }
+}
+
+@keyframes thigh-r-beaten {
+  0% { transform: rotate(-24deg); }
+  14% { transform: rotate(-44deg); }
+  52% { transform: rotate(-30deg); }
+  82%, 100% { transform: rotate(-14deg); }
+}
+
+@keyframes shin-l-beaten {
+  0% { transform: rotate(-12deg); }
+  14% { transform: rotate(-48deg); }
+  52% { transform: rotate(0deg); }
+  82%, 100% { transform: rotate(-8deg); }
+}
+
+@keyframes shin-r-beaten {
+  0% { transform: rotate(12deg); }
+  14% { transform: rotate(48deg); }
+  52% { transform: rotate(55deg); }
+  82%, 100% { transform: rotate(28deg); }
+}
+
+@keyframes arm-l-beaten {
+  0% { transform: rotate(66deg); }
+  14% { transform: rotate(70deg); }
+  52% { transform: rotate(190deg); }
+  82%, 100% { transform: rotate(190deg); }
+}
+
+@keyframes arm-r-beaten {
+  0% { transform: rotate(-66deg); }
+  14% { transform: rotate(-70deg); }
+  52% { transform: rotate(-190deg); }
+  82%, 100% { transform: rotate(-190deg); }
+}
+
+@keyframes fore-l-beaten {
+  0% { transform: rotate(-14deg); }
+  14% { transform: rotate(-20deg); }
+  52% { transform: rotate(8deg); }
+  82%, 100% { transform: rotate(8deg); }
+}
+
+@keyframes fore-r-beaten {
+  0% { transform: rotate(14deg); }
+  14% { transform: rotate(20deg); }
+  52% { transform: rotate(-8deg); }
+  82%, 100% { transform: rotate(-8deg); }
+}
+
+.gate[data-shot='goal'] .gate-gk-top {
+  animation: top-beaten 1.1s ease-in-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-gk-thigh-l {
+  animation: thigh-l-beaten 1.1s ease-in-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-gk-thigh-r {
+  animation: thigh-r-beaten 1.1s ease-in-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-gk-shin-l {
+  animation: shin-l-beaten 1.1s ease-in-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-gk-shin-r {
+  animation: shin-r-beaten 1.1s ease-in-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-gk-arm-l {
+  animation: arm-l-beaten 1.1s ease-in-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-gk-arm-r {
+  animation: arm-r-beaten 1.1s ease-in-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-gk-fore-l {
+  animation: fore-l-beaten 1.1s ease-in-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-gk-fore-r {
+  animation: fore-r-beaten 1.1s ease-in-out forwards;
+}
+
+@keyframes top-save {
+  0% { transform: translateY(1.11px); }
+  6% { transform: translateY(2.83px); }
+  20% { transform: translateY(0px); }
+  36%, 58% { transform: translateY(0px); }
+  74% { transform: translateY(2.58px); }
+  86%, 100% { transform: translateY(1.11px); }
+}
+
+@keyframes thigh-l-save {
+  0% { transform: rotate(24deg); }
+  6% { transform: rotate(44deg); }
+  20% { transform: rotate(0deg); }
+  36%, 58% { transform: rotate(4deg); }
+  74% { transform: rotate(42deg); }
+  86%, 100% { transform: rotate(24deg); }
+}
+
+@keyframes thigh-r-save {
+  0% { transform: rotate(-24deg); }
+  6% { transform: rotate(-44deg); }
+  20% { transform: rotate(-30deg); }
+  36%, 58% { transform: rotate(-14deg); }
+  74% { transform: rotate(-42deg); }
+  86%, 100% { transform: rotate(-24deg); }
+}
+
+@keyframes shin-l-save {
+  0% { transform: rotate(-12deg); }
+  6% { transform: rotate(-48deg); }
+  20% { transform: rotate(0deg); }
+  36%, 58% { transform: rotate(-8deg); }
+  74% { transform: rotate(-45deg); }
+  86%, 100% { transform: rotate(-12deg); }
+}
+
+@keyframes shin-r-save {
+  0% { transform: rotate(12deg); }
+  6% { transform: rotate(48deg); }
+  20% { transform: rotate(55deg); }
+  36%, 58% { transform: rotate(28deg); }
+  74% { transform: rotate(45deg); }
+  86%, 100% { transform: rotate(12deg); }
+}
+
+@keyframes arm-l-save {
+  0% { transform: rotate(66deg); }
+  6% { transform: rotate(70deg); }
+  20% { transform: rotate(190deg); }
+  36%, 58% { transform: rotate(190deg); }
+  74% { transform: rotate(66deg); }
+  86%, 100% { transform: rotate(66deg); }
+}
+
+@keyframes arm-r-save {
+  0% { transform: rotate(-66deg); }
+  6% { transform: rotate(-70deg); }
+  20% { transform: rotate(-190deg); }
+  36%, 58% { transform: rotate(-190deg); }
+  74% { transform: rotate(-66deg); }
+  86%, 100% { transform: rotate(-66deg); }
+}
+
+@keyframes fore-l-save {
+  0% { transform: rotate(-14deg); }
+  6% { transform: rotate(-20deg); }
+  20% { transform: rotate(8deg); }
+  36%, 58% { transform: rotate(8deg); }
+  74% { transform: rotate(-24deg); }
+  86%, 100% { transform: rotate(-14deg); }
+}
+
+@keyframes fore-r-save {
+  0% { transform: rotate(14deg); }
+  6% { transform: rotate(20deg); }
+  20% { transform: rotate(-8deg); }
+  36%, 58% { transform: rotate(-8deg); }
+  74% { transform: rotate(24deg); }
+  86%, 100% { transform: rotate(14deg); }
+}
+
+.gate[data-shot='saved'] .gate-gk-top {
+  animation: top-save 2.8s ease-in-out forwards;
+}
+
+.gate[data-shot='saved'] .gate-gk-thigh-l {
+  animation: thigh-l-save 2.8s ease-in-out forwards;
+}
+
+.gate[data-shot='saved'] .gate-gk-thigh-r {
+  animation: thigh-r-save 2.8s ease-in-out forwards;
+}
+
+.gate[data-shot='saved'] .gate-gk-shin-l {
+  animation: shin-l-save 2.8s ease-in-out forwards;
+}
+
+.gate[data-shot='saved'] .gate-gk-shin-r {
+  animation: shin-r-save 2.8s ease-in-out forwards;
+}
+
+.gate[data-shot='saved'] .gate-gk-arm-l {
+  animation: arm-l-save 2.8s ease-in-out forwards;
+}
+
+.gate[data-shot='saved'] .gate-gk-arm-r {
+  animation: arm-r-save 2.8s ease-in-out forwards;
+}
+
+.gate[data-shot='saved'] .gate-gk-fore-l {
+  animation: fore-l-save 2.8s ease-in-out forwards;
+}
+
+.gate[data-shot='saved'] .gate-gk-fore-r {
+  animation: fore-r-save 2.8s ease-in-out forwards;
+}
+
 /* Less motion: no loops, and the result shows without the flight. */
 @media (prefers-reduced-motion: reduce) {
-  .gate-gk,
   .gate-gk-step,
   .gate-gk-shadow,
-  .gate-gk-arm,
+  .gate .gate-gk-top,
+  .gate .gate-gk-thigh,
+  .gate .gate-gk-shin,
+  .gate .gate-gk-arm,
+  .gate .gate-gk-fore,
   .gate[data-shot='aiming'] .gate-ball,
   .gate[data-shot='aiming'] .gate-ball-ring {
     animation: none !important;

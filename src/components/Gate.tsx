@@ -118,54 +118,82 @@ export function Gate({ onGone }: { onGone: () => void }) {
                     </g>
 
                     {/* Keeper: small and slim, red jersey over black sleeves, black trousers, hair tied back.
-                        Feet on the line at (160, 150). gate-gk-step shuffles, gate-gk dives. */}
+                        Feet on the line at (160, 150). The rig, outside in: gate-gk-step shuffles, gate-gk dives,
+                        gate-gk-top sinks when the knees bend; thighs turn at the hips and shins at the knees,
+                        upper arms at the shoulders and forearms at the elbows. Limbs are drawn straight down. */}
                     <ellipse className="gate-gk-shadow" cx="160" cy="151.5" rx="13" ry="2.2" fill="#000" opacity="0.4" />
                     <g className="gate-gk-step">
                         <g className="gate-gk">
-                            {/* Legs */}
-                            <path d="M156.4 127L154.6 146M163.6 127L165.4 146" stroke="#3a3b42" strokeWidth="6.4" strokeLinecap="round" />
-                            <path d="M156.4 127L154.6 146M163.6 127L165.4 146" stroke="#08080a" strokeWidth="5.2" strokeLinecap="round" />
-                            <path d="M151.4 149.2H157.4M162.6 149.2H168.6" stroke="#e7e5e4" strokeWidth="3" strokeLinecap="round" />
+                            <g className="gate-gk-top">
+                                <g className="gate-gk-thigh gate-gk-thigh-l">
+                                    <path d="M155.8 128V138" stroke="#3a3b42" strokeWidth="6.2" strokeLinecap="round" />
+                                    <path d="M155.8 128V138" stroke="#08080a" strokeWidth="5" strokeLinecap="round" />
+                                    <g className="gate-gk-shin gate-gk-shin-l">
+                                        <path d="M155.8 138V147.4" stroke="#3a3b42" strokeWidth="5.8" strokeLinecap="round" />
+                                        <path d="M155.8 138V147.4" stroke="#08080a" strokeWidth="4.6" strokeLinecap="round" />
+                                        <path d="M152.8 149.4H158.8" stroke="#e7e5e4" strokeWidth="2.8" strokeLinecap="round" />
+                                    </g>
+                                </g>
+                                <g className="gate-gk-thigh gate-gk-thigh-r">
+                                    <path d="M164.2 128V138" stroke="#3a3b42" strokeWidth="6.2" strokeLinecap="round" />
+                                    <path d="M164.2 128V138" stroke="#08080a" strokeWidth="5" strokeLinecap="round" />
+                                    <g className="gate-gk-shin gate-gk-shin-r">
+                                        <path d="M164.2 138V147.4" stroke="#3a3b42" strokeWidth="5.8" strokeLinecap="round" />
+                                        <path d="M164.2 138V147.4" stroke="#08080a" strokeWidth="4.6" strokeLinecap="round" />
+                                        <path d="M161.2 149.4H167.2" stroke="#e7e5e4" strokeWidth="2.8" strokeLinecap="round" />
+                                    </g>
+                                </g>
 
-                            {/* Arms: black sleeves and gloves. Each turns at its shoulder. */}
-                            <g className="gate-gk-arm gate-gk-arm-l">
-                                <path d="M153 109L142 124" stroke="#3a3b42" strokeWidth="5.4" strokeLinecap="round" />
-                                <path d="M153 109L142 124" stroke="#08080a" strokeWidth="4.2" strokeLinecap="round" />
-                                <circle cx="140.2" cy="126.6" r="4.6" fill="#f97316" />
-                                <path d="M137.6 125.2L142.6 128.4" stroke="#1c1917" strokeWidth="1.3" strokeLinecap="round" />
+                                {/* Jersey with the team's white mark */}
+                                <path d="M151.6 107.4Q160 103.6 168.4 107.4L167.4 128.6H152.6Z" fill="#dc2626" />
+                                <path d="M152.6 128.6L153 121H167L167.4 128.6Z" fill="#000" opacity="0.14" />
+                                <path d="M163.2 110.6Q165.8 111.6 165.4 114.8Q163.2 115.2 162.2 113.4Q162 111.6 163.2 110.6Z" fill="#fff" />
+
+                                {/* Arms before the head: raised, they frame her face instead of covering it */}
+                                <g className="gate-gk-arm gate-gk-arm-l">
+                                    <path d="M153 109V118" stroke="#3a3b42" strokeWidth="5.2" strokeLinecap="round" />
+                                    <path d="M153 109V118" stroke="#08080a" strokeWidth="4" strokeLinecap="round" />
+                                    <g className="gate-gk-fore gate-gk-fore-l">
+                                        <path d="M153 118V125.6" stroke="#3a3b42" strokeWidth="5" strokeLinecap="round" />
+                                        <path d="M153 118V125.6" stroke="#08080a" strokeWidth="3.8" strokeLinecap="round" />
+                                        <path d="M150.1 126.2Q149.8 125 153 125Q156.2 125 155.9 126.2L156.3 131.4Q156.2 133.8 153 133.9Q149.8 133.8 149.7 131.4Z" fill="#f97316" />
+                                        <ellipse cx="156.5" cy="128.6" rx="1.5" ry="2.3" fill="#f97316" transform="rotate(-24 156.5 128.6)" />
+                                        <path d="M150.4 126.6H155.6" stroke="#1c1917" strokeWidth="1.3" strokeLinecap="round" />
+                                        <path d="M151.9 130.4V133.2M154.1 130.4V133.2" stroke="#c2410c" strokeWidth="0.7" strokeLinecap="round" />
+                                    </g>
+                                </g>
+                                <g className="gate-gk-arm gate-gk-arm-r">
+                                    <path d="M167 109V118" stroke="#3a3b42" strokeWidth="5.2" strokeLinecap="round" />
+                                    <path d="M167 109V118" stroke="#08080a" strokeWidth="4" strokeLinecap="round" />
+                                    <g className="gate-gk-fore gate-gk-fore-r">
+                                        <path d="M167 118V125.6" stroke="#3a3b42" strokeWidth="5" strokeLinecap="round" />
+                                        <path d="M167 118V125.6" stroke="#08080a" strokeWidth="3.8" strokeLinecap="round" />
+                                        <path d="M164.1 126.2Q163.8 125 167 125Q170.2 125 169.9 126.2L170.3 131.4Q170.2 133.8 167 133.9Q163.8 133.8 163.7 131.4Z" fill="#f97316" />
+                                        <ellipse cx="163.5" cy="128.6" rx="1.5" ry="2.3" fill="#f97316" transform="rotate(24 163.5 128.6)" />
+                                        <path d="M164.4 126.6H169.6" stroke="#1c1917" strokeWidth="1.3" strokeLinecap="round" />
+                                        <path d="M165.9 130.4V133.2M168.1 130.4V133.2" stroke="#c2410c" strokeWidth="0.7" strokeLinecap="round" />
+                                    </g>
+                                </g>
+
+                                {/* Head: hair pulled back into a small bun */}
+                                <rect x="157.6" y="101.6" width="4.8" height="5" rx="1.6" fill="#b98562" />
+                                <circle cx="165.4" cy="89.6" r="3.2" fill="#1c1513" />
+                                <circle cx="160" cy="96.4" r="7.2" fill="#c9966f" />
+                                <path d="M152.8 96.6Q152.4 88.6 160 88.4Q167.6 88.6 167.2 96.6Q164.6 92.2 160 92Q155.4 92.2 152.8 96.6Z" fill="#1c1513" />
+                                <circle cx="157.4" cy="97.4" r="0.9" fill="#1c1513" />
+                                <circle cx="162.6" cy="97.4" r="0.9" fill="#1c1513" />
+                                <path d="M157.6 100.2Q160 102.2 162.4 100.2" fill="none" stroke="#7c4a33" strokeWidth="0.9" strokeLinecap="round" />
+
                             </g>
-                            <g className="gate-gk-arm gate-gk-arm-r">
-                                <path d="M167 109L178 124" stroke="#3a3b42" strokeWidth="5.4" strokeLinecap="round" />
-                                <path d="M167 109L178 124" stroke="#08080a" strokeWidth="4.2" strokeLinecap="round" />
-                                <circle cx="179.8" cy="126.6" r="4.6" fill="#f97316" />
-                                <path d="M182.4 125.2L177.4 128.4" stroke="#1c1917" strokeWidth="1.3" strokeLinecap="round" />
-                            </g>
-
-                            {/* Jersey with the team's white mark */}
-                            <path d="M151.6 107.4Q160 103.6 168.4 107.4L167.4 128.6H152.6Z" fill="#dc2626" />
-                            <path d="M152.6 128.6L153 121H167L167.4 128.6Z" fill="#000" opacity="0.14" />
-                            <path d="M163.2 110.6Q165.8 111.6 165.4 114.8Q163.2 115.2 162.2 113.4Q162 111.6 163.2 110.6Z" fill="#fff" />
-
-                            {/* Head: hair pulled back into a small bun */}
-                            <rect x="157.6" y="101.6" width="4.8" height="5" rx="1.6" fill="#b98562" />
-                            <circle cx="165.4" cy="89.6" r="3.2" fill="#1c1513" />
-                            <circle cx="160" cy="96.4" r="7.2" fill="#c9966f" />
-                            <path d="M152.8 96.6Q152.4 88.6 160 88.4Q167.6 88.6 167.2 96.6Q164.6 92.2 160 92Q155.4 92.2 152.8 96.6Z" fill="#1c1513" />
-                            <circle cx="157.4" cy="97.4" r="0.9" fill="#1c1513" />
-                            <circle cx="162.6" cy="97.4" r="0.9" fill="#1c1513" />
-                            <path d="M157.6 100.2Q160 102.2 162.4 100.2" fill="none" stroke="#7c4a33" strokeWidth="0.9" strokeLinecap="round" />
                         </g>
                     </g>
 
-                    {/* Ball */}
+                    {/* Ball: the one in the logo */}
                     <ellipse className="gate-ball-shadow" cx="160" cy="206" rx="9" ry="2.2" fill="#000" opacity="0.45" />
                     <circle className="gate-ball-ring" cx="160" cy="196" r="10" fill="none" stroke="#dc2626" strokeWidth="1.4" />
                     <g className="gate-ball">
                         <g className="gate-ball-spin">
-                            <circle cx="160" cy="196" r="9" fill="#f4f4f5" />
-                            <path d="M160 191.6L164.2 194.6L162.6 199.5H157.4L155.8 194.6Z" fill="#18181b" />
-                            <path d="M160 191.6V187M164.2 194.6L168.5 193.2M162.6 199.5L165.2 203.3M157.4 199.5L154.8 203.3M155.8 194.6L151.5 193.2" stroke="#18181b" strokeWidth="1" />
-                            <circle cx="160" cy="196" r="9" fill="none" stroke="#000" strokeOpacity="0.3" strokeWidth="0.6" />
+                            <image href="/ball.svg" x="151" y="187" width="18" height="18" />
                         </g>
                     </g>
                 </svg>
