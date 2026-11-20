@@ -67,13 +67,15 @@ A plain-language walkthrough in Spanish, including how the fallback worked befor
 
 ```text
 src/
-  components/   # UI pieces (cards, form, result, buttons, modal)
+  components/   # UI pieces (cards, form, result, buttons, modal, list controls)
+  hooks/        # usePlayerListing: search, filters and sort of a player list
   pages/        # PeoplePage, MatchPage
   services/     # team generation logic
   store/        # Zustand store + Sheets integration
   types/        # shared TypeScript types
-  utils/        # search + rating suggestion helpers
-tests/          # team generator tests (npm test)
+  utils/        # search, list filtering/sorting, selection, rating suggestion
+tests/          # npm test (see Scripts)
+scripts/        # backend-release.ts (npm run backend:release)
 apps-script/    # versioned Google Apps Script backend
 ```
 
@@ -104,11 +106,14 @@ npm run dev
 - `npm run build` - type-check + production build
 - `npm run preview` - preview production build
 - `npm run lint` - run ESLint
-- `npm test` - run the team generator tests (`tests/`, Node's built-in test runner; needs Node 22.18+ for TypeScript)
+- `npm test` - run every test in `tests/` with Node's built-in test runner (needs Node 22.18+ for TypeScript): the team generator, the player list filters and sorts, `Code.gs` against in-memory sheets, the store end to end against `Code.gs`, and the backend release script with a fake clasp. None of them reach the real sheet.
+- `npm run backend:release -- "what changed"` - publish `apps-script/` to production with checks and automatic rollback; `npm run backend:release -- --check` only shows the production version. Details in `apps-script/README.md`.
 
 ## Data contract (Sheets/App Script)
 
-Expected fields from `action=read` response:
+On open the app makes one request, `action=readAll`, which answers `{ players, teams }`, plus `teamsError` when only the `Teams` tab failed (players still load). A backend without `readAll` answers `{ error: 'Action unknown' }`, and the app then uses `action=read` and `action=readTeams`, so an older backend version keeps working.
+
+Expected player fields (`players` in `readAll`, or the `action=read` response):
 
 - `id`
 - `name`

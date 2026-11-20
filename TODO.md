@@ -17,7 +17,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 - [x] La UI de la app sigue en inglés; este TODO y las conversaciones, en castellano.
 - [x] El generador no cambia sin tests: `npm test`, lint y build antes y después. Cómo funciona: `docs/GENERADOR.md`.
 - [x] Si un ítem toca la planilla o el Apps Script, primero se actualiza el contrato de datos y se confirma que lo anterior sigue andando. La planilla solo suma columnas, así la versión anterior del backend siempre sirve para volver atrás.
-- [x] El backend se publica con `clasp` desde `apps-script/` (pasos en `apps-script/README.md`): versión nueva, prueba en una implementación temporal y recién ahí producción.
+- [x] El backend se publica con `npm run backend:release` (detalle en `apps-script/README.md`): tests, versión nueva, prueba en una implementación temporal y recién ahí producción, que vuelve sola a la versión anterior si algo falla.
 
 ## Decisiones cerradas
 
@@ -62,11 +62,11 @@ Prueba (en https://armaduki.vercel.app, mejor desde el teléfono):
 2. En Players, elegí «Sort: selected»: las que dicen «selected» quedan primero.
 3. El header volvió a ser como antes, sin la fila de elegidas.
 
-## Sprint 2 - El generador: cómo funciona y qué mejorar (hecho, falta tu prueba)
+## Sprint 2 - El generador: cómo funciona y qué mejorar (hecho)
 
 Objetivo: entender el algoritmo y decidir si se mejora. La explicación completa, con cómo era antes de la revisión, está en `docs/GENERADOR.md`.
 
-- [ ] **Ángela:** probarlo con los pasos de abajo.
+- [x] **Ángela:** probarlo con los pasos de abajo.
 - [x] **Ángela:** leer `docs/GENERADOR.md` (19/11).
 - [x] Prioridad del fallback: queda como está (19/11). Ver «Cosas por cerrar».
 - [x] Ideas (19/11): se prueban los wants de un solo lado como preferencia y la social satisfaction como desempate. El owner bias sigue como regla fuerte. Los pesos se ajustan con los resultados de los partidos (Sprint 9). La variedad pasa al backlog. Rating y formación ideal: ver «Cosas por cerrar».
@@ -83,16 +83,26 @@ Prueba (en https://armaduki.vercel.app):
 4. Para ver uno roto seguro: hacé que una GK quiera jugar con otra GK, de un solo lado. Elegí a las dos entre las 10, sin la tercera GK (con 3 GK siempre hay fallback). Como no pueden ir dos GK en el mismo equipo, antes esto mandaba al fallback. Ahora sale un resultado normal y el análisis muestra «Broken one-way wants» y `wantsPref(-15)` en la fórmula.
 5. Al terminar, sacá esos wants editando a A, C, D y la GK. «Clear Wants» también sirve, pero borra los wants de todas.
 
-## Sprint 3 - Base técnica
+## Sprint 3 - Base técnica (hecho, falta tu prueba)
 
-Objetivo: dejar el código y las herramientas listos para crecer. **Propuesta**, salvo los ítems con código.
+Objetivo: dejar el código y las herramientas listos para crecer.
 
-- [ ] Unificar búsqueda, filtros y orden de Players y Match en un solo lugar, antes de sumar filtros nuevos (F2-06.6, RV-15).
-- [ ] Pasar al repo los tests que se usaron en la revisión, el del backend (`Code.gs` en Node contra una planilla en memoria) y el de punta a punta del store, y sumarlos a `npm test`.
-- [ ] Script de publicación del backend en el repo (`npm run backend:release`): versión, implementación temporal con pruebas, pase a producción y limpieza, sin imprimir IDs.
-- [ ] Una sola lectura al abrir: jugadoras y equipos en un pedido.
-- [ ] Actualizar dependencias menores con `npm audit fix`: react-router 7.13 → 7.18 (RV-16).
-- [ ] Borrar archivos de la plantilla que no se usan: `src/assets/react.svg` y `public/vite.svg`.
+- [ ] **Ángela:** probarlo con los pasos de abajo.
+- [ ] **Ángela:** aprobar la publicación del backend nuevo (versión 20, con `readAll`): `npm run backend:release -- "readAll"`, vos o yo. Hasta entonces la app anda con la versión 19, pero cada vez que abre hace un pedido de más (`readAll`, que la 19 no conoce) antes de las dos lecturas de antes: tarda entre 1 y 1,5 segundos más. Conviene publicarlo pronto.
+- [x] Búsqueda, filtros y orden de Players y Match en un solo lugar (F2-06.6, RV-15): la lógica en `src/utils/playerListing.ts`, con tests; el estado en `src/hooks/usePlayerListing.ts`, uno por página; los controles y sus estilos en `src/components/PlayerListControls`. Un recorrido grabado por las dos páginas, en teléfono y en escritorio, da el mismo resultado antes y después.
+- [x] Los tests de la revisión están en `npm test`: `Code.gs` en Node contra una planilla en memoria y el store de punta a punta contra `Code.gs`. Ninguno puede llegar a la planilla real.
+- [x] `npm run backend:release`: tests de `Code.gs`, versión nueva, implementación temporal con pruebas, pase a producción, pruebas otra vez y limpieza. Si una prueba falla antes del pase, producción no cambia; si falla después, vuelve a la versión anterior. No imprime IDs. `npm run backend:release -- --check` solo muestra la versión de producción; se probó contra el script real (versión 19). La publicación completa se probó con un clasp simulado: la primera de verdad conviene hacerla mirando.
+- [x] Una sola lectura al abrir: la acción `readAll` trae jugadoras y equipos en un pedido. Si la pestaña `Teams` falla, las jugadoras cargan igual. Con un backend sin `readAll`, como la versión 19 de hoy, la app usa las dos lecturas de antes, después de un pedido de más.
+- [x] `npm audit fix` (RV-16): react-router 7.18.6, vite 7.3.8 y typescript-eslint 8.73; `npm audit` sin vulnerabilidades.
+- [x] Borrados `src/assets/react.svg` y `public/vite.svg`, que no se usaban.
+- [x] Verificado: lint, tipos, 67 tests, build y pruebas en Edge contra una API local: un pedido al abrir con el backend nuevo, las dos lecturas de antes con la versión 19 y jugadoras cargadas con la pestaña `Teams` rota.
+
+Prueba (en https://armaduki.vercel.app, mejor desde el teléfono):
+
+1. En Players y en Match, probá la búsqueda, el filtro de rol y los órdenes: todo anda igual que antes. Con privacy mode apagado, probá también el filtro y el orden por score, con la flecha.
+2. «Clear» → «Clear Filters» deja todo como al principio.
+3. En Players, «+ Add Player» → «Extra info»: la lista de equipos carga.
+4. Cuando el backend nuevo esté publicado, la app abre igual pero con un solo pedido. En la computadora se ve con F12 → Network, filtrando por `exec`: aparece `readAll` y ya no `read` ni `readTeams`.
 
 ## Sprint 4 - Clave y privacidad
 

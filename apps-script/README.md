@@ -16,16 +16,27 @@ One-time setup (per machine):
 
 `.claspignore` limits pushes to `Code.gs` and `appsscript.json`; `npx @google/clasp status` lists what would be pushed.
 
-Deploy steps (run from `apps-script/`; the production deployment id is the part between `/s/` and `/exec` in `VITE_APPS_SCRIPT_URL`):
+Publishing (from the project root): `npm run backend:release -- "short description"` does the whole release and stops at the first problem:
 
-1. `npx @google/clasp push`: replaces the remote project files with `Code.gs` + `appsscript.json`. The live web app does not change yet.
+1. runs the `Code.gs` tests (`tests/appsScript.test.ts`);
+2. `clasp push --force`: the remote files become `Code.gs` + `appsscript.json` from the repo. `--force` matters: without a terminal, clasp skips the push when the manifest changed;
+3. creates a new version;
+4. deploys that version to a temporary deployment and checks it: `readAll`, `read`, `readTeams` and an `update` of an id that cannot exist (it answers `ID not found for update` and writes nothing). If a check fails, production does not change;
+5. moves production (the deployment in `VITE_APPS_SCRIPT_URL`) to the new version and checks it again. If that fails, production goes back to the previous version;
+6. deletes the temporary deployment.
+
+It refuses to run with uncommitted changes in `Code.gs` or `appsscript.json` (`--allow-dirty` skips that check), never prints deployment ids, and only deletes the temporary deployment it created. It runs clasp 3.4.1 through `npx` without a shell. `npm run backend:release -- --check` only shows the version production is on and changes nothing. Needs Node 22.18+, the one-time setup above and `VITE_APPS_SCRIPT_URL` in `.env`.
+
+By hand, from `apps-script/` (the production deployment id is the part between `/s/` and `/exec` in `VITE_APPS_SCRIPT_URL`):
+
+1. `npx @google/clasp push --force`: replaces the remote project files with `Code.gs` + `appsscript.json`. The live web app does not change yet.
 2. `npx @google/clasp version "short description"`: creates an immutable version and prints its number.
 3. `npx @google/clasp redeploy <deploymentId> -V <version> -d "short description"`: points the existing production deployment at that version. The `/exec` URL stays the same, so `.env` and Vercel need no changes.
-4. Open `WEB_APP_URL?action=migrateSchema` and confirm it returns `ok: true`.
+4. Open `WEB_APP_URL?action=readAll` and confirm it returns `players` and `teams`.
 5. Open `WEB_APP_URL?action=read` and confirm it returns player rows.
 6. Open `WEB_APP_URL?action=readTeams` and confirm it returns team rows or `[]`.
 
-Rollback: `npx @google/clasp redeploy <deploymentId> -V <previous version>`. `npx @google/clasp deployments` and `npx @google/clasp versions` list what exists. Do not use `npx @google/clasp deploy` for production: it creates a new deployment with a new URL.
+Rollback: `npx @google/clasp redeploy <deploymentId> -V <previous version>`. `npx @google/clasp deployments` and `npx @google/clasp versions` list what exists. Do not use `npx @google/clasp deploy` for production: it creates a new deployment with a new URL. `action=migrateSchema` runs the schema check on demand and returns `ok: true`.
 
 Current migration status:
 
@@ -37,6 +48,7 @@ Current migration status:
 - `action=migrateSchema` runs `ensureSchema()` explicitly from the deployed web app URL.
 - `action=migratePlayersSheet` remains available as a focused legacy rename action.
 - `action=readTeams` returns the `Teams` catalog for the frontend with safe defaults.
+- `action=readAll` returns `{ players, teams }` in one execution; the app uses it on open. A `Teams` failure comes back as `teamsError` and does not block the players. An unknown action answers `{ error: 'Action unknown' }`, which the app uses to fall back to `read` + `readTeams` on older versions.
 - `update` preserves existing cell values for columns missing from the incoming payload.
 - `delete` and `update` resolve the `id` column by header name instead of assuming it is the first column.
 - `id` matching trims spaces and compares as text, so `12`, `"12"` and `" 12 "` match.
