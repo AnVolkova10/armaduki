@@ -459,6 +459,54 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** Answer of `action=readAll`: players and teams in one request. */
+interface ReadAllPayload {
+  players: unknown[];
+  teams?: unknown;
+  teamsError?: unknown;
+}
+
+function isReadAllPayload(value: unknown): value is ReadAllPayload {
+  return Boolean(value) && typeof value === 'object' && Array.isArray((value as ReadAllPayload).players);
+}
+
+async function getAppsScriptJson(action: 'readAll' | 'read' | 'readTeams'): Promise<unknown> {
+  const response = await fetch(`${APPS_SCRIPT_URL}?action=${action}`);
+  if (!response.ok) {
+    throw new Error(`Apps Script returned HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+function parseTeamsCatalog(rawData: unknown): TeamCatalog[] {
+  if (!Array.isArray(rawData)) {
+    throw new Error('Incorrect teams format: not an array');
+  }
+
+  let skippedRows = 0;
+  const teamsCatalog: TeamCatalog[] = [];
+
+  rawData.forEach((row: unknown, index: number) => {
+    try {
+      const parsed = parseTeamCatalogRow(row);
+      if (parsed) {
+        teamsCatalog.push(parsed);
+      } else {
+        skippedRows++;
+      }
+    } catch (rowError) {
+      skippedRows++;
+      console.warn(`Skipped malformed team row ${toSheetRow(index)}:`, rowError);
+    }
+  });
+
+  if (skippedRows > 0) {
+    console.warn(`Skipped ${skippedRows} malformed team row(s) while loading team catalog.`);
+  }
+
+  return teamsCatalog;
+}
+
 type RelationshipKind = 'wantsWith' | 'avoidsWith';
 
 interface AppStore {
@@ -575,6 +623,59 @@ const useAppStore = create<AppStore>()((set, get) => {
     });
   };
 
+  /** Stores the player rows of a read. Throws when the answer is not a list of rows. */
+  const applyPeopleRows = (rawData: unknown) => {
+    debugLog('Raw Data from Apps Script:', rawData);
+
+    if (!Array.isArray(rawData)) {
+      const serverError =
+        rawData && typeof rawData === 'object' && 'error' in rawData ? String(rawData.error) : 'not an array';
+      throw new Error(`Incorrect data format: ${serverError}`);
+    }
+
+    const { people, skippedRows, warnings } = parsePeopleRows(rawData);
+
+    if (skippedRows > 0) {
+      console.warn(`Skipped ${skippedRows} empty or malformed row(s) while loading players.`);
+    }
+
+    debugLog('Parsed People:', people);
+    set({
+      people,
+      peopleStatus: 'loaded',
+      error: people.length === 0 && skippedRows > 0 ? 'No valid players found in Google Sheets' : null,
+      dataWarning: warnings.length > 0 ? warnings.join(' ') : null,
+    });
+  };
+
+  const applyTeamsCatalog = (teamsCatalog: TeamCatalog[]) => {
+    debugLog('Parsed Teams Catalog:', teamsCatalog);
+    set({ teamsCatalog, teamsCatalogLoaded: true, isTeamsCatalogLoading: false, teamsCatalogError: null });
+  };
+
+  const failTeamsCatalog = (reason: unknown) => {
+    console.error('Error fetching teams catalog:', reason);
+    set({
+      teamsCatalog: [],
+      teamsCatalogLoaded: true,
+      teamsCatalogError: 'Error loading teams catalog from Google Sheets',
+      isTeamsCatalogLoading: false,
+    });
+  };
+
+  /** Reads the Teams catalog on its own. Never throws: a failure is kept in teamsCatalogError. */
+  const loadTeamsCatalog = async () => {
+    set({ isTeamsCatalogLoading: true, teamsCatalogError: null });
+
+    try {
+      const rawData = await getAppsScriptJson('readTeams');
+      debugLog('Raw Teams from Apps Script:', rawData);
+      applyTeamsCatalog(parseTeamsCatalog(rawData));
+    } catch (fetchError) {
+      failTeamsCatalog(fetchError);
+    }
+  };
+
   return {
     // Initial state
     people: [],
@@ -593,50 +694,54 @@ const useAppStore = create<AppStore>()((set, get) => {
 
     togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
 
+    // Loads players and the Teams catalog with one request (`readAll`). A backend older than
+    // `readAll` answers { error: 'Action unknown' }; then the two separate reads run instead,
+    // so rolling the Apps Script back never breaks loading.
     fetchPeople: async () => {
       if (get().peopleStatus === 'loading') return;
 
       if (!APPS_SCRIPT_URL) {
-        set({ peopleStatus: 'error', error: MISSING_URL_MESSAGE });
+        set({
+          peopleStatus: 'error',
+          error: MISSING_URL_MESSAGE,
+          teamsCatalogLoaded: true,
+          teamsCatalogError: MISSING_URL_MESSAGE,
+        });
         return;
       }
 
-      set({ peopleStatus: 'loading', error: null });
+      set({ peopleStatus: 'loading', error: null, isTeamsCatalogLoading: true, teamsCatalogError: null });
 
       try {
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=read`);
-        if (!response.ok) {
-          throw new Error(`Apps Script returned HTTP ${response.status}`);
+        const rawData = await getAppsScriptJson('readAll');
+
+        if (isReadAllPayload(rawData)) {
+          applyPeopleRows(rawData.players);
+          if (rawData.teamsError) {
+            failTeamsCatalog(rawData.teamsError);
+          } else {
+            try {
+              applyTeamsCatalog(parseTeamsCatalog(rawData.teams));
+            } catch (teamsError) {
+              failTeamsCatalog(teamsError);
+            }
+          }
+          return;
         }
 
-        const rawData: unknown = await response.json();
-        debugLog('Raw Data from Apps Script:', rawData);
-
-        if (!Array.isArray(rawData)) {
-          const serverError =
-            rawData && typeof rawData === 'object' && 'error' in rawData ? String(rawData.error) : 'not an array';
-          throw new Error(`Incorrect data format: ${serverError}`);
-        }
-
-        const { people, skippedRows, warnings } = parsePeopleRows(rawData);
-
-        if (skippedRows > 0) {
-          console.warn(`Skipped ${skippedRows} empty or malformed row(s) while loading players.`);
-        }
-
-        debugLog('Parsed People:', people);
-        set({
-          people,
-          peopleStatus: 'loaded',
-          error: people.length === 0 && skippedRows > 0 ? 'No valid players found in Google Sheets' : null,
-          dataWarning: warnings.length > 0 ? warnings.join(' ') : null,
-        });
+        debugLog('readAll not available, using read + readTeams:', rawData);
+        const [peopleResult] = await Promise.allSettled([
+          getAppsScriptJson('read').then(applyPeopleRows),
+          loadTeamsCatalog(),
+        ]);
+        if (peopleResult.status === 'rejected') throw peopleResult.reason;
       } catch (fetchError) {
         console.error('Error fetching people data:', fetchError);
         set({
           error: `Error loading data from Google Sheets. ${getErrorMessage(fetchError)}`,
           peopleStatus: 'error',
         });
+        if (get().isTeamsCatalogLoading) failTeamsCatalog(fetchError);
       }
     },
 
@@ -648,58 +753,7 @@ const useAppStore = create<AppStore>()((set, get) => {
         return;
       }
 
-      set({ isTeamsCatalogLoading: true, teamsCatalogError: null });
-
-      try {
-        const response = await fetch(`${APPS_SCRIPT_URL}?action=readTeams`);
-        if (!response.ok) {
-          throw new Error(`Apps Script returned HTTP ${response.status}`);
-        }
-
-        const rawData: unknown = await response.json();
-        debugLog('Raw Teams from Apps Script:', rawData);
-
-        if (!Array.isArray(rawData)) {
-          throw new Error('Incorrect teams format: not an array');
-        }
-
-        let skippedRows = 0;
-        const teamsCatalog: TeamCatalog[] = [];
-
-        rawData.forEach((row: unknown, index: number) => {
-          try {
-            const parsed = parseTeamCatalogRow(row);
-            if (parsed) {
-              teamsCatalog.push(parsed);
-            } else {
-              skippedRows++;
-            }
-          } catch (rowError) {
-            skippedRows++;
-            console.warn(`Skipped malformed team row ${toSheetRow(index)}:`, rowError);
-          }
-        });
-
-        if (skippedRows > 0) {
-          console.warn(`Skipped ${skippedRows} malformed team row(s) while loading team catalog.`);
-        }
-
-        debugLog('Parsed Teams Catalog:', teamsCatalog);
-        set({
-          teamsCatalog,
-          teamsCatalogLoaded: true,
-          isTeamsCatalogLoading: false,
-          teamsCatalogError: null,
-        });
-      } catch (fetchError) {
-        console.error('Error fetching teams catalog:', fetchError);
-        set({
-          teamsCatalog: [],
-          teamsCatalogLoaded: true,
-          teamsCatalogError: 'Error loading teams catalog from Google Sheets',
-          isTeamsCatalogLoading: false,
-        });
-      }
+      await loadTeamsCatalog();
     },
 
     addPerson: async (person) => {

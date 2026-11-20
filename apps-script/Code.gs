@@ -307,6 +307,18 @@ function readTeams() {
   return teams;
 }
 
+// Everything the app needs when it opens, in one request (one Apps Script execution).
+// A Teams problem does not block the players: it comes back as `teamsError`.
+function readAll() {
+  const result = { players: readPlayers(), teams: [] };
+  try {
+    result.teams = readTeams();
+  } catch (err) {
+    result.teamsError = err.toString();
+  }
+  return result;
+}
+
 function migratePlayersSheetName() {
   const result = withScriptLock(ensureSchema);
   const sheet = getPlayersSheet();
@@ -370,6 +382,10 @@ function handlePlayerWrite(body) {
 function doGet(e) {
   try {
     const action = e && e.parameter && e.parameter.action ? e.parameter.action : 'read';
+
+    if (action === 'readAll') {
+      return jsonOutput(readAll());
+    }
 
     if (action === 'read') {
       return jsonOutput(readPlayers());

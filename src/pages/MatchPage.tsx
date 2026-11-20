@@ -25,9 +25,6 @@ export function MatchPage() {
         peopleStatus,
         error,
         fetchPeople,
-        fetchTeamsCatalog,
-        teamsCatalogLoaded,
-        isTeamsCatalogLoading,
         toggleSelection,
         clearSelection,
         generatedTeams,
@@ -61,17 +58,12 @@ export function MatchPage() {
         selectedCount > 10 ? 'selection-count--over' : '',
     ].filter(Boolean).join(' ');
 
+    // One request loads players and the Teams catalog (see fetchPeople).
     useEffect(() => {
         if (peopleStatus === 'idle') {
             void fetchPeople();
         }
     }, [fetchPeople, peopleStatus]);
-
-    useEffect(() => {
-        if (!teamsCatalogLoaded && !isTeamsCatalogLoading) {
-            fetchTeamsCatalog();
-        }
-    }, [fetchTeamsCatalog, isTeamsCatalogLoading, teamsCatalogLoaded]);
 
     useEffect(() => {
         const handleDocumentClick = (event: MouseEvent) => {

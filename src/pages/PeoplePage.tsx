@@ -25,9 +25,6 @@ export function PeoplePage() {
         peopleStatus,
         error,
         fetchPeople,
-        fetchTeamsCatalog,
-        teamsCatalogLoaded,
-        isTeamsCatalogLoading,
         addPerson,
         updatePerson,
         deletePerson,
@@ -51,17 +48,12 @@ export function PeoplePage() {
         privacyMode,
     );
 
+    // One request loads players and the Teams catalog (see fetchPeople).
     useEffect(() => {
         if (peopleStatus === 'idle') {
             void fetchPeople();
         }
     }, [fetchPeople, peopleStatus]);
-
-    useEffect(() => {
-        if (!teamsCatalogLoaded && !isTeamsCatalogLoading) {
-            fetchTeamsCatalog();
-        }
-    }, [fetchTeamsCatalog, isTeamsCatalogLoading, teamsCatalogLoaded]);
 
     useEffect(() => {
         const handleDocumentClick = (event: MouseEvent) => {
