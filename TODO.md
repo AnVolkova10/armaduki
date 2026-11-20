@@ -80,7 +80,7 @@ Prueba (en https://armaduki.vercel.app):
 1. En Players, editá a una jugadora (A) y marcá que quiere jugar con otra (B), sin que B la marque a ella. Después armá un par mutuo: C quiere jugar con D y D con C.
 2. En Match, elegí 10 que incluyan a A, B, C y D y generá los equipos.
 3. C y D quedan siempre juntas. A y B quedan juntas salvo que separarlas empareje bastante los equipos. En el análisis, en «Social», aparece cuántos wants de un solo lado se respetaron («One-way wants … kept») o cuáles se rompieron.
-4. Para ver uno roto seguro: hacé que una GK quiera jugar con otra GK, de un solo lado, y elegí a las dos entre las 10. Como no pueden ir dos GK en el mismo equipo, antes esto mandaba al fallback. Ahora sale un resultado normal y el análisis muestra «Broken one-way wants» y `wantsPref(-15)` en la fórmula.
+4. Para ver uno roto seguro: hacé que una GK quiera jugar con otra GK, de un solo lado. Elegí a las dos entre las 10, sin la tercera GK (con 3 GK siempre hay fallback). Como no pueden ir dos GK en el mismo equipo, antes esto mandaba al fallback. Ahora sale un resultado normal y el análisis muestra «Broken one-way wants» y `wantsPref(-15)` en la fórmula.
 5. Al terminar, sacá esos wants editando a A, C, D y la GK. «Clear Wants» también sirve, pero borra los wants de todas.
 
 ## Sprint 3 - Base técnica

@@ -32,8 +32,9 @@ const ATT_OVERLOAD_WITHOUT_DEF_PENALTY = 8;
 // 10 score points = 1 point of rating difference between the teams.
 export const ONE_WAY_WANT_PENALTY = 15;
 
+// Not "lower score": the runner-up can tie on score and lose on social satisfaction or rating gap.
 const SECONDARY_OPTION_REASON =
-  'Second option has lower balance score than Option 1 under the same constraint stage.';
+  'Next best split under the same rules. Ranking: score, then social satisfaction, then rating gap.';
 const NO_SECONDARY_OPTION_REASON = 'No second option available under current constraints.';
 
 function resolveOwnerId(value: unknown): string {
@@ -1014,7 +1015,9 @@ function createFallbackSection(players: Person[], evaluation: SplitEvaluation): 
 
   // Only mutual wants are a rule; broken one-way wants show up under Social.
   const brokenWants = describeLinks(team1Players, team2Players, 'wantsWith', false, WANTS_ARROWS, 'mutual');
-  lines.push(violations.wants === 0 ? '- Wants: kept.' : `- Wants: BROKEN (${brokenWants.join(', ')}).`);
+  lines.push(
+    violations.wants === 0 ? '- Mutual wants: kept.' : `- Mutual wants: BROKEN (${brokenWants.join(', ')}).`,
+  );
 
   const owner = players.find((player) => player.id === OWNER_ID);
   if (owner) {
