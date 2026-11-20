@@ -1,15 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { PersonCard } from '../components/PersonCard';
 import { TeamResult } from '../components/TeamResult';
 import { ActionButton } from '../components/ActionButton';
 import { ConfirmDialog } from '../components/ConfirmDialog';
-import { DropdownMenuSelect } from '../components/DropdownMenuSelect';
+import { PlayerListControls } from '../components/PlayerListControls';
 import { SheetLoader } from '../components/SheetLoader';
+import { usePlayerListing } from '../hooks/usePlayerListing';
 import { generateTeams } from '../services/teamGenerator';
-import { matchesWordPrefix, normalizeSearch } from '../utils/search';
-import { sortSelectedFirst } from '../utils/selection';
-import type { Person } from '../types';
 import './MatchPage.css';
 
 interface ConfirmState {
@@ -19,50 +17,6 @@ interface ConfirmState {
     tone: 'default' | 'danger';
     onConfirm: () => Promise<void> | void;
 }
-
-const ROLE_FILTER_OPTIONS = [
-    { value: 'all', label: 'Filter: all roles' },
-    { value: 'GK', label: 'Filter: GK' },
-    { value: 'FLEX', label: 'Filter: FLEX' },
-    { value: 'DEF', label: 'Filter: DEF' },
-    { value: 'MID', label: 'Filter: MID' },
-    { value: 'ATT', label: 'Filter: ATT' },
-];
-
-const SORT_OPTIONS = [
-    { value: 'none', label: 'Sort: none' },
-    { value: 'selected', label: 'Sort: selected' },
-    { value: 'score', label: 'Sort: score' },
-    { value: 'position', label: 'Sort: position' },
-];
-
-const SORT_OPTIONS_PRIVACY = [
-    { value: 'none', label: 'Sort: none' },
-    { value: 'selected', label: 'Sort: selected' },
-    { value: 'position', label: 'Sort: position' },
-];
-
-const SCORE_FILTER_OPTIONS = [
-    { value: 'all', label: 'Score: all' },
-    { value: '1', label: 'Score: 1' },
-    { value: '2', label: 'Score: 2' },
-    { value: '3', label: 'Score: 3' },
-    { value: '4', label: 'Score: 4' },
-    { value: '5', label: 'Score: 5' },
-    { value: '6', label: 'Score: 6' },
-    { value: '7', label: 'Score: 7' },
-    { value: '8', label: 'Score: 8' },
-    { value: '9', label: 'Score: 9' },
-    { value: '10', label: 'Score: 10' },
-];
-
-const ROLE_SORT_PRIORITY: Record<Person['role'], number> = {
-    GK: 0,
-    FLEX: 1,
-    DEF: 2,
-    MID: 3,
-    ATT: 4,
-};
 
 export function MatchPage() {
     const {
@@ -88,16 +42,16 @@ export function MatchPage() {
 
     const [localError, setLocalError] = useState<string | null>(null);
     const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
-    const [uiRoleFilter, setUiRoleFilter] = useState<'all' | Person['role']>('all');
-    const [uiScoreFilter, setUiScoreFilter] = useState<'all' | `${number}`>('all');
-    const [uiSortMode, setUiSortMode] = useState('none');
-    const [uiScoreSortDirection, setUiScoreSortDirection] = useState<'desc' | 'asc'>('desc');
     const [showClearMenu, setShowClearMenu] = useState(false);
     const clearMenuRef = useRef<HTMLDivElement | null>(null);
     const previousSelectedCountRef = useRef<number | null>(null);
     const resultRef = useRef<HTMLDivElement | null>(null);
     const shouldScrollToResultRef = useRef(false);
+    const { controls, updateControls, resetControls, visiblePeople, isFiltered } = usePlayerListing(
+        people,
+        selectedIds,
+        privacyMode,
+    );
 
     const selectedCount = selectedIds.size;
     const canGenerate = selectedCount === 10;
@@ -150,63 +104,6 @@ export function MatchPage() {
         });
     }, [generatedTeams]);
 
-    const normalizedQuery = normalizeSearch(searchQuery);
-    const availableSortOptions = privacyMode ? SORT_OPTIONS_PRIVACY : SORT_OPTIONS;
-    const effectiveScoreFilter = privacyMode ? 'all' : uiScoreFilter;
-    const effectiveSortMode = privacyMode && uiSortMode === 'score' ? 'none' : uiSortMode;
-    const effectiveScoreSortDirection = privacyMode ? 'desc' : uiScoreSortDirection;
-
-    const searchedPeople = useMemo(() => {
-        if (!normalizedQuery) return people;
-
-        return people.filter((person) => {
-            return (
-                matchesWordPrefix(person.nickname || '', normalizedQuery) ||
-                matchesWordPrefix(person.name || '', normalizedQuery)
-            );
-        });
-    }, [normalizedQuery, people]);
-
-    const roleFilteredPeople = useMemo(() => {
-        if (uiRoleFilter === 'all') return searchedPeople;
-        return searchedPeople.filter((person) => person.role === uiRoleFilter);
-    }, [searchedPeople, uiRoleFilter]);
-
-    const filteredPeople = useMemo(() => {
-        if (effectiveScoreFilter === 'all') return roleFilteredPeople;
-        const targetScore = Number(effectiveScoreFilter);
-        return roleFilteredPeople.filter((person) => person.rating === targetScore);
-    }, [effectiveScoreFilter, roleFilteredPeople]);
-
-    const visiblePeople = useMemo(() => {
-        if (effectiveSortMode === 'none') return filteredPeople;
-        if (effectiveSortMode === 'selected') return sortSelectedFirst(filteredPeople, selectedIds);
-
-        const sorted = [...filteredPeople];
-        if (effectiveSortMode === 'score') {
-            if (effectiveScoreSortDirection === 'desc') {
-                sorted.sort((a, b) => (b.rating - a.rating) || a.nickname.localeCompare(b.nickname));
-                return sorted;
-            }
-            sorted.sort((a, b) => (a.rating - b.rating) || a.nickname.localeCompare(b.nickname));
-            return sorted;
-        }
-
-        if (effectiveSortMode === 'position') {
-            sorted.sort((a, b) => {
-                const roleDiff = ROLE_SORT_PRIORITY[a.role] - ROLE_SORT_PRIORITY[b.role];
-                if (roleDiff !== 0) return roleDiff;
-                return a.nickname.localeCompare(b.nickname);
-            });
-            return sorted;
-        }
-
-        return sorted;
-    }, [effectiveScoreSortDirection, effectiveSortMode, filteredPeople, selectedIds]);
-
-    const hasActiveSearchOrFilter =
-        Boolean(normalizedQuery) || uiRoleFilter !== 'all' || effectiveScoreFilter !== 'all';
-
     const handleGenerate = () => {
         setLocalError(null);
         setGeneratedTeams(null);
@@ -242,11 +139,7 @@ export function MatchPage() {
 
     const handleClearFilters = () => {
         setShowClearMenu(false);
-        setSearchQuery('');
-        setUiRoleFilter('all');
-        setUiScoreFilter('all');
-        setUiSortMode('none');
-        setUiScoreSortDirection('desc');
+        resetControls();
     };
 
     const requestConfirm = (state: ConfirmState) => {
@@ -378,83 +271,7 @@ export function MatchPage() {
                 </div>
             </div>
 
-            <div className="match-controls">
-                <div className={`match-controls-grid ${privacyMode ? 'match-controls-grid--privacy' : ''}`}>
-                    <div className="match-search-field">
-                        <span className="match-search-icon" aria-hidden="true">
-                            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                <circle cx="11" cy="11" r="7" />
-                                <path d="M20 20l-4-4" />
-                            </svg>
-                        </span>
-                        <input
-                            type="text"
-                            className="match-search-input"
-                            placeholder=""
-                            value={searchQuery}
-                            onChange={(event) => setSearchQuery(event.target.value)}
-                            aria-label="Search players by nickname or name"
-                        />
-                    </div>
-
-                    <DropdownMenuSelect
-                        value={uiRoleFilter}
-                        options={ROLE_FILTER_OPTIONS}
-                        onChange={(value) => setUiRoleFilter(value as 'all' | Person['role'])}
-                        ariaLabel="Filter by role"
-                    />
-
-                    {!privacyMode && (
-                        <DropdownMenuSelect
-                            value={effectiveScoreFilter}
-                            options={SCORE_FILTER_OPTIONS}
-                            onChange={(value) => setUiScoreFilter(value as 'all' | `${number}`)}
-                            ariaLabel="Filter by score"
-                        />
-                    )}
-
-                    <div
-                        className={`match-sort-group ${
-                            !privacyMode && effectiveSortMode === 'score' ? 'match-sort-group--with-toggle' : ''
-                        }`}
-                    >
-                        <DropdownMenuSelect
-                            value={effectiveSortMode}
-                            options={availableSortOptions}
-                            onChange={setUiSortMode}
-                            ariaLabel="Sort players"
-                        />
-
-                        {!privacyMode && effectiveSortMode === 'score' && (
-                            <button
-                                type="button"
-                                className="match-sort-direction-toggle"
-                                onClick={() =>
-                                    setUiScoreSortDirection((prev) => (prev === 'desc' ? 'asc' : 'desc'))
-                                }
-                                aria-label={
-                                    effectiveScoreSortDirection === 'desc'
-                                        ? 'Score direction: high to low'
-                                        : 'Score direction: low to high'
-                                }
-                                title={
-                                    effectiveScoreSortDirection === 'desc'
-                                        ? 'Score: high -> low'
-                                        : 'Score: low -> high'
-                                }
-                            >
-                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                    {effectiveScoreSortDirection === 'desc' ? (
-                                        <path d="M12 5v14m0 0l5-5m-5 5l-5-5" />
-                                    ) : (
-                                        <path d="M12 19V5m0 0l5 5m-5-5l-5 5" />
-                                    )}
-                                </svg>
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
+            <PlayerListControls controls={controls} onChange={updateControls} privacyMode={privacyMode} />
 
             {isLoading ? (
                 <div className="loading-shell">
@@ -470,7 +287,7 @@ export function MatchPage() {
                 <div className="empty-state">
                     <p>No players match current controls.</p>
                     <p>
-                        {hasActiveSearchOrFilter
+                        {isFiltered
                             ? 'Try another search prefix or role/score filter.'
                             : 'Try adjusting search, filter, or sort.'}
                     </p>
@@ -494,7 +311,7 @@ export function MatchPage() {
 
             {isLoaded && people.length > 0 && (
                 <div className="match-count">
-                    {normalizedQuery || uiRoleFilter !== 'all' || effectiveScoreFilter !== 'all'
+                    {isFiltered
                         ? `Showing ${visiblePeople.length} of ${people.length} players`
                         : `Total: ${people.length} players`}
                 </div>

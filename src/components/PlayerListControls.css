@@ -1,0 +1,131 @@
+/* Search, filters and sort shared by Players and Match. Rules keep two classes of
+   specificity, like the per-page rules they replaced. */
+
+.list-controls {
+  width: 100%;
+}
+
+.list-controls .list-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.list-controls .list-controls-grid--privacy {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.list-controls .list-sort-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.35rem;
+}
+
+.list-controls .list-sort-group--with-toggle {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.list-controls .list-sort-direction-toggle {
+  min-height: 34px;
+  width: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.list-controls .list-sort-direction-toggle:hover,
+.list-controls .list-sort-direction-toggle:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.list-controls .list-sort-direction-toggle svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.list-controls .list-search-field {
+  grid-column: 1 / -1;
+  position: relative;
+  width: 100%;
+}
+
+.list-controls .list-search-icon {
+  position: absolute;
+  left: 0.72rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.list-controls .list-search-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.list-controls .list-search-input {
+  width: 100%;
+  min-height: 34px;
+  padding: 0.5rem 0.75rem 0.5rem 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.84rem;
+}
+
+/* iOS Safari zooms the page when an input under 16px gets focus. */
+@media (max-width: 640px) {
+  .list-controls .list-search-input {
+    font-size: 16px;
+  }
+}
+
+.list-controls .list-search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.list-controls .list-search-input:focus-visible {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.65);
+}
+
+/* Wider screens: search on the left, the dropdowns in one row. Kept after the base rules. */
+@media (min-width: 640px) {
+  .list-controls .list-controls-grid {
+    grid-template-columns: minmax(0, 1fr) repeat(3, minmax(0, 150px));
+    gap: 0.35rem;
+  }
+
+  .list-controls .list-controls-grid--privacy {
+    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 150px));
+  }
+
+  .list-controls .list-search-field {
+    grid-column: auto;
+  }
+}
