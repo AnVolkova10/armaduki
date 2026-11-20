@@ -1,5 +1,8 @@
-/* The penalty at the door. data-shot on .gate drives every animation of the scene:
-   idle (keeper waits), aiming (run-up, loops until the backend answers), goal, saved, post. */
+/* The penalty at the door. data-shot on .gate drives the scene:
+   idle (keeper waits), aiming (run-up, loops until the backend answers), goal, saved, post.
+   Scene units are the SVG's: transform origins below are points of its viewBox.
+   --gk-x is where the keeper's shuffle stood when the answer arrived (set in Gate.tsx),
+   so nothing jumps when the shot starts and the ball meets her gloves wherever she was. */
 
 .gate {
   position: fixed;
@@ -10,55 +13,54 @@
   padding: 20px 16px;
   overflow-y: auto;
   background:
-    radial-gradient(90% 60% at 50% 0%, rgba(220, 38, 38, 0.16) 0%, transparent 62%),
-    linear-gradient(180deg, #0d0d0f 0%, #050505 100%);
+    radial-gradient(80% 50% at 50% 0%, rgba(220, 38, 38, 0.1) 0%, transparent 65%),
+    #070707;
 }
 
 .gate-card {
-  width: min(440px, 100%);
+  width: min(340px, 100%);
   display: grid;
   justify-items: center;
-  animation: gate-rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: gate-rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .gate-brand {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  margin: 0 0 14px;
-  font-size: 1.5rem;
+  gap: 0.3rem;
+  margin: 0 0 12px;
+  font-size: 1.05rem;
   font-weight: 700;
   line-height: 1;
   color: var(--accent);
 }
 
 .gate-brand img {
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1rem;
+  height: 1rem;
 }
 
 .gate-scene {
+  --gk-x: 0px;
   width: 100%;
   height: auto;
   display: block;
   border-radius: 14px;
-  border: 1px solid #262626;
-  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  border: 1px solid #232323;
   overflow: hidden;
-  animation: gate-scene-in 0.4s ease both;
 }
 
 .gate-caption {
-  min-height: 1.5em;
-  margin: 14px 0 0;
+  min-height: 1.4em;
+  margin: 10px 0 0;
   color: var(--text-secondary);
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 0.8rem;
   text-align: center;
+  transition: color 0.2s ease;
 }
 
 .gate[data-shot='goal'] .gate-caption {
-  color: #fff;
+  color: #f4f4f5;
 }
 
 .gate[data-shot='saved'] .gate-caption,
@@ -71,42 +73,42 @@
   display: flex;
   gap: 8px;
   width: 100%;
-  margin-top: 12px;
+  margin-top: 8px;
   visibility: hidden;
 }
 
 .gate-form[data-shown] {
   visibility: visible;
-  animation: gate-form-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: gate-form-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .gate-input {
   flex: 1;
   min-width: 0;
-  min-height: 46px;
-  padding: 0 14px;
-  border-radius: 10px;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: 9px;
   border: 1px solid var(--border);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: 16px; /* under 16px iOS zooms on focus */
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
 .gate-input:focus-visible {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 .gate-shoot {
-  min-height: 46px;
-  padding: 0 22px;
-  border-radius: 10px;
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: 9px;
   border: 1px solid var(--accent);
   background: var(--accent);
   color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
   transition: transform 0.12s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
@@ -128,387 +130,362 @@
 
 /* ---------- The scene at rest ---------- */
 
-.gate-keeper,
-.gate-arm,
+.gate-gk {
+  transform-origin: 160px 150px;
+  animation: gk-bounce 0.75s ease-in-out infinite alternate;
+}
+
+.gate-gk-step,
+.gate-gk-shadow {
+  animation: gk-step 2.6s ease-in-out infinite alternate;
+}
+
+.gate-gk-arm-l {
+  transform-origin: 153px 109px;
+  animation: arm-l-ready 1.3s ease-in-out infinite alternate;
+}
+
+.gate-gk-arm-r {
+  transform-origin: 167px 109px;
+  animation: arm-r-ready 1.3s ease-in-out infinite alternate;
+}
+
 .gate-ball,
 .gate-ball-spin,
-.gate-ball-ring,
-.gate-net-bulge,
-.gate-word,
-.gate-keeper-shadow,
+.gate-ball-ring {
+  transform-origin: 160px 196px;
+}
+
 .gate-ball-shadow {
-  transform-box: fill-box;
+  transform-origin: 160px 206px;
 }
 
-.gate-keeper {
-  transform-origin: 50% 100%;
-  animation: keeper-ready 1.9s ease-in-out infinite alternate;
-}
-
-.gate-keeper-shadow {
-  transform-origin: 50% 50%;
-  animation: keeper-ready 1.9s ease-in-out infinite alternate;
-}
-
-.gate-arm-left {
-  transform-origin: 92% 6%;
-  animation: arm-left-ready 0.95s ease-in-out infinite alternate;
-}
-
-.gate-arm-right {
-  transform-origin: 8% 6%;
-  animation: arm-right-ready 0.95s ease-in-out infinite alternate;
-}
-
-.gate-ball,
-.gate-ball-spin,
-.gate-ball-ring,
-.gate-net-bulge,
-.gate-word {
-  transform-origin: 50% 50%;
+.gate-net-glow {
+  transform-origin: 236px 68px;
 }
 
 .gate-ball-ring,
-.gate-net-bulge,
-.gate-flash,
-.gate-word,
-.gate-confetti rect {
+.gate-net-glow {
   opacity: 0;
-}
-
-.gate-word {
-  font-family: Inter, system-ui, sans-serif;
-  font-size: 46px;
-  font-weight: 900;
-  letter-spacing: 0.02em;
-  fill: #fff;
-  paint-order: stroke;
-  stroke: rgba(0, 0, 0, 0.55);
-  stroke-width: 6px;
-}
-
-.gate-word-saved,
-.gate-word-post {
-  fill: #fca5a5;
-}
-
-.gate-crowd {
-  animation: crowd-twinkle 2.6s ease-in-out infinite alternate;
 }
 
 /* ---------- Run-up: loops until the answer arrives ---------- */
 
-.gate[data-shot='aiming'] .gate-keeper,
-.gate[data-shot='aiming'] .gate-keeper-shadow {
-  animation: keeper-tense 0.42s ease-in-out infinite alternate;
+.gate[data-shot='aiming'] .gate-gk {
+  animation: gk-crouch 0.36s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-gk-arm-l {
+  animation: arm-l-wide 0.36s ease-in-out infinite alternate;
+}
+
+.gate[data-shot='aiming'] .gate-gk-arm-r {
+  animation: arm-r-wide 0.36s ease-in-out infinite alternate;
 }
 
 .gate[data-shot='aiming'] .gate-ball {
-  animation: ball-charge 0.34s ease-in-out infinite alternate;
+  animation: ball-charge 0.3s ease-in-out infinite alternate;
 }
 
 .gate[data-shot='aiming'] .gate-ball-ring {
-  animation: ball-ring 0.8s ease-out infinite;
+  animation: ball-ring 0.75s ease-out infinite;
 }
 
-.gate[data-shot='aiming'] .gate-crowd {
-  animation-duration: 0.5s;
+/* ---------- Shots: the shuffle stops where it was ---------- */
+
+.gate[data-shot='goal'] .gate-gk-step,
+.gate[data-shot='goal'] .gate-gk-shadow {
+  animation: none;
+  transform: translateX(var(--gk-x));
 }
 
-/* ---------- Goal: top corner, the keeper goes the other way ---------- */
-
-.gate[data-shot='goal'] {
-  animation: gate-leave 0.7s ease-in 2.2s forwards;
+.gate[data-shot='saved'] .gate-gk-step,
+.gate[data-shot='saved'] .gate-gk-shadow {
+  animation: gk-walk-home 2.8s ease-in-out forwards;
 }
 
-.gate[data-shot='goal'] .gate-ball {
-  animation: ball-goal 1.5s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+.gate[data-shot='post'] .gate-gk-step,
+.gate[data-shot='post'] .gate-gk-shadow {
+  animation: gk-walk-home 2.2s ease-in-out forwards;
 }
 
 .gate[data-shot='goal'] .gate-ball-spin,
 .gate[data-shot='saved'] .gate-ball-spin,
 .gate[data-shot='post'] .gate-ball-spin {
-  animation: ball-spin 0.6s linear 2;
+  animation: ball-spin 0.55s linear;
 }
 
-.gate[data-shot='goal'] .gate-ball-shadow,
-.gate[data-shot='saved'] .gate-ball-shadow {
-  animation: shadow-away 0.3s ease-out forwards;
+/* Goal: top corner, she goes the other way a moment late. */
+.gate[data-shot='goal'] {
+  animation: gate-leave 0.6s ease-in 1.7s forwards;
 }
 
-.gate[data-shot='goal'] .gate-keeper {
-  animation: keeper-beaten 1.1s cubic-bezier(0.3, 0.7, 0.3, 1) forwards;
+.gate[data-shot='goal'] .gate-ball {
+  animation: ball-goal 1.5s forwards;
 }
 
-.gate[data-shot='goal'] .gate-keeper-shadow,
-.gate[data-shot='saved'] .gate-keeper-shadow {
-  animation: keeper-shadow-dive 1.1s ease-out forwards;
+.gate[data-shot='goal'] .gate-ball-shadow {
+  animation: shadow-gone 0.25s ease-out forwards;
 }
 
-.gate[data-shot='goal'] .gate-arm-left,
-.gate[data-shot='saved'] .gate-arm-left {
-  animation: arm-left-reach 0.45s ease-out forwards;
+.gate[data-shot='goal'] .gate-gk {
+  animation: gk-beaten 1.1s forwards;
 }
 
-.gate[data-shot='goal'] .gate-arm-right,
-.gate[data-shot='saved'] .gate-arm-right {
-  animation: arm-right-reach 0.45s ease-out forwards;
+.gate[data-shot='goal'] .gate-gk-arm-l {
+  animation: arm-l-up 0.4s ease-out forwards;
 }
 
-.gate[data-shot='goal'] .gate-net-bulge {
-  animation: net-bulge 0.7s ease-out 0.5s forwards;
+.gate[data-shot='goal'] .gate-gk-arm-r {
+  animation: arm-r-up 0.4s ease-out forwards;
+}
+
+.gate[data-shot='goal'] .gate-net-glow {
+  animation: net-glow 0.7s ease-out 0.46s;
 }
 
 .gate[data-shot='goal'] .gate-net {
-  animation: net-shake 0.5s ease-out 0.52s;
+  animation: net-give 0.6s ease-out 0.46s;
 }
 
-.gate[data-shot='goal'] .gate-flash {
-  animation: flash 0.55s ease-out 0.5s;
-}
-
-.gate[data-shot='goal'] .gate-word-goal {
-  animation: word-pop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) 0.62s forwards;
-}
-
-.gate[data-shot='goal'] .gate-confetti rect {
-  animation: confetti-fall 1.7s cubic-bezier(0.3, 0.4, 0.6, 1) forwards;
-}
-
-/* ---------- Saved: she guesses the side and holds the ball ---------- */
-
+/* Saved: she flies to the corner, holds it, gets up and sends it back. */
 .gate[data-shot='saved'] .gate-ball {
-  animation: ball-saved 2.1s cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  animation: ball-saved 2.8s forwards;
 }
 
-.gate[data-shot='saved'] .gate-keeper {
-  animation: keeper-save 2.1s cubic-bezier(0.3, 0.7, 0.3, 1) forwards;
+.gate[data-shot='saved'] .gate-ball-shadow {
+  animation: shadow-away 2.8s ease-in-out forwards;
 }
 
-.gate[data-shot='saved'] .gate-word-saved {
-  animation: word-pop 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) 0.6s forwards;
+.gate[data-shot='saved'] .gate-gk {
+  animation: gk-save 2.8s forwards;
 }
 
-.gate[data-shot='saved'] .gate-card {
-  animation: gate-shake 0.45s ease-out 0.55s;
+.gate[data-shot='saved'] .gate-gk-arm-l {
+  animation: arm-l-catch 2.8s forwards;
 }
 
-/* ---------- Post: no answer, the ball comes back ---------- */
+.gate[data-shot='saved'] .gate-gk-arm-r {
+  animation: arm-r-catch 2.8s forwards;
+}
 
+/* Post: no answer. The ball comes back by itself. */
 .gate[data-shot='post'] .gate-ball {
-  animation: ball-post 2.1s cubic-bezier(0.3, 0.6, 0.4, 1) forwards;
+  animation: ball-post 2.2s forwards;
 }
 
-.gate[data-shot='post'] .gate-keeper {
-  animation: keeper-lean 1.6s ease-in-out forwards;
+.gate[data-shot='post'] .gate-ball-shadow {
+  animation: shadow-away 2.2s ease-in-out forwards;
+}
+
+.gate[data-shot='post'] .gate-gk {
+  animation: gk-hop 1s ease-out forwards;
 }
 
 .gate[data-shot='post'] .gate-goal {
-  animation: frame-rattle 0.4s ease-out 0.5s;
+  animation: frame-rattle 0.35s ease-out 0.46s;
 }
 
-.gate[data-shot='post'] .gate-word-post {
-  animation: word-flash 1.2s ease-out 0.55s forwards;
-}
-
-/* ---------- Leaving without a shot: the backend asked for no key ---------- */
-
+/* Leaving without a shot: the backend asked for no key. */
 .gate[data-open]:not([data-shot='goal']) {
-  animation: gate-leave 0.45s ease-in forwards;
+  animation: gate-leave 0.4s ease-in forwards;
 }
 
 /* ---------- Keyframes ---------- */
 
 @keyframes gate-rise {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
 
-@keyframes gate-scene-in {
-  from { opacity: 0.4; }
-  to { opacity: 1; }
-}
-
 @keyframes gate-form-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: none; }
 }
 
 @keyframes gate-leave {
-  to { opacity: 0; transform: scale(1.06); visibility: hidden; }
+  to { opacity: 0; visibility: hidden; }
 }
 
-@keyframes gate-shake {
-  20% { transform: translateX(-7px); }
-  45% { transform: translateX(6px); }
-  70% { transform: translateX(-3px); }
-  100% { transform: none; }
+@keyframes gk-step {
+  from { transform: translateX(-5px); }
+  to { transform: translateX(5px); }
 }
 
-@keyframes keeper-ready {
-  from { transform: translateX(-8px); }
-  to { transform: translateX(8px); }
+/* Holds her place through the shot, then walks back to where the shuffle starts. */
+@keyframes gk-walk-home {
+  0%, 60% { transform: translateX(var(--gk-x)); }
+  100% { transform: translateX(-5px); }
 }
 
-@keyframes keeper-tense {
-  from { transform: translateX(-17px) scaleY(0.95); }
-  to { transform: translateX(17px) scaleY(0.95); }
+@keyframes gk-bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-1.6px); }
 }
 
-@keyframes arm-left-ready {
-  from { transform: rotate(4deg); }
-  to { transform: rotate(18deg); }
+@keyframes gk-crouch {
+  from { transform: translateY(0) scaleY(0.95); }
+  to { transform: translateY(-1.2px) scaleY(0.93); }
 }
 
-@keyframes arm-right-ready {
-  from { transform: rotate(-4deg); }
-  to { transform: rotate(-18deg); }
+@keyframes arm-l-ready {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(9deg); }
 }
 
-/* Both hands together over the head. */
-@keyframes arm-left-reach {
-  to { transform: rotate(148deg); }
+@keyframes arm-r-ready {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-9deg); }
 }
 
-@keyframes arm-right-reach {
-  to { transform: rotate(-148deg); }
+@keyframes arm-l-wide {
+  from { transform: rotate(24deg); }
+  to { transform: rotate(32deg); }
 }
 
-@keyframes crowd-twinkle {
-  from { opacity: 0.55; }
-  to { opacity: 1; }
+@keyframes arm-r-wide {
+  from { transform: rotate(-24deg); }
+  to { transform: rotate(-32deg); }
+}
+
+/* Both hands together over her head. */
+@keyframes arm-l-up {
+  to { transform: rotate(150deg); }
+}
+
+@keyframes arm-r-up {
+  to { transform: rotate(-150deg); }
+}
+
+@keyframes arm-l-catch {
+  0% { transform: rotate(0deg); }
+  15%, 58% { transform: rotate(150deg); }
+  82%, 100% { transform: rotate(0deg); }
+}
+
+@keyframes arm-r-catch {
+  0% { transform: rotate(0deg); }
+  15%, 58% { transform: rotate(-150deg); }
+  82%, 100% { transform: rotate(0deg); }
 }
 
 @keyframes ball-charge {
   from { transform: scale(1); }
-  to { transform: scale(1.09) translateY(-1px); }
+  to { transform: scale(1.07); }
 }
 
 @keyframes ball-ring {
-  from { opacity: 0.75; transform: scale(1); }
-  to { opacity: 0; transform: scale(2.3); }
+  from { opacity: 0.6; transform: scale(1); }
+  to { opacity: 0; transform: scale(2.1); }
 }
 
 @keyframes ball-spin {
   to { transform: rotate(360deg); }
 }
 
-@keyframes shadow-away {
+@keyframes shadow-gone {
   to { opacity: 0; transform: scale(0.4); }
 }
 
-/* Spot (200, 263) to the top right corner, then it drops inside the net. */
+@keyframes shadow-away {
+  0% { opacity: 0.45; transform: scale(1); }
+  8%, 88% { opacity: 0; transform: scale(0.4); }
+  100% { opacity: 0.45; transform: scale(1); }
+}
+
+/* Spot (160, 196) to the top corner (236, 68), held by the net, then down inside it. */
 @keyframes ball-goal {
-  0% { transform: translate(0, 0) scale(1); }
-  34% { transform: translate(104px, -171px) scale(0.5); }
-  42% { transform: translate(100px, -164px) scale(0.5); }
-  100% { transform: translate(96px, -80px) scale(0.5); }
+  0% { transform: translate(0, 0) scale(1); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  31% { transform: translate(76px, -128px) scale(0.58); animation-timing-function: ease-out; }
+  42% { transform: translate(73px, -122px) scale(0.58); animation-timing-function: cubic-bezier(0.5, 0, 0.9, 0.6); }
+  86% { transform: translate(70px, -57px) scale(0.58); animation-timing-function: ease-out; }
+  93% { transform: translate(70px, -61px) scale(0.58); animation-timing-function: ease-in; }
+  100% { transform: translate(70px, -57px) scale(0.58); }
 }
 
-@keyframes keeper-beaten {
-  0% { transform: translate(0, 0) rotate(0); }
-  45% { transform: translate(-4px, -16px) rotate(-58deg); }
-  75% { transform: translate(22px, 3px) rotate(-80deg); }
-  100% { transform: translate(24px, 4px) rotate(-82deg); }
+@keyframes gk-beaten {
+  0% { transform: translate(0, 0) rotate(0); animation-timing-function: cubic-bezier(0.3, 0.6, 0.4, 1); }
+  14% { transform: translate(0, 1.5px) rotate(-4deg); animation-timing-function: cubic-bezier(0.3, 0.6, 0.4, 1); }
+  52% { transform: translate(-8px, -12px) rotate(-58deg); animation-timing-function: ease-in; }
+  82% { transform: translate(0, 0) rotate(-84deg); animation-timing-function: ease-out; }
+  90% { transform: translate(0, -1.5px) rotate(-83deg); }
+  100% { transform: translate(0, 0) rotate(-84deg); }
 }
 
-@keyframes keeper-shadow-dive {
-  to { transform: translate(-44px, 0) scaleX(2.3); opacity: 0.3; }
-}
-
-/* Top corner to her left: she flies, catches it with both hands and lands holding it.
-   The ball's stops are where her gloves meet in each pose of keeper-save. */
+/* The ball's stops are where her gloves meet in each pose of gk-save. */
 @keyframes ball-saved {
-  0% { transform: translate(0, 0) scale(1); }
-  22% { transform: translate(-116px, -174px) scale(0.52); }
-  42% { transform: translate(-118px, -88px) scale(0.52); }
-  100% { transform: translate(-118px, -88px) scale(0.52); }
-}
-
-@keyframes keeper-save {
-  0% { transform: translate(0, 0) rotate(0); }
-  22% { transform: translate(-6px, -30px) rotate(-55deg); }
-  42% { transform: translate(14px, 2px) rotate(-80deg); }
-  100% { transform: translate(14px, 2px) rotate(-80deg); }
-}
-
-/* Right post at (330, 115), then back to the spot. */
-@keyframes ball-post {
-  0% { transform: translate(0, 0) scale(1); }
-  24% { transform: translate(128px, -162px) scale(0.52); }
-  50% { transform: translate(70px, -30px) scale(0.84); }
-  62% { transform: translate(48px, -46px) scale(0.88); }
-  78% { transform: translate(18px, 0) scale(0.97); }
-  86% { transform: translate(9px, -9px) scale(0.99); }
+  0% { transform: translate(0, 0) scale(1); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  20% { transform: translate(calc(-68.4px + var(--gk-x)), -97px) scale(0.6); animation-timing-function: ease-in; }
+  36% { transform: translate(calc(-67.6px + var(--gk-x)), -53px) scale(0.6); }
+  58% { transform: translate(calc(-67.6px + var(--gk-x)), -53px) scale(0.6); animation-timing-function: cubic-bezier(0.3, 0.6, 0.5, 1); }
+  76% { transform: translate(-34px, -74px) scale(0.8); animation-timing-function: cubic-bezier(0.5, 0, 0.8, 0.7); }
+  92% { transform: translate(0, 0) scale(1); animation-timing-function: ease-out; }
+  96% { transform: translate(0, -3px) scale(1); animation-timing-function: ease-in; }
   100% { transform: translate(0, 0) scale(1); }
 }
 
-@keyframes keeper-lean {
-  0% { transform: translate(0, 0) rotate(0); }
-  28% { transform: translate(13px, -2px) rotate(6deg); }
-  100% { transform: translate(0, 0) rotate(0); }
+@keyframes gk-save {
+  0% { transform: translate(0, 0) rotate(0); animation-timing-function: cubic-bezier(0.3, 0.6, 0.4, 1); }
+  6% { transform: translate(0, 1.5px) rotate(-5deg); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  20% { transform: translate(-10px, -20px) rotate(-62deg); animation-timing-function: ease-in; }
+  36% { transform: translate(-2px, 0) rotate(-84deg); animation-timing-function: ease-out; }
+  40% { transform: translate(-2px, -1.2px) rotate(-83deg); }
+  44%, 58% { transform: translate(-2px, 0) rotate(-84deg); animation-timing-function: cubic-bezier(0.4, 0, 0.3, 1); }
+  84%, 100% { transform: translate(0, 0) rotate(0); }
+}
+
+/* Right post at (259, 84), then it bounces back to the spot. */
+@keyframes ball-post {
+  0% { transform: translate(0, 0) scale(1); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  22% { transform: translate(99px, -112px) scale(0.6); animation-timing-function: cubic-bezier(0.4, 0, 0.9, 0.7); }
+  46% { transform: translate(58px, -14px) scale(0.86); animation-timing-function: ease-out; }
+  60% { transform: translate(38px, -30px) scale(0.92); animation-timing-function: ease-in; }
+  76% { transform: translate(18px, 0) scale(0.97); animation-timing-function: ease-out; }
+  85% { transform: translate(9px, -7px) scale(0.99); animation-timing-function: ease-in; }
+  100% { transform: translate(0, 0) scale(1); }
+}
+
+@keyframes gk-hop {
+  0% { transform: translate(0, 0); }
+  35% { transform: translate(7px, -4px) rotate(5deg); }
+  100% { transform: translate(0, 0); }
 }
 
 @keyframes frame-rattle {
-  25% { transform: translateX(3px); }
-  50% { transform: translateX(-2.5px); }
-  75% { transform: translateX(1.5px); }
+  25% { transform: translateX(1.8px); }
+  50% { transform: translateX(-1.4px); }
+  75% { transform: translateX(0.8px); }
   100% { transform: none; }
 }
 
-@keyframes net-bulge {
-  0% { opacity: 0.9; transform: scale(0.2); }
-  100% { opacity: 0; transform: scale(2.4); }
+@keyframes net-glow {
+  0% { opacity: 0.8; transform: scale(0.3); }
+  100% { opacity: 0; transform: scale(1.5); }
 }
 
-@keyframes net-shake {
-  30% { transform: translate(3px, -2px); }
-  60% { transform: translate(-2px, 1px); }
+@keyframes net-give {
+  30% { transform: translate(1.6px, -1.2px); }
+  60% { transform: translate(-0.8px, 0.6px); }
   100% { transform: none; }
-}
-
-@keyframes flash {
-  0% { opacity: 0; }
-  25% { opacity: 0.5; }
-  100% { opacity: 0; }
-}
-
-@keyframes word-pop {
-  0% { opacity: 0; transform: scale(0.4); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
-@keyframes word-flash {
-  0% { opacity: 0; transform: scale(0.5); }
-  25% { opacity: 1; transform: scale(1); }
-  75% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-@keyframes confetti-fall {
-  0% { opacity: 1; transform: translate(0, 0) rotate(0); }
-  100% { opacity: 0.9; transform: translate(var(--drift, 0), 330px) rotate(540deg); }
 }
 
 /* Less motion: no loops, and the result shows without the flight. */
 @media (prefers-reduced-motion: reduce) {
-  .gate-keeper,
-  .gate-keeper-shadow,
-  .gate-arm,
-  .gate-crowd,
+  .gate-gk,
+  .gate-gk-step,
+  .gate-gk-shadow,
+  .gate-gk-arm,
   .gate[data-shot='aiming'] .gate-ball,
   .gate[data-shot='aiming'] .gate-ball-ring {
     animation: none !important;
   }
 
-  .gate[data-shot] .gate-ball,
-  .gate[data-shot='goal'] .gate-keeper,
-  .gate[data-shot='saved'] .gate-keeper {
+  .gate[data-shot='goal'] .gate-ball {
     animation-duration: 0.01s !important;
   }
 
-  .gate-confetti,
-  .gate-flash {
-    display: none;
+  .gate[data-shot='saved'] .gate-ball,
+  .gate[data-shot='post'] .gate-ball {
+    animation: none !important;
   }
 }
