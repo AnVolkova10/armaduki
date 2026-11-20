@@ -41,30 +41,6 @@
   transform: translateY(-1px);
 }
 
-.nav {
-  display: flex;
-  gap: 1rem;
-}
-
-.nav-link {
-  padding: 0.5rem 1rem;
-  color: var(--text-secondary);
-  text-decoration: none;
-  border-radius: 6px;
-  transition: all 0.2s ease;
-  font-weight: 500;
-}
-
-.nav-link:hover {
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.nav-link.active {
-  color: var(--accent);
-  background: rgba(220, 38, 38, 0.1);
-}
-
 .main {
   flex: 1;
   padding: 2rem;

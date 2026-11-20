@@ -1,7 +1,6 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
-import { PeoplePage } from './pages/PeoplePage';
-import { MatchPage } from './pages/MatchPage';
+import { PlayersPage } from './pages/PlayersPage';
 import './index.css';
 
 function App() {
@@ -9,8 +8,9 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<PeoplePage />} />
-          <Route path="match" element={<MatchPage />} />
+          <Route index element={<PlayersPage />} />
+          {/* Players and Match are one screen since 19/11/2026, so /match and any old link land there. */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

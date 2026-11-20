@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import './Layout.css';
 
 import useAppStore from '../store/useAppStore';
@@ -15,14 +15,6 @@ export function Layout() {
                     <h1 className="logo">armaduki</h1>
                     <img className="brand-ball" src="/ball.svg" alt="" aria-hidden="true" />
                 </div>
-                <nav className="nav">
-                    <NavLink to="/" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                        Players
-                    </NavLink>
-                    <NavLink to="/match" className={({ isActive }) => isActive ? 'nav-link active' : 'nav-link'}>
-                        Match
-                    </NavLink>
-                </nav>
             </header>
             <main className="main">
                 <Outlet />

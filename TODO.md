@@ -31,6 +31,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 - [x] Los equipos se cargan a mano en la pestaña `Teams`; el modal solo los elige (F2-05.2.0).
 - [x] Orden de los sprints: la base, el generador y el rediseño van antes de las funciones nuevas (18/11).
 - [x] Fecha de nacimiento: opcional; se guarda la fecha y se muestra la edad (18/11).
+- [x] Players y Match son una sola pantalla (19/11): tocar la tarjeta la elige; editar y borrar siguen en la tarjeta, para borrar rápido (con confirmación); el resultado aparece debajo de la lista.
 
 ## Sprint 0 - Revisión técnica (hecho)
 
@@ -83,11 +84,11 @@ Prueba (en https://armaduki.vercel.app):
 4. Para ver uno roto seguro: hacé que una GK quiera jugar con otra GK, de un solo lado. Elegí a las dos entre las 10, sin la tercera GK (con 3 GK siempre hay fallback). Como no pueden ir dos GK en el mismo equipo, antes esto mandaba al fallback. Ahora sale un resultado normal y el análisis muestra «Broken one-way wants» y `wantsPref(-15)` en la fórmula.
 5. Al terminar, sacá esos wants editando a A, C, D y la GK. «Clear Wants» también sirve, pero borra los wants de todas.
 
-## Sprint 3 - Base técnica (hecho, falta tu prueba)
+## Sprint 3 - Base técnica (hecho)
 
 Objetivo: dejar el código y las herramientas listos para crecer.
 
-- [ ] **Ángela:** probarlo con los pasos de abajo.
+- [x] **Ángela:** probarlo con los pasos de abajo.
 - [x] **Ángela:** aprobó publicar el backend nuevo (19/11). Claude lo publicó con `npm run backend:release -- "readAll"`: producción pasó de la versión 19 a la 20, con pruebas en la implementación temporal y en producción, y la temporal se borró.
 - [x] Búsqueda, filtros y orden de Players y Match en un solo lugar (F2-06.6, RV-15): la lógica en `src/utils/playerListing.ts`, con tests; el estado en `src/hooks/usePlayerListing.ts`, uno por página; los controles y sus estilos en `src/components/PlayerListControls`. Un recorrido grabado por las dos páginas, en teléfono y en escritorio, da el mismo resultado antes y después.
 - [x] Los tests de la revisión están en `npm test`: `Code.gs` en Node contra una planilla en memoria y el store de punta a punta contra `Code.gs`. Ninguno puede llegar a la planilla real.
@@ -99,10 +100,28 @@ Objetivo: dejar el código y las herramientas listos para crecer.
 
 Prueba (en https://armaduki.vercel.app, mejor desde el teléfono):
 
-1. En Players y en Match, probá la búsqueda, el filtro de rol y los órdenes: todo anda igual que antes. Con privacy mode apagado, probá también el filtro y el orden por score, con la flecha.
+1. Probá la búsqueda, el filtro de rol y los órdenes: todo anda igual que antes. Con privacy mode apagado, probá también el filtro y el orden por score, con la flecha.
 2. «Clear» → «Clear Filters» deja todo como al principio.
-3. En Players, «+ Add Player» → «Extra info»: la lista de equipos carga.
+3. «+ Add Player» → «Extra info»: la lista de equipos carga.
 4. La app abre con un solo pedido. En la computadora se ve con F12 → Network, filtrando por `exec`: aparece `readAll` y ya no `read` ni `readTeams`.
+
+## Sprint 3b - Players y Match en una sola pantalla (hecho, falta tu prueba)
+
+Objetivo: elegir, editar y armar el partido en el mismo lugar, sin acordarse en qué pantalla se está (pedido de Ángela, 19/11).
+
+- [ ] **Ángela:** probarlo con los pasos de abajo.
+- [x] Una sola pantalla, «Players», en `src/pages/PlayersPage.tsx`: tocar una tarjeta la elige; el lápiz y el tacho de la tarjeta editan y borran (en la computadora aparecen al pasar el mouse; en el teléfono están siempre); el resultado aparece debajo de la lista. Arriba: «+ Add Player», el contador, «Clear» (selección, filtros, wants, avoids y links) y «Generate Teams».
+- [x] Con 10 elegidas, las demás tarjetas no se pueden elegir, pero se pueden editar y borrar.
+- [x] Se fueron las pestañas del header; `/match` y cualquier dirección vieja llevan a la pantalla única.
+- [x] Donde las dos pantallas eran distintas: grilla de Match, aviso de error de carga arriba de la lista (con «×»), texto de lista vacía de Players y botones con el estilo de siempre.
+- [x] Verificado en Edge contra una API local, con clics de mouse en tamaño computadora y toques simulados en tamaño teléfono (no en un teléfono real): elegir, editar y borrar sin elegir, los menús y el pie tapan a las tarjetas, el tope de 10, borrar con 10 elegidas, generar y ver el resultado debajo, editar una elegida borra el resultado viejo, «Clear Selection», `/match` y un solo pedido al abrir.
+
+Prueba (en https://armaduki.vercel.app, mejor desde el teléfono):
+
+1. Tocá algunas tarjetas: se eligen y el contador sube. Tocá el lápiz de otra: se abre la edición sin elegirla. El tacho pide confirmación, como siempre.
+2. Elegí 10: las demás quedan apagadas, pero su lápiz y su tacho siguen andando.
+3. «Generate Teams»: el resultado aparece debajo de la lista.
+4. En la computadora, el lápiz y el tacho aparecen al pasar el mouse por la tarjeta.
 
 ## Sprint 4 - Clave y privacidad
 
@@ -118,7 +137,9 @@ Objetivo: proteger los datos con una clave.
 Objetivo: darle a la app el mismo nivel de diseño que VolkosFood. Se hace en una sesión con Claude Fable 5.2, el modelo del rediseño de VolkosFood.
 
 - [ ] Escribir la dirección de diseño en `docs/DESIGN_DIRECTION.md` (idea, decisiones, lenguaje visual, movimiento y flujos), partiendo de lo que ya es armaduki: oscuro, rojo, la pelota, mobile-first y privacy mode. **Ángela la aprueba antes de tocar la UI.**
-- [ ] Rediseñar Players, Match, el resultado de equipos, el análisis y el modal de jugadora.
+- [ ] Rediseñar la pantalla única (desde el Sprint 3b, jugadoras y partido juntos), el resultado de equipos, el análisis y el modal de jugadora.
+- [ ] En el teléfono, una barra fija abajo con «7/10 · Generate Teams», a mano con el pulgar. **Propuesta** (19/11).
+- [ ] El resultado en su propia vista, con «volver» que conserva la selección; hoy queda debajo de la lista, como eligió Ángela (19/11). **Propuesta.**
 - [ ] Repensar cómo mostrar las seleccionadas en el navbar (pedido de Notion). La primera versión, con chips en una segunda fila del header, no gustó (19/11).
 - [ ] Recorrido en escritorio y en el teléfono contra una API local, sin tocar la planilla real.
 - [ ] Revisión de Ángela antes de seguir.
@@ -139,8 +160,8 @@ Objetivo: cargar desde el modal los datos que la planilla ya tiene (resto de la 
 
 Objetivo: encontrar rápido a quién elegir. Usa la búsqueda unificada del Sprint 3.
 
-- [ ] Filtro por equipo en Players y en Match (F2-06.1, F2-06.3).
-- [ ] Filtro por grupo o cancha y por día/lugar en Players y en Match (F2-06.2, F2-06.4).
+- [ ] Filtro por equipo (F2-06.1, F2-06.3).
+- [ ] Filtro por grupo o cancha y por día/lugar (F2-06.2, F2-06.4).
 - [ ] Orden por camiseta, equipo, grupo o día/lugar donde sume (F2-06.5).
 
 ## Sprint 8 - Wants y avoids con historial
@@ -199,6 +220,7 @@ Objetivo: que las que juegan juntas en un equipo real tiendan a caer juntas, sin
 - [ ] Fotos más livianas: las fotos guardadas en la planilla son casi todo lo que baja al abrir la app (medido el 19/11). Achicarlas al guardarlas, o traerlas aparte de la lectura inicial. Se complementa con abrir con la última lectura guardada (Sprint 4). **Propuesta.**
 - [ ] Navegación en la URL: el botón atrás cierra el modal y vuelve de pantalla, como en VolkosFood. Puede entrar en el rediseño. **Propuesta.**
 - [ ] Pedir confirmación al cerrar el modal con cambios sin guardar. **Propuesta.**
+- [ ] Borrar desde el modal de edición en vez de la tarjeta. Por ahora no: Ángela prefiere borrar rápido desde la tarjeta (19/11). **Propuesta.**
 - [ ] Que «Copy Teams» no se confunda con apodos de más de una palabra. **Propuesta.**
 - [ ] Mostrar los escudos (`crest`) de los equipos. **Propuesta.**
 - [ ] Accesibilidad de diálogos y menús: el foco queda dentro del diálogo y los menús usan los roles correctos. **Propuesta.**

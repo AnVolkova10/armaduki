@@ -7,14 +7,34 @@
   flex-direction: column;
   gap: 8px;
   position: relative;
+  /* Keeps the z-index of the select button and the icons inside the card, so menus,
+     the header and the footer stack over cards exactly as before. */
+  isolation: isolate;
 }
 
-.person-card.selectable {
+/* Selectable cards: a transparent button covers the card, under the edit and delete icons. */
+.card-select {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
   cursor: pointer;
 }
 
-.person-card.selectable.selection-disabled {
+.card-select:disabled {
   cursor: not-allowed;
+}
+
+.card-select:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 3px; /* 2px outside the card border */
+}
+
+.person-card.selectable.selection-disabled {
   opacity: 0.45;
 }
 
@@ -162,40 +182,22 @@
   color: #fbbf24;
 }
 
-.match-selected-badge {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: lowercase;
-  color: #ef4444;
-  line-height: 1;
-  pointer-events: none;
-  user-select: none;
-}
-
-@media (max-width: 640px) {
-  .match-selected-badge {
-    right: 30px;
-    bottom: 6px;
-    font-size: 10px;
-  }
-}
-
 .actions {
   position: absolute;
   top: 8px;
   right: 8px;
+  z-index: 2; /* above the card's select button */
   display: flex;
   gap: 4px;
   opacity: 0;
   transition: opacity 0.2s;
 }
 
+/* Shown on hover, and for the keyboard. A mouse click that selects the card does not keep
+   them on: that focus is on the select button, not on the icons. */
 .person-card:hover .actions,
-.person-card:focus-within .actions {
+.person-card .actions:focus-within,
+.person-card .card-select:focus-visible ~ .actions {
   opacity: 1;
 }
 
@@ -204,11 +206,6 @@
   .actions {
     opacity: 1;
   }
-}
-
-.person-card.selectable:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.65);
-  outline-offset: 2px;
 }
 
 /* Mobile adjustments: Compact Horizontal Layout */

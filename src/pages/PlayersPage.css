@@ -1,10 +1,10 @@
-.match-page {
+.players-page {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.match-page .page-header {
+.players-page .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -12,20 +12,34 @@
   gap: 1rem;
 }
 
-.match-page .page-header h2 {
+.players-page .page-header h2 {
   margin: 0;
   color: var(--text-primary);
   line-height: 1;
 }
 
-.match-page .header-actions {
+/* Title and "+ Add Player": the first row on the phone, the left side on wider screens. */
+.players-page .page-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .players-page .page-title-row {
+    width: 100%;
+  }
+}
+
+.players-page .header-actions {
   display: flex;
   gap: 0.75rem;
   align-items: center;
   flex-wrap: wrap;
 }
 
-.match-page .relationship-actions {
+.players-page .relationship-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: nowrap;
@@ -34,14 +48,14 @@
   width: fit-content;
 }
 
-.match-page .clear-links-trigger {
+.players-page .clear-links-trigger {
   display: inline-flex;
   gap: 0.4rem;
   align-items: center;
   justify-content: space-between;
 }
 
-.match-page .clear-links-caret {
+.players-page .clear-links-caret {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -50,7 +64,7 @@
   opacity: 0.9;
 }
 
-.match-page .clear-links-caret svg {
+.players-page .clear-links-caret svg {
   width: 12px;
   height: 12px;
   display: block;
@@ -61,7 +75,7 @@
   stroke-linejoin: round;
 }
 
-.match-page .clear-links-menu {
+.players-page .clear-links-menu {
   position: absolute;
   top: calc(100% + 0.35rem);
   left: 0;
@@ -78,7 +92,7 @@
   z-index: 30;
 }
 
-.match-page .clear-links-option {
+.players-page .clear-links-option {
   min-height: 34px;
   padding: 0.35rem 0.55rem;
   border-radius: 6px;
@@ -90,27 +104,27 @@
   cursor: pointer;
 }
 
-.match-page .clear-links-option:hover,
-.match-page .clear-links-option:focus-visible {
+.players-page .clear-links-option:hover,
+.players-page .clear-links-option:focus-visible {
   outline: none;
   color: #fff;
   border-color: rgba(255, 255, 255, 0.55);
   background: rgba(255, 255, 255, 0.03);
 }
 
-.match-page .clear-links-option--positive:hover,
-.match-page .clear-links-option--positive:focus-visible {
+.players-page .clear-links-option--positive:hover,
+.players-page .clear-links-option--positive:focus-visible {
   color: #22c55e;
   border-color: rgba(34, 197, 94, 0.65);
 }
 
-.match-page .clear-links-option--negative:hover,
-.match-page .clear-links-option--negative:focus-visible {
+.players-page .clear-links-option--negative:hover,
+.players-page .clear-links-option--negative:focus-visible {
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.65);
 }
 
-.match-page .selection-count {
+.players-page .selection-count {
   padding: 0 1rem;
   background: var(--bg-secondary);
   border: 1px solid transparent;
@@ -125,52 +139,57 @@
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.match-page .selection-count--complete {
+.players-page .selection-count--complete {
   background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.65);
   color: #ef4444;
 }
 
-.match-page .selection-count--over {
+.players-page .selection-count--over {
   background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.65);
   color: #ef4444;
 }
 
-.match-page .generate-teams-btn:hover:not(:disabled),
-.match-page .generate-teams-btn:focus-visible:not(:disabled) {
+.players-page .generate-teams-btn:hover:not(:disabled),
+.players-page .generate-teams-btn:focus-visible:not(:disabled) {
   background: var(--accent);
   color: #fff;
   border-color: rgba(255, 255, 255, 0.75);
 }
 
-.match-page .empty-state {
+.players-page .empty-state {
   text-align: center;
   padding: 4rem 2rem;
   color: var(--text-secondary);
 }
 
-.match-page .loading-shell {
+.players-page .empty-state .hint {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.players-page .loading-shell {
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 46vh;
 }
 
-.match-page .people-grid {
+.players-page .people-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 cols on mobile too */
   gap: 0.5rem;
 }
 
 @media (min-width: 640px) {
-  .match-page .people-grid {
+  .players-page .people-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 1rem;
   }
 }
 
-.match-page .error {
+.players-page .error {
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid #ef4444;
   border-radius: 8px;
@@ -178,12 +197,12 @@
   color: #ef4444;
 }
 
-.match-page .match-count {
+.players-page .players-count {
   text-align: right;
   color: var(--text-secondary);
   font-size: 0.875rem;
 }
 
-.match-page .team-result-scroll-anchor {
+.players-page .team-result-scroll-anchor {
   scroll-margin-top: 5rem;
 }

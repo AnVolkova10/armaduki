@@ -10,7 +10,6 @@ interface PersonCardProps {
     selected?: boolean;
     selectable?: boolean;
     selectionDisabled?: boolean;
-    showMatchBadge?: boolean;
 }
 
 const DEFAULT_TEAM_COLOR_1 = '#3a3a3a';
@@ -24,7 +23,6 @@ export function PersonCard({
     selected,
     selectable,
     selectionDisabled,
-    showMatchBadge,
 }: PersonCardProps) {
     const privacyMode = useAppStore((state) => state.privacyMode);
     const teamsCatalog = useAppStore((state) => state.teamsCatalog);
@@ -36,22 +34,25 @@ export function PersonCard({
     } as React.CSSProperties : undefined;
 
     const canSelect = Boolean(selectable && !selectionDisabled && onSelect);
-    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-        if (!canSelect || (event.key !== 'Enter' && event.key !== ' ')) return;
-        event.preventDefault();
-        onSelect?.();
-    };
+    const hasActions = Boolean(onEdit || onDelete);
 
     return (
         <div
             className={`person-card ${selected ? 'selected' : ''} ${selectable ? 'selectable' : ''} ${selectionDisabled ? 'selection-disabled' : ''}`}
-            onClick={canSelect ? onSelect : undefined}
-            onKeyDown={selectable ? handleKeyDown : undefined}
-            role={selectable ? 'button' : undefined}
-            tabIndex={selectable ? (selectionDisabled ? -1 : 0) : undefined}
-            aria-pressed={selectable ? Boolean(selected) : undefined}
-            aria-disabled={selectable && selectionDisabled ? true : undefined}
         >
+            {selectable && (
+                // Covers the whole card, under the edit and delete icons: a tap anywhere else selects.
+                // A sibling of the icons, not their parent, so there are no buttons inside a button.
+                <button
+                    type="button"
+                    className="card-select"
+                    onClick={canSelect ? onSelect : undefined}
+                    disabled={!canSelect}
+                    aria-pressed={Boolean(selected)}
+                    aria-label={`Select ${person.nickname}`}
+                />
+            )}
+
             {mainTeam && (
                 <span
                     className="team-corner-marker"
@@ -86,23 +87,23 @@ export function PersonCard({
                 </div>
             </div>
 
-            {showMatchBadge && selected && (
-                <div className="match-selected-badge">selected</div>
-            )}
-
-            {!selectable && (
+            {hasActions && (
                 <div className="actions">
-                    <button type="button" onClick={onEdit} className="edit-btn" title="Edit" aria-label={`Edit ${person.nickname}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                        </svg>
-                    </button>
-                    <button type="button" onClick={onDelete} className="delete-btn" title="Delete" aria-label={`Delete ${person.nickname}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                    </button>
+                    {onEdit && (
+                        <button type="button" onClick={onEdit} className="edit-btn" title="Edit" aria-label={`Edit ${person.nickname}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                            </svg>
+                        </button>
+                    )}
+                    {onDelete && (
+                        <button type="button" onClick={onDelete} className="delete-btn" title="Delete" aria-label={`Delete ${person.nickname}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    )}
                 </div>
             )}
         </div>

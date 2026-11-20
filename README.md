@@ -4,8 +4,7 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
 
 ## What it does
 
-- Manage players in `People` (name, nickname, role, rating, attributes, wants, avoids, avatar).
-- Select exactly 10 players in `Match`.
+- One screen for everything: manage players (name, nickname, role, rating, attributes, wants, avoids, avatar) with the edit and delete icons on each card, and tap cards to pick exactly 10 for a match.
 - Generate 2 balanced teams using tactical + social rules.
 - Show analysis with balance metrics and social satisfaction.
 - Copy team output in one click.
@@ -60,7 +59,7 @@ A plain-language walkthrough in Spanish, including how the fallback worked befor
 
 - React 19 + TypeScript + Vite
 - Zustand for app state
-- React Router for `People` and `Match`
+- React Router: one screen at `/`; `/match` and any other path redirect there
 - Google Apps Script endpoint for read/write to Sheets
 
 ## Project structure
@@ -69,7 +68,7 @@ A plain-language walkthrough in Spanish, including how the fallback worked befor
 src/
   components/   # UI pieces (cards, form, result, buttons, modal, list controls)
   hooks/        # usePlayerListing: search, filters and sort of a player list
-  pages/        # PeoplePage, MatchPage
+  pages/        # PlayersPage, the only screen (players + match setup + result)
   services/     # team generation logic
   store/        # Zustand store + Sheets integration
   types/        # shared TypeScript types

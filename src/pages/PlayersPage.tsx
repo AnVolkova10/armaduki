@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import useAppStore from '../store/useAppStore';
-import { PersonCard } from '../components/PersonCard';
-import { TeamResult } from '../components/TeamResult';
 import { ActionButton } from '../components/ActionButton';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { PersonCard } from '../components/PersonCard';
+import { PersonForm } from '../components/PersonForm';
 import { PlayerListControls } from '../components/PlayerListControls';
 import { SheetLoader } from '../components/SheetLoader';
+import { TeamResult } from '../components/TeamResult';
 import { usePlayerListing } from '../hooks/usePlayerListing';
 import { generateTeams } from '../services/teamGenerator';
-import './MatchPage.css';
+import type { Person } from '../types';
+import './PlayersPage.css';
+
+const MATCH_SIZE = 10;
 
 interface ConfirmState {
     title: string;
@@ -18,13 +22,20 @@ interface ConfirmState {
     onConfirm: () => Promise<void> | void;
 }
 
-export function MatchPage() {
+/**
+ * The app's only screen (Players and Match became one on 19/11/2026): tap a card to pick it
+ * for the match, edit or delete it with the card icons, and the teams show up below the list.
+ */
+export function PlayersPage() {
     const {
         people,
         selectedIds,
         peopleStatus,
         error,
         fetchPeople,
+        addPerson,
+        updatePerson,
+        deletePerson,
         toggleSelection,
         clearSelection,
         generatedTeams,
@@ -32,13 +43,16 @@ export function MatchPage() {
         clearAllRelationships,
         clearWantsRelationships,
         clearAvoidsRelationships,
+        setError,
         privacyMode,
     } = useAppStore();
     const isLoading = peopleStatus === 'loading';
     const isLoaded = peopleStatus === 'loaded';
 
-    const [localError, setLocalError] = useState<string | null>(null);
+    const [showForm, setShowForm] = useState(false);
+    const [editingPerson, setEditingPerson] = useState<Person | undefined>();
     const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+    const [localError, setLocalError] = useState<string | null>(null);
     const [showClearMenu, setShowClearMenu] = useState(false);
     const clearMenuRef = useRef<HTMLDivElement | null>(null);
     const previousSelectedCountRef = useRef<number | null>(null);
@@ -51,11 +65,11 @@ export function MatchPage() {
     );
 
     const selectedCount = selectedIds.size;
-    const canGenerate = selectedCount === 10;
+    const canGenerate = selectedCount === MATCH_SIZE;
     const selectionCountClassName = [
         'selection-count',
-        selectedCount === 10 ? 'selection-count--complete' : '',
-        selectedCount > 10 ? 'selection-count--over' : '',
+        selectedCount === MATCH_SIZE ? 'selection-count--complete' : '',
+        selectedCount > MATCH_SIZE ? 'selection-count--over' : '',
     ].filter(Boolean).join(' ');
 
     // One request loads players and the Teams catalog (see fetchPeople).
@@ -78,11 +92,12 @@ export function MatchPage() {
         return () => document.removeEventListener('mousedown', handleDocumentClick);
     }, [showClearMenu]);
 
+    // With the tenth pick, go back up to "Generate Teams".
     useEffect(() => {
         const previousSelectedCount = previousSelectedCountRef.current;
         previousSelectedCountRef.current = selectedCount;
 
-        if (previousSelectedCount !== null && selectedCount === 10 && previousSelectedCount !== 10) {
+        if (previousSelectedCount !== null && selectedCount === MATCH_SIZE && previousSelectedCount !== MATCH_SIZE) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }, [selectedCount]);
@@ -100,12 +115,12 @@ export function MatchPage() {
         setLocalError(null);
         setGeneratedTeams(null);
 
-        if (selectedCount !== 10) {
+        if (selectedCount !== MATCH_SIZE) {
             setLocalError(`Select exactly 10 players. Selected: ${selectedCount}`);
             return;
         }
 
-        const selectedPeople = people.filter(p => selectedIds.has(p.id));
+        const selectedPeople = people.filter((person) => selectedIds.has(person.id));
         const teams = generateTeams(selectedPeople);
 
         if (teams) {
@@ -119,19 +134,23 @@ export function MatchPage() {
 
     const handlePersonSelect = (id: string) => {
         const alreadySelected = selectedIds.has(id);
-        if (!alreadySelected && selectedCount >= 10) return;
+        if (!alreadySelected && selectedCount >= MATCH_SIZE) return;
         toggleSelection(id);
     };
 
-    const handleClearSelection = () => {
-        clearSelection();
-        setLocalError(null);
-        setShowClearMenu(false);
+    const handleSave = (person: Person) => {
+        if (editingPerson) {
+            void updatePerson(person);
+        } else {
+            void addPerson(person);
+        }
+        setShowForm(false);
+        setEditingPerson(undefined);
     };
 
-    const handleClearFilters = () => {
-        setShowClearMenu(false);
-        resetControls();
+    const handleEdit = (person: Person) => {
+        setEditingPerson(person);
+        setShowForm(true);
     };
 
     const requestConfirm = (state: ConfirmState) => {
@@ -154,6 +173,27 @@ export function MatchPage() {
             .catch((confirmError) => {
                 console.error('Confirm action failed:', confirmError);
             });
+    };
+
+    const handleDelete = (id: string) => {
+        requestConfirm({
+            title: 'Delete player?',
+            message: 'This will remove the player from this app and from the sheet.',
+            confirmLabel: 'Delete',
+            tone: 'danger',
+            onConfirm: () => deletePerson(id),
+        });
+    };
+
+    const handleClearSelection = () => {
+        clearSelection();
+        setLocalError(null);
+        setShowClearMenu(false);
+    };
+
+    const handleClearFilters = () => {
+        setShowClearMenu(false);
+        resetControls();
     };
 
     const handleClearAllRelationships = () => {
@@ -187,9 +227,19 @@ export function MatchPage() {
     };
 
     return (
-        <div className="match-page">
+        <div className="players-page">
             <div className="page-header">
-                <h2>Match Setup</h2>
+                <div className="page-title-row">
+                    <h2>Players</h2>
+                    <ActionButton
+                        variant="primary"
+                        onClick={() => setShowForm(true)}
+                        disabled={!isLoaded}
+                        title={isLoaded ? undefined : 'Players must load from Google Sheets first'}
+                    >
+                        + Add Player
+                    </ActionButton>
+                </div>
                 <div className="header-actions">
                     <span className={selectionCountClassName} aria-live="polite">
                         {selectedCount}/10 selected
@@ -265,50 +315,6 @@ export function MatchPage() {
 
             <PlayerListControls controls={controls} onChange={updateControls} privacyMode={privacyMode} />
 
-            {isLoading ? (
-                <div className="loading-shell">
-                    <SheetLoader ariaLabel="Loading players from Google Sheets" />
-                </div>
-            ) : people.length === 0 ? (
-                isLoaded && (
-                    <div className="empty-state">
-                        <p>No players available. Go to the Players page to add some.</p>
-                    </div>
-                )
-            ) : visiblePeople.length === 0 ? (
-                <div className="empty-state">
-                    <p>No players match current controls.</p>
-                    <p>
-                        {isFiltered
-                            ? 'Try another search prefix or role/score filter.'
-                            : 'Try adjusting search, filter, or sort.'}
-                    </p>
-                </div>
-            ) : (
-                <>
-                    <div className="people-grid">
-                        {visiblePeople.map(person => (
-                            <PersonCard
-                                key={person.id}
-                                person={person}
-                                selected={selectedIds.has(person.id)}
-                                selectionDisabled={!selectedIds.has(person.id) && selectedCount >= 10}
-                                onSelect={() => handlePersonSelect(person.id)}
-                                selectable
-                            />
-                        ))}
-                    </div>
-                </>
-            )}
-
-            {isLoaded && people.length > 0 && (
-                <div className="match-count">
-                    {isFiltered
-                        ? `Showing ${visiblePeople.length} of ${people.length} players`
-                        : `Total: ${people.length} players`}
-                </div>
-            )}
-
             {error && (
                 <div className="error">
                     {error}
@@ -317,13 +323,75 @@ export function MatchPage() {
                             Retry
                         </button>
                     )}
+                    <button className="btn btn-secondary" onClick={() => setError(null)} aria-label="Dismiss error">
+                        &times;
+                    </button>
                 </div>
             )}
+
+            {isLoading ? (
+                <div className="loading-shell">
+                    <SheetLoader ariaLabel="Loading players from Google Sheets" />
+                </div>
+            ) : people.length === 0 ? (
+                isLoaded && (
+                    <div className="empty-state">
+                        <p>No players yet.</p>
+                        <p className="hint">
+                            Data is loaded from Google Sheets. You can add players manually or edit the spreadsheet.
+                        </p>
+                    </div>
+                )
+            ) : visiblePeople.length === 0 ? (
+                <div className="empty-state">
+                    <p>No players match current controls.</p>
+                    <p className="hint">
+                        {isFiltered
+                            ? 'Try another search prefix or role/score filter.'
+                            : 'Try adjusting search, filter, or sort.'}
+                    </p>
+                </div>
+            ) : (
+                <div className="people-grid">
+                    {visiblePeople.map((person) => (
+                        <PersonCard
+                            key={person.id}
+                            person={person}
+                            selectable
+                            selected={selectedIds.has(person.id)}
+                            selectionDisabled={!selectedIds.has(person.id) && selectedCount >= MATCH_SIZE}
+                            onSelect={() => handlePersonSelect(person.id)}
+                            onEdit={() => handleEdit(person)}
+                            onDelete={() => handleDelete(person.id)}
+                        />
+                    ))}
+                </div>
+            )}
+
+            {isLoaded && people.length > 0 && (
+                <div className="players-count">
+                    {isFiltered
+                        ? `Showing ${visiblePeople.length} of ${people.length} players`
+                        : `Total: ${people.length} players`}
+                </div>
+            )}
+
             {localError && <div className="error">{localError}</div>}
             {generatedTeams && (
                 <div ref={resultRef} className="team-result-scroll-anchor">
                     <TeamResult result={generatedTeams} />
                 </div>
+            )}
+
+            {showForm && (
+                <PersonForm
+                    person={editingPerson}
+                    onSave={handleSave}
+                    onCancel={() => {
+                        setShowForm(false);
+                        setEditingPerson(undefined);
+                    }}
+                />
             )}
 
             <ConfirmDialog
