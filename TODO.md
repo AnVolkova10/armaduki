@@ -21,7 +21,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 
 ## Decisiones cerradas
 
-- [x] Backend: Google Sheets + Apps Script, publicado con `clasp`. Producción usa la versión 19 (18/11/2026).
+- [x] Backend: Google Sheets + Apps Script, publicado con `clasp` (`npm run backend:release`). Producción usa la versión 20 (19/11/2026); la 19 queda para volver atrás.
 - [x] El ID de la planilla vive en las propiedades del script, no en el código; el Script ID, en `apps-script/.clasp.json`, que git ignora.
 - [x] Una sola implementación del backend en producción, más `@HEAD`; las viejas se borraron (18/11). Las versiones quedan en el historial del script.
 - [x] `main` publica en Vercel. El repo es público: ningún ID, clave ni dato de la planilla entra al repo.
@@ -88,11 +88,11 @@ Prueba (en https://armaduki.vercel.app):
 Objetivo: dejar el código y las herramientas listos para crecer.
 
 - [ ] **Ángela:** probarlo con los pasos de abajo.
-- [ ] **Ángela:** aprobar la publicación del backend nuevo (versión 20, con `readAll`): `npm run backend:release -- "readAll"`, vos o yo. Hasta entonces la app anda con la versión 19, pero cada vez que abre hace un pedido de más (`readAll`, que la 19 no conoce) antes de las dos lecturas de antes: tarda entre 1 y 1,5 segundos más. Conviene publicarlo pronto.
+- [x] **Ángela:** aprobó publicar el backend nuevo (19/11). Claude lo publicó con `npm run backend:release -- "readAll"`: producción pasó de la versión 19 a la 20, con pruebas en la implementación temporal y en producción, y la temporal se borró.
 - [x] Búsqueda, filtros y orden de Players y Match en un solo lugar (F2-06.6, RV-15): la lógica en `src/utils/playerListing.ts`, con tests; el estado en `src/hooks/usePlayerListing.ts`, uno por página; los controles y sus estilos en `src/components/PlayerListControls`. Un recorrido grabado por las dos páginas, en teléfono y en escritorio, da el mismo resultado antes y después.
 - [x] Los tests de la revisión están en `npm test`: `Code.gs` en Node contra una planilla en memoria y el store de punta a punta contra `Code.gs`. Ninguno puede llegar a la planilla real.
-- [x] `npm run backend:release`: tests de `Code.gs`, versión nueva, implementación temporal con pruebas, pase a producción, pruebas otra vez y limpieza. Si una prueba falla antes del pase, producción no cambia; si falla después, vuelve a la versión anterior. No imprime IDs. `npm run backend:release -- --check` solo muestra la versión de producción; se probó contra el script real (versión 19). La publicación completa se probó con un clasp simulado: la primera de verdad conviene hacerla mirando.
-- [x] Una sola lectura al abrir: la acción `readAll` trae jugadoras y equipos en un pedido. Si la pestaña `Teams` falla, las jugadoras cargan igual. Con un backend sin `readAll`, como la versión 19 de hoy, la app usa las dos lecturas de antes, después de un pedido de más.
+- [x] `npm run backend:release`: tests de `Code.gs`, versión nueva, implementación temporal con pruebas, pase a producción, pruebas otra vez y limpieza. Si una prueba falla antes del pase, producción no cambia; si falla después, vuelve a la versión anterior. No imprime IDs. `npm run backend:release -- --check` solo muestra la versión de producción. Probado con un clasp simulado y usado de verdad para publicar la versión 20 (19/11).
+- [x] Una sola lectura al abrir: la acción `readAll` trae jugadoras y equipos en un pedido. Si la pestaña `Teams` falla, las jugadoras cargan igual. Con un backend sin `readAll` (la versión 19 o anteriores, por ejemplo al volver atrás), la app usa las dos lecturas de antes, después de un pedido de más. En producción, el pedido único tarda un poco menos que las dos lecturas en paralelo.
 - [x] `npm audit fix` (RV-16): react-router 7.18.6, vite 7.3.8 y typescript-eslint 8.73; `npm audit` sin vulnerabilidades.
 - [x] Borrados `src/assets/react.svg` y `public/vite.svg`, que no se usaban.
 - [x] Verificado: lint, tipos, 67 tests, build y pruebas en Edge contra una API local: un pedido al abrir con el backend nuevo, las dos lecturas de antes con la versión 19 y jugadoras cargadas con la pestaña `Teams` rota.
@@ -102,7 +102,7 @@ Prueba (en https://armaduki.vercel.app, mejor desde el teléfono):
 1. En Players y en Match, probá la búsqueda, el filtro de rol y los órdenes: todo anda igual que antes. Con privacy mode apagado, probá también el filtro y el orden por score, con la flecha.
 2. «Clear» → «Clear Filters» deja todo como al principio.
 3. En Players, «+ Add Player» → «Extra info»: la lista de equipos carga.
-4. Cuando el backend nuevo esté publicado, la app abre igual pero con un solo pedido. En la computadora se ve con F12 → Network, filtrando por `exec`: aparece `readAll` y ya no `read` ni `readTeams`.
+4. La app abre con un solo pedido. En la computadora se ve con F12 → Network, filtrando por `exec`: aparece `readAll` y ya no `read` ni `readTeams`.
 
 ## Sprint 4 - Clave y privacidad
 
@@ -196,6 +196,7 @@ Objetivo: que las que juegan juntas en un equipo real tiendan a caer juntas, sin
 - [ ] Roles para editar (F2-12.4), si el alcance pasa a más grupos. Para el uso personal alcanza la clave del Sprint 4.
 - [ ] Multi-grupo o multi-liga (F2-12.5).
 - [ ] Variedad en el generador: «otro reparto» entre los casi iguales, o no repetir los equipos de la última fecha (con el historial del Sprint 9).
+- [ ] Fotos más livianas: las fotos guardadas en la planilla son casi todo lo que baja al abrir la app (medido el 19/11). Achicarlas al guardarlas, o traerlas aparte de la lectura inicial. Se complementa con abrir con la última lectura guardada (Sprint 4). **Propuesta.**
 - [ ] Navegación en la URL: el botón atrás cierra el modal y vuelve de pantalla, como en VolkosFood. Puede entrar en el rediseño. **Propuesta.**
 - [ ] Pedir confirmación al cerrar el modal con cambios sin guardar. **Propuesta.**
 - [ ] Que «Copy Teams» no se confunda con apodos de más de una palabra. **Propuesta.**
