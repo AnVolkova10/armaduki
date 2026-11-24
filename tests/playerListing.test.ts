@@ -6,6 +6,7 @@ import {
   DEFAULT_LISTING_CONTROLS,
   filterAndSortPeople,
   hasActiveFilters,
+  sortAfterSelectionChange,
   type ListingControls,
 } from '../src/utils/playerListing.ts';
 
@@ -101,4 +102,64 @@ test('only search and filters count as active, sorting does not', () => {
   assert.equal(hasActiveFilters(controls({ query: 'a' })), true);
   assert.equal(hasActiveFilters(controls({ role: 'GK' })), true);
   assert.equal(hasActiveFilters(controls({ score: '3' })), true);
+});
+
+// ---------------------------------------------------------------------------
+// The picks go to the top by themselves with the tenth (Sprint 5).
+// ---------------------------------------------------------------------------
+
+test('the tenth pick switches the sort to selected and remembers the one it replaced', () => {
+    assert.deepEqual(sortAfterSelectionChange(9, 10, 10, { sort: 'position', restore: null }), {
+        sort: 'selected',
+        restore: 'position',
+    });
+    assert.deepEqual(sortAfterSelectionChange(9, 10, 10, { sort: 'none', restore: null }), {
+        sort: 'selected',
+        restore: 'none',
+    });
+});
+
+test('picks below ten, and changes among them, leave the sort alone', () => {
+    for (const [previous, count] of [[0, 1], [4, 5], [8, 9], [5, 4]]) {
+        assert.deepEqual(sortAfterSelectionChange(previous, count, 10, { sort: 'score', restore: null }), {
+            sort: 'score',
+            restore: null,
+        });
+    }
+});
+
+test('taking one out keeps the picks on top, and the tenth again changes nothing more', () => {
+    const atTen = sortAfterSelectionChange(9, 10, 10, { sort: 'score', restore: null });
+    const atNine = sortAfterSelectionChange(10, 9, 10, atTen);
+    assert.deepEqual(atNine, { sort: 'selected', restore: 'score' });
+    assert.deepEqual(sortAfterSelectionChange(9, 10, 10, atNine), { sort: 'selected', restore: 'score' });
+});
+
+test('an empty selection gives the earlier sort back', () => {
+    const atTen = sortAfterSelectionChange(9, 10, 10, { sort: 'position', restore: null });
+    assert.deepEqual(sortAfterSelectionChange(10, 0, 10, atTen), { sort: 'position', restore: null });
+    // Also when the picks leave one by one.
+    assert.deepEqual(sortAfterSelectionChange(1, 0, 10, { sort: 'selected', restore: 'none' }), {
+        sort: 'none',
+        restore: null,
+    });
+});
+
+test('a sort chosen by hand stays when the selection empties', () => {
+    // The caller forgets `restore` when the sort is picked by hand.
+    assert.deepEqual(sortAfterSelectionChange(10, 0, 10, { sort: 'score', restore: null }), {
+        sort: 'score',
+        restore: null,
+    });
+    assert.deepEqual(sortAfterSelectionChange(10, 0, 10, { sort: 'selected', restore: null }), {
+        sort: 'selected',
+        restore: null,
+    });
+});
+
+test('sort already on selected: the tenth pick has nothing to remember', () => {
+    assert.deepEqual(sortAfterSelectionChange(9, 10, 10, { sort: 'selected', restore: null }), {
+        sort: 'selected',
+        restore: null,
+    });
 });

@@ -1,12 +1,12 @@
 .app-notices {
   position: fixed;
-  left: 1rem;
-  right: 1rem;
-  bottom: 1rem;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
   z-index: 50;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 8px;
   max-width: 640px;
   margin: 0 auto;
   pointer-events: none;
@@ -16,24 +16,24 @@
   pointer-events: auto;
   display: flex;
   align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.75rem 0.85rem;
-  border-radius: 8px;
-  border: 1px solid;
-  background: var(--bg-secondary);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
-  font-size: 0.85rem;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  border-left-width: 3px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-float);
+  color: var(--text);
+  font-size: 0.86rem;
   line-height: 1.4;
 }
 
 .app-notice--error {
-  border-color: #ef4444;
-  color: #fca5a5;
+  border-left-color: var(--red);
 }
 
 .app-notice--warning {
-  border-color: #f59e0b;
-  color: #fcd34d;
+  border-left-color: var(--warn);
 }
 
 .app-notice-text {
@@ -42,40 +42,41 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 3px;
   overflow-wrap: anywhere;
 }
 
 .app-notice-text strong {
-  color: var(--text-primary);
+  color: var(--text);
   font-weight: 600;
 }
 
 .app-notice-detail {
-  color: var(--text-secondary);
+  color: var(--text-2);
 }
 
 .app-notice-actions {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 6px;
   flex: 0 0 auto;
 }
 
 .app-notice-btn {
   min-height: 32px;
-  padding: 0.3rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.8rem;
+  padding: 0 12px;
+  border-radius: 4px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
 }
 
 .app-notice-btn:hover:not(:disabled) {
-  border-color: var(--text-secondary);
+  border-color: var(--text-3);
+  background: var(--surface-3);
 }
 
 .app-notice-btn:disabled {
@@ -85,7 +86,7 @@
 
 .app-notice-btn--icon {
   min-width: 32px;
-  padding: 0.3rem 0.5rem;
-  font-size: 1rem;
+  padding: 0;
+  font-size: 1.1rem;
   line-height: 1;
 }

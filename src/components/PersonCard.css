@@ -1,15 +1,29 @@
 .person-card {
-  background: #1e1e1e; /* Slightly lighter black */
-  border: 1px solid #2a2a2a;
-  border-radius: 6px;
-  padding: 12px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  position: relative;
+  justify-content: center;
+  padding: 12px;
+  background: var(--surface-1);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   /* Keeps the z-index of the select button and the icons inside the card, so menus,
      the header and the footer stack over cards exactly as before. */
   isolation: isolate;
+  transition:
+    border-color var(--t-press) ease,
+    background var(--t-press) ease,
+    opacity var(--t-press) ease,
+    transform var(--t-press) var(--ease-out);
+}
+
+.person-card.selectable:hover {
+  border-color: var(--line-strong);
+}
+
+/* The press: the card sinks a little under the finger. */
+.person-card:has(.card-select:active:not(:disabled)) {
+  transform: scale(0.98);
 }
 
 /* Selectable cards: a transparent button covers the card, under the edit and delete icons. */
@@ -30,27 +44,28 @@
 }
 
 .card-select:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline: 2px solid var(--text);
   outline-offset: 3px; /* 2px outside the card border */
 }
 
 .person-card.selectable.selection-disabled {
-  opacity: 0.45;
+  opacity: 0.42;
 }
 
-.person-card.selected {
-  border-color: #dc2626;
-  background: #1a1212;
+.person-card.selected,
+.person-card.selected.selectable:hover {
+  border-color: var(--red);
+  background: color-mix(in srgb, var(--red) 6%, var(--surface-1));
 }
 
 .team-corner-marker {
-  --team-color-1: #3a3a3a;
-  --team-color-2: #111111;
+  --team-color-1: var(--team-default-1);
+  --team-color-2: var(--team-default-2);
   position: absolute;
   left: 0;
   bottom: 0;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-bottom-left-radius: 5px;
   clip-path: polygon(0 0, 0 100%, 100% 100%);
   background:
@@ -65,45 +80,80 @@
 }
 
 .avatar-stack {
-  width: 40px;
-  min-height: 54px;
+  width: 48px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
+}
+
+.card-avatar {
+  position: relative;
+  width: 48px;
+  height: 48px;
 }
 
 .avatar,
 .avatar-placeholder {
-  width: 40px;
-  height: 40px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  flex-shrink: 0;
 }
 
 .avatar {
+  display: block;
   object-fit: cover;
 }
 
 .avatar-placeholder {
-  background: #333;
+  background: var(--surface-3);
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-display);
   font-weight: 700;
-  color: #999;
-  font-size: 16px;
+  font-size: 1.25rem;
+  color: var(--text-2);
+}
+
+/* The mark of a picked card. */
+.avatar-check {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--red);
+  color: var(--on-red);
+  border: 2px solid var(--surface-1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: check-in var(--t-press) var(--ease-out);
+}
+
+.avatar-check .icon {
+  stroke-width: 3;
+}
+
+@keyframes check-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
 }
 
 .shirt-number {
-  max-width: 40px;
-  min-height: 11px;
-  color: #8a8a8a;
-  font-size: 11px;
-  font-weight: 800;
+  max-width: 48px;
+  min-height: 12px;
+  color: var(--text-3);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 600;
   line-height: 1;
-  font-family: monospace;
+  letter-spacing: 0.04em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -116,81 +166,48 @@
 .info {
   flex: 1;
   min-width: 0;
-  padding-top: 1px;
 }
 
 .nickname {
-  font-size: 15px;
+  font-size: 0.97rem;
   font-weight: 600;
-  color: #fff;
-  margin-bottom: 2px;
+  line-height: 1.2;
+  color: var(--text);
+  overflow-wrap: anywhere;
 }
 
 .name {
-  font-size: 12px;
-  color: #888;
-  margin-bottom: 6px;
-  min-height: 18px;
+  margin: 1px 0 7px;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  color: var(--text-3);
+  min-height: 1.25em;
+  overflow-wrap: anywhere;
 }
 
 .tags {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   align-items: center;
 }
 
-.role {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 3px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-
-
-
-.role.gk { 
-  background: var(--role-gk); 
-  color: #fff; 
-}
-
-.role.def { 
-  background: var(--role-def); 
-  color: #fff; 
-}
-
-.role.mid { 
-  background: var(--role-mid); 
-  color: #000; 
-}
-
-.role.att { 
-  background: var(--role-att); 
-  color: #fff; 
-}
-
-.role.flex { 
-  background: var(--role-flex); 
-  color: #fff; 
-}
-
 .rating {
-  font-size: 13px;
-  font-weight: 600;
-  color: #fbbf24;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
 }
 
 .actions {
   position: absolute;
-  top: 8px;
-  right: 8px;
+  top: 6px;
+  right: 6px;
   z-index: 2; /* above the card's select button */
   display: flex;
-  gap: 4px;
+  gap: 2px;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity var(--t-press) ease;
 }
 
 /* Shown on hover, and for the keyboard. A mouse click that selects the card does not keep
@@ -208,89 +225,22 @@
   }
 }
 
-/* Mobile adjustments: Compact Horizontal Layout */
-@media (max-width: 640px) {
-  .person-card {
-    padding: 8px 30px 8px 8px; /* High right padding for actions */
-    min-height: 60px;
-    justify-content: center;
-  }
-
-  .card-content {
-    gap: 8px;
-  }
-
-  .avatar-stack {
-    width: 32px;
-    min-height: 44px;
-    gap: 2px;
-  }
-
-  .avatar, .avatar-placeholder {
-    width: 32px;
-    height: 32px;
-  }
-
-  .shirt-number {
-    max-width: 32px;
-    min-height: 10px;
-    font-size: 10px;
-  }
-
-  .info .nickname {
-    font-size: 13px;
-    margin-bottom: 0;
-  }
-
-  .info .name {
-    font-size: 11px;
-    margin-bottom: 4px;
-  }
-
-  .info .role {
-    font-size: 9px;
-    padding: 2px 4px;
-  }
-  
-  .info .rating {
-    font-size: 11px;
-  }
-
-  .actions {
-    opacity: 1;
-    flex-direction: column-reverse; /* Trash on top */
-    top: 50%;
-    transform: translateY(-50%);
-    right: 4px;
-    gap: 4px;
-  }
-  
-  .actions button {
-    padding: 4px;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(30,30,30,0.9);
-    border: 1px solid #333;
-  }
-  
-  .actions button svg {
-    width: 14px;
-    height: 14px;
-  }
-}
-
 .actions button {
-  background: rgba(0, 0, 0, 0.6);
-  border: none;
-  color: #888;
-  cursor: pointer;
-  padding: 4px 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
   border-radius: 4px;
-  font-size: 16px;
-  transition: all 0.15s;
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: pointer;
+  transition:
+    color var(--t-press) ease,
+    background var(--t-press) ease,
+    border-color var(--t-press) ease;
 }
 
 .actions button:disabled {
@@ -299,13 +249,105 @@
 }
 
 .actions button:hover:not(:disabled) {
-  background: #222;
-  color: #fff;
+  color: var(--text);
+  border-color: var(--line-strong);
 }
 
 .actions .delete-btn:hover:not(:disabled),
 .actions .delete-btn:focus-visible:not(:disabled) {
-  background: rgba(239, 68, 68, 0.16);
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.55);
+  color: var(--red-text);
+  background: var(--red-soft);
+  border-color: var(--red-line);
+}
+
+/* Phone: two cards per row, with the icons always on, stacked at the right edge. */
+@media (max-width: 640px) {
+  .person-card {
+    padding: 8px 32px 8px 8px;
+    min-height: 68px;
+  }
+
+  .card-content {
+    gap: 8px;
+  }
+
+  .avatar-stack {
+    width: 40px;
+    gap: 3px;
+  }
+
+  .card-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  .avatar-placeholder {
+    font-size: 1.05rem;
+  }
+
+  .avatar-check {
+    width: 16px;
+    height: 16px;
+  }
+
+  .shirt-number {
+    max-width: 40px;
+    min-height: 11px;
+    font-size: 0.72rem;
+  }
+
+  .nickname {
+    font-size: 0.86rem;
+  }
+
+  .name {
+    margin: 0 0 5px;
+    font-size: 0.72rem;
+  }
+
+  .person-card .role {
+    min-height: 16px;
+    padding: 0 4px;
+    font-size: 0.7rem;
+  }
+
+  .rating {
+    font-size: 0.92rem;
+  }
+
+  .tags {
+    gap: 6px;
+  }
+
+  .actions {
+    opacity: 1;
+    flex-direction: column-reverse; /* trash on top */
+    top: 50%;
+    transform: translateY(-50%);
+    right: 4px;
+    gap: 4px;
+  }
+
+  .actions button {
+    width: 24px;
+    height: 24px;
+    border-color: var(--line);
+  }
+
+  .actions button .icon {
+    width: 13px;
+    height: 13px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .person-card,
+  .avatar-check {
+    transition: none;
+    animation: none;
+  }
+
+  .person-card:has(.card-select:active:not(:disabled)) {
+    transform: none;
+  }
 }

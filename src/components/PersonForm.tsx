@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useT } from '../i18n';
 import useAppStore from '../store/useAppStore';
 import type { Person, Role, GKWillingness, AttributeLevel, Attributes, TeamCatalog } from '../types';
 import { getSuggestedRating } from '../utils/ratingSuggestion';
+import { ActionButton } from './ActionButton';
+import { Icon } from './Icon';
 import './PersonForm.css';
 
 interface PersonFormProps {
@@ -11,22 +14,20 @@ interface PersonFormProps {
 }
 
 const roles: Role[] = ['GK', 'FLEX', 'DEF', 'MID', 'ATT'];
-const gkOptions: { value: GKWillingness; label: string }[] = [
-    { value: 'good', label: 'Good' },
-    { value: 'low', label: 'Low' },
-    { value: 'no', label: 'No' },
+const gkValues: GKWillingness[] = ['good', 'low', 'no'];
+
+const attributeKeys: (keyof Attributes)[] = [
+    'shooting',
+    'control',
+    'passing',
+    'defense',
+    'pace',
+    'vision',
+    'grit',
+    'stamina',
 ];
 
-const attributesList: { key: keyof Attributes; label: string }[] = [
-    { key: 'shooting', label: 'Shooting' },
-    { key: 'control', label: 'Control' },
-    { key: 'passing', label: 'Passing' },
-    { key: 'defense', label: 'Defense' },
-    { key: 'pace', label: 'Pace' },
-    { key: 'vision', label: 'Vision' },
-    { key: 'grit', label: 'Grit' },
-    { key: 'stamina', label: 'Stamina' },
-];
+const LEVELS: AttributeLevel[] = ['low', 'mid', 'high'];
 
 const DEFAULT_ATTRIBUTES: Attributes = {
     shooting: 'mid',
@@ -90,6 +91,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         isTeamsCatalogLoading,
         teamsCatalogError,
     } = useAppStore();
+    const t = useT();
     const personId = person?.id || '';
     const keepKnownIds = (ids: string[] | undefined) =>
         (ids || []).filter((id) => id !== personId && people.some((p) => p.id === id));
@@ -122,8 +124,18 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         return initialTeams[0] || '';
     });
     const [isExtraInfoOpen, setIsExtraInfoOpen] = useState(false);
+    // Marked links first, in the order they had when the form opened: toggling one never makes
+    // the buttons jump under the finger.
+    const [linkedAtOpen] = useState(() => ({
+        wants: new Set(keepKnownIds(person?.wantsWith)),
+        avoids: new Set(keepKnownIds(person?.avoidsWith)),
+    }));
 
     const otherPeople = useMemo(() => people.filter((p) => p.id !== personId), [people, personId]);
+    const markedFirst = (marked: ReadonlySet<string>) =>
+        [...otherPeople].sort((a, b) => Number(marked.has(b.id)) - Number(marked.has(a.id)));
+    const wantsOrder = markedFirst(linkedAtOpen.wants);
+    const avoidsOrder = markedFirst(linkedAtOpen.avoids);
     const selectedTeamIdSet = useMemo(() => new Set(selectedTeamIds), [selectedTeamIds]);
     const teamsById = useMemo(() => {
         return new Map(teamsCatalog.map((team) => [team.teamId, team]));
@@ -172,13 +184,13 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
             if (dataUrl) {
                 setAvatar(dataUrl);
             } else {
-                setAvatarError('Photo too heavy for Sheets. Try another one.');
+                setAvatarError(t.form.photoTooHeavy);
             }
         };
 
         img.onerror = () => {
             URL.revokeObjectURL(objectUrl);
-            setAvatarError("Can't read this image. Use a JPG or PNG.");
+            setAvatarError(t.form.photoUnreadable);
         };
 
         img.src = objectUrl;
@@ -256,7 +268,8 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         setPrimaryTeamId(teamId);
     };
 
-    const getTeamOptionStyle = (team: TeamCatalog): React.CSSProperties => {
+    // Team colours come from the sheet. The text over them is dark or light, whichever reads.
+    const getTeamColors = (team: TeamCatalog): React.CSSProperties => {
         const color1 = team.color1 || DEFAULT_TEAM_COLOR_1;
         const color2 = team.color2 || team.color1 || DEFAULT_TEAM_COLOR_2;
         const luminanceValues = [getHexLuminance(color1), getHexLuminance(color2)]
@@ -264,43 +277,70 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         const averageLuminance = luminanceValues.length > 0
             ? luminanceValues.reduce((sum, value) => sum + value, 0) / luminanceValues.length
             : 0;
-        const textColor = averageLuminance > 0.58 ? '#111111' : '#ffffff';
 
         return {
             '--team-color-1': color1,
             '--team-color-2': color2,
-            '--team-text-color': textColor,
-            '--team-text-shadow': textColor === '#ffffff'
-                ? '0 1px 2px rgba(0, 0, 0, 0.75)'
-                : '0 1px 1px rgba(255, 255, 255, 0.32)',
+            '--team-text-color': averageLuminance > 0.58 ? '#111111' : '#ffffff',
         } as React.CSSProperties;
     };
 
-    const renderAttributeRow = (key: keyof Attributes, label: string) => {
-        const val = attributes[key];
+    // Three bars, like phone signal: one, two or three lit.
+    const renderAttributeRow = (key: keyof Attributes) => {
+        const label = t.common.attributes[key];
+        const current = LEVELS.indexOf(attributes[key]);
+
         return (
             <div className="attribute-row" key={key}>
                 <span className="attr-label">{label}</span>
-                <div className="attr-buttons">
-                    <button type="button"
-                        className={`attr-btn low ${val === 'low' ? 'active' : ''}`}
-                        aria-label={`${label} low`}
-                        title="Low"
-                        onClick={() => updateAttribute(key, 'low')}>🔴</button>
-                    <button type="button"
-                        className={`attr-btn mid ${val === 'mid' ? 'active' : ''}`}
-                        aria-label={`${label} mid`}
-                        title="Mid"
-                        onClick={() => updateAttribute(key, 'mid')}>🟡</button>
-                    <button type="button"
-                        className={`attr-btn high ${val === 'high' ? 'active' : ''}`}
-                        aria-label={`${label} high`}
-                        title="High"
-                        onClick={() => updateAttribute(key, 'high')}>🟢</button>
+                <div className="attr-level" role="radiogroup" aria-label={label}>
+                    {LEVELS.map((level, index) => (
+                        <button
+                            key={level}
+                            type="button"
+                            role="radio"
+                            aria-checked={current === index}
+                            className={`attr-step attr-step--${level} ${index <= current ? 'is-lit' : ''}`}
+                            aria-label={`${label} ${t.form.level[level]}`}
+                            title={t.form.level[level]}
+                            onClick={() => updateAttribute(key, level)}
+                        >
+                            <span className="attr-bar" aria-hidden="true" />
+                        </button>
+                    ))}
                 </div>
             </div>
         );
-    }
+    };
+
+    const renderLinks = (
+        kind: 'wants' | 'avoids',
+        order: Person[],
+        marked: string[],
+        inverse: ReadonlySet<string>,
+        toggle: (id: string) => void,
+    ) => (
+        <div className={`relationship-column relationship-column--${kind}`}>
+            <div className="relationship-title">
+                {kind === 'wants' ? t.form.wants : t.form.avoids}
+                <span className="relationship-count">{marked.length}</span>
+            </div>
+            <div className="relationship-grid">
+                {order.map((p) => (
+                    <button
+                        key={p.id}
+                        type="button"
+                        className={`relationship-btn ${kind} ${marked.includes(p.id) ? 'active' : ''} ${inverse.has(p.id) ? `inverse-hint-${kind}` : ''}`}
+                        aria-pressed={marked.includes(p.id)}
+                        title={inverse.has(p.id) ? (kind === 'wants' ? t.form.wantsYou(p.nickname) : t.form.avoidsYou(p.nickname)) : undefined}
+                        onClick={() => toggle(p.id)}
+                    >
+                        {p.nickname}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
 
     // Close only when the press both started and ended on the backdrop. Otherwise selecting
     // text in an input and releasing the mouse outside the modal would discard the form.
@@ -316,214 +356,127 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         }
     };
 
+    const title = nickname.trim() || t.form.newPlayer;
+
     return (
         <div className="modal-overlay" onPointerDown={handleOverlayPointerDown} onClick={handleOverlayClick}>
-            <div className="modal">
-                <form onSubmit={handleSubmit}>
+            <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
+                <form className="player-form" onSubmit={handleSubmit}>
+                    <header className="modal-top">
+                        <h3 className="modal-title">{title}</h3>
+                        <button type="button" className="modal-close" onClick={onCancel} aria-label={t.common.close}>
+                            <Icon name="x" size={18} />
+                        </button>
+                    </header>
 
-                    {/* Header: Avatar + Names */}
-                    <div className="modal-header">
-                        <div className="avatar-section">
-                            <label className="avatar-frame">
-                                {avatar ? (
-                                    <img src={avatar} alt="Preview" className="avatar-preview" />
-                                ) : (
-                                    <div className="avatar-preview" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
-                                        ?
+                    {/* Three columns on a computer, one under the other on the phone. Each column has
+                        room for the Sprint 6 fields (see docs/DESIGN_DIRECTION.md). */}
+                    <div className="modal-body">
+                        <section className="form-col form-col--identity">
+                            {/* The "active" switch of Sprint 6 goes at the right of this title. */}
+                            <div className="form-col-head">
+                                <h4 className="form-col-title">{t.form.identity}</h4>
+                            </div>
+
+                            <div className="identity-top">
+                                <div className="avatar-section">
+                                    <label className="avatar-frame">
+                                        {avatar ? (
+                                            <img src={avatar} alt={t.form.photoAlt} className="avatar-preview" />
+                                        ) : (
+                                            <span className="avatar-preview avatar-preview--empty">
+                                                {(Array.from(nickname.trim())[0] ?? '?').toUpperCase()}
+                                            </span>
+                                        )}
+                                        <span className="avatar-upload-overlay">
+                                            {avatar ? t.form.photoChange : t.form.photoUpload}
+                                        </span>
+                                        <input type="file" accept="image/*" onChange={handleAvatarChange} />
+                                    </label>
+                                    {shirtNumber.trim() && !avatarTeam && (
+                                        <span className="modal-shirt-number">#{shirtNumber.trim()}</span>
+                                    )}
+                                    {avatarTeam && (
+                                        <span
+                                            className="modal-team-pill"
+                                            style={getTeamColors(avatarTeam)}
+                                            title={avatarTeam.name}
+                                            aria-label={avatarTeam.name}
+                                        >
+                                            {shirtNumber.trim() ? `#${shirtNumber.trim()}` : avatarTeam.name}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className="identity-fields">
+                                    <div className="form-group">
+                                        <label htmlFor="player-nickname">{t.form.nickname} *</label>
+                                        <input
+                                            id="player-nickname"
+                                            type="text"
+                                            value={nickname}
+                                            onChange={e => setNickname(e.target.value)}
+                                            required
+                                            pattern=".*\S.*"
+                                            title={t.form.nicknameBlank}
+                                            autoFocus
+                                        />
                                     </div>
-                                )}
-                                <span className="avatar-upload-overlay">
-                                    {avatar ? 'Change' : 'Upload'}
-                                </span>
-                                <input type="file" accept="image/*" onChange={handleAvatarChange} />
-                            </label>
+                                    <div className="form-group">
+                                        <label htmlFor="player-name">{t.form.name}</label>
+                                        <input
+                                            id="player-name"
+                                            type="text"
+                                            value={name}
+                                            onChange={e => setName(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                             {avatarError && (
                                 <span className="avatar-error" role="alert">{avatarError}</span>
                             )}
-                            {shirtNumber.trim() && !avatarTeam && (
-                                <span className="modal-shirt-number">#{shirtNumber.trim()}</span>
-                            )}
-                            {avatarTeam && (
-                                <span
-                                    className="modal-team-pill"
-                                    style={getTeamOptionStyle(avatarTeam)}
-                                    title={avatarTeam.name}
-                                    aria-label={avatarTeam.name}
-                                >
-                                    {shirtNumber.trim() ? `#${shirtNumber.trim()}` : avatarTeam.name}
+
+                            {/* On the phone these two stay folded, as before. */}
+                            <button
+                                type="button"
+                                className="extra-info-toggle"
+                                aria-expanded={isExtraInfoOpen}
+                                onClick={() => setIsExtraInfoOpen((open) => !open)}
+                            >
+                                <span>{t.form.extraInfo}</span>
+                                <span className={`extra-info-caret ${isExtraInfoOpen ? 'is-open' : ''}`} aria-hidden="true">
+                                    <Icon name="chevronDown" size={14} />
                                 </span>
-                            )}
-                        </div>
+                            </button>
 
-                        <div className="header-inputs">
-                            <div className="form-group" style={{ marginBottom: '0.5rem' }}>
-                                <label>Nickname *</label>
-                                <input
-                                    type="text"
-                                    value={nickname}
-                                    onChange={e => setNickname(e.target.value)}
-                                    required
-                                    pattern=".*\S.*"
-                                    title="Nickname can't be blank"
-                                    autoFocus
-                                />
-                            </div>
-                            <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label>Name or description</label>
-                                <input
-                                    type="text"
-                                    value={name}
-                                    onChange={e => setName(e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Col 3: Rating Manual (Hidden in Privacy Mode) */}
-                        {!privacyMode && (
-                            <div className="rating-section-header">
-                                <div className="rating-suggested" aria-live="polite">
-                                    <span className="rating-suggested-label">suggested:</span>
-                                    <span className="rating-suggested-value">{suggestedRating}</span>
-                                </div>
-                                {/* Label Removed per request, just grid with Gold accent */}
-                                <div className="rating-grid">
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
-                                        <button
-                                            key={val}
-                                            type="button"
-                                            className={`rating-num-btn ${rating === val ? 'active' : ''}`}
-                                            onClick={() => setRating(val)}
-                                        >
-                                            {val}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Compact Selectors Row */}
-                    <div className="form-row-compact">
-                        <div className="form-group" style={{ flex: 2 }}>
-                            <label>Position</label>
-                            <div className="selector-group">
-                                {roles.map(r => (
-                                    <button
-                                        key={r}
-                                        type="button"
-                                        className={`role-btn ${r.toLowerCase()} ${role === r ? 'active' : ''}`}
-                                        onClick={() => handleRoleChange(r)}
-                                    >
-                                        {r}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {role !== 'GK' && (
-                            <div className="form-group" style={{ flex: 1 }}>
-                                <label>Goalkeeper?</label>
-                                <div className="gk-selector">
-                                    {gkOptions.map(opt => (
-                                        <button
-                                            key={opt.value}
-                                            type="button"
-                                            className={`gk-btn ${gkWillingness === opt.value ? 'active' : ''}`}
-                                            onClick={() => setGkWillingness(opt.value)}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-
-
-                    {/* Attributes Grid */}
-                    <div className="stats-section">
-                        <div className="attributes-grid">
-                            {attributesList.map(attr => renderAttributeRow(attr.key, attr.label))}
-                        </div>
-                    </div>
-
-                    {/* Relationships */}
-                    {otherPeople.length > 0 && (
-                        <div className="relationships-container">
-                            <div className="relationship-column">
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#22c55e', marginBottom: '0.5rem', display: 'block' }}>
-                                    WANTS TO PLAY WITH ({wantsWith.length})
-                                </label>
-                                <div className="relationship-grid">
-                                    {otherPeople.map(p => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            className={`relationship-btn wants ${wantsWith.includes(p.id) ? 'active' : ''} ${inverseWants.has(p.id) ? 'inverse-hint-wants' : ''}`}
-                                            onClick={() => toggleWantsWith(p.id)}
-                                        >
-                                            {p.nickname}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="relationship-column">
-                                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', marginBottom: '0.5rem', display: 'block' }}>
-                                    AVOIDS PLAYING WITH ({avoidsWith.length})
-                                </label>
-                                <div className="relationship-grid">
-                                    {otherPeople.map(p => (
-                                        <button
-                                            key={p.id}
-                                            type="button"
-                                            className={`relationship-btn avoids ${avoidsWith.includes(p.id) ? 'active' : ''} ${inverseAvoids.has(p.id) ? 'inverse-hint-avoids' : ''}`}
-                                            onClick={() => toggleAvoidsWith(p.id)}
-                                        >
-                                            {p.nickname}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="extra-info-section">
-                        <button
-                            type="button"
-                            className="extra-info-toggle"
-                            aria-expanded={isExtraInfoOpen}
-                            onClick={() => setIsExtraInfoOpen((open) => !open)}
-                        >
-                            <span>Extra info</span>
-                            <span className={`extra-info-caret ${isExtraInfoOpen ? 'is-open' : ''}`} aria-hidden="true" />
-                        </button>
-
-                        {isExtraInfoOpen && (
-                            <div className="extra-info-content">
-                                <div className="form-group extra-info-field">
-                                    <label>Shirt number</label>
-                                    <input
-                                        type="text"
-                                        inputMode="numeric"
-                                        maxLength={4}
-                                        value={shirtNumber}
-                                        onChange={e => setShirtNumber(e.target.value)}
-                                    />
+                            <div className="extra-info-content" data-open={isExtraInfoOpen || undefined}>
+                                {/* Two short fields per row: the birth date of Sprint 6 goes next to the number. */}
+                                <div className="identity-row">
+                                    <div className="form-group extra-info-field">
+                                        <label htmlFor="player-shirt">{t.form.shirtNumber}</label>
+                                        <input
+                                            id="player-shirt"
+                                            type="text"
+                                            inputMode="numeric"
+                                            maxLength={4}
+                                            value={shirtNumber}
+                                            onChange={e => setShirtNumber(e.target.value)}
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="teams-field">
                                     <div className="teams-field-header">
-                                        <label>Teams</label>
+                                        <span className="form-label">{t.form.teams}</span>
                                         {selectedTeamIds.length > 0 && (
-                                            <span>{selectedTeamIds.length} selected</span>
+                                            <span className="teams-field-count">{t.form.teamsSelected(selectedTeamIds.length)}</span>
                                         )}
                                     </div>
 
                                     <div className="team-options-list">
                                         {isTeamsCatalogLoading && (
-                                            <div className="teams-empty-state">Loading teams...</div>
+                                            <div className="teams-empty-state">{t.form.teamsLoading}</div>
                                         )}
 
                                         {!isTeamsCatalogLoading && teamsCatalogError && (
@@ -531,7 +484,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                         )}
 
                                         {!isTeamsCatalogLoading && !teamsCatalogError && teamsCatalog.length === 0 && (
-                                            <div className="teams-empty-state">No teams loaded yet</div>
+                                            <div className="teams-empty-state">{t.form.teamsEmpty}</div>
                                         )}
 
                                         {!isTeamsCatalogLoading && !teamsCatalogError && sortedTeams.map((team) => {
@@ -543,14 +496,18 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                                     <button
                                                         type="button"
                                                         className={`team-option ${isSelected ? 'is-selected' : ''}`}
-                                                        style={getTeamOptionStyle(team)}
+                                                        style={getTeamColors(team)}
                                                         aria-pressed={isSelected}
                                                         onClick={() => toggleTeam(team.teamId)}
                                                         title={team.name}
                                                     >
+                                                        <span className="team-option-swatch" aria-hidden="true" />
                                                         <span className="team-option-name">{team.name}</span>
                                                         <span className="team-option-status">
-                                                            {isSelected ? 'Selected' : 'Add'}
+                                                            {isSelected ? <Icon name="check" size={13} /> : null}
+                                                            <span className="visually-hidden">
+                                                                {isSelected ? t.form.teamSelected : t.form.teamAdd}
+                                                            </span>
                                                         </span>
                                                     </button>
 
@@ -559,8 +516,8 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                                             type="button"
                                                             className={`team-main-ball ${isPrimary ? 'is-primary' : ''}`}
                                                             onClick={() => setPrimaryTeam(team.teamId)}
-                                                            title={isPrimary ? `${team.name} is main team` : `Set ${team.name} as main team`}
-                                                            aria-label={isPrimary ? `${team.name} is main team` : `Set ${team.name} as main team`}
+                                                            title={isPrimary ? t.form.teamIsMain(team.name) : t.form.teamSetMain(team.name)}
+                                                            aria-label={isPrimary ? t.form.teamIsMain(team.name) : t.form.teamSetMain(team.name)}
                                                         >
                                                             <img src="/ball.svg" alt="" aria-hidden="true" />
                                                         </button>
@@ -571,17 +528,103 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                     </div>
                                 </div>
                             </div>
+                        </section>
+
+                        <section className="form-col form-col--game">
+                            <h4 className="form-col-title">{t.form.game}</h4>
+
+                            <div className="form-row-compact">
+                                <div className="form-group">
+                                    <span className="form-label">{t.form.position}</span>
+                                    <div className="selector-group">
+                                        {roles.map(r => (
+                                            <button
+                                                key={r}
+                                                type="button"
+                                                className={`role-btn ${r.toLowerCase()} ${role === r ? 'active' : ''}`}
+                                                aria-pressed={role === r}
+                                                onClick={() => handleRoleChange(r)}
+                                            >
+                                                {r}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {role !== 'GK' && (
+                                    <div className="form-group">
+                                        <span className="form-label">{t.form.goalkeeper}</span>
+                                        <div className="gk-selector">
+                                            {gkValues.map(value => (
+                                                <button
+                                                    key={value}
+                                                    type="button"
+                                                    className={`gk-btn ${gkWillingness === value ? 'active' : ''}`}
+                                                    aria-pressed={gkWillingness === value}
+                                                    onClick={() => setGkWillingness(value)}
+                                                >
+                                                    {value === 'good' ? t.form.gkGood : value === 'low' ? t.form.gkLow : t.form.gkNo}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* The rating is hidden in privacy mode, and with it what the attributes suggest. */}
+                            {!privacyMode && (
+                                <div className="form-group rating-section-header">
+                                    <div className="rating-heading">
+                                        <span className="form-label">{t.form.rating}</span>
+                                        <span className="rating-suggested" aria-live="polite">
+                                            <span className="rating-suggested-dot" aria-hidden="true" />
+                                            <span className="rating-suggested-label">{t.form.suggested}</span>
+                                            <span className="rating-suggested-value">{suggestedRating}</span>
+                                        </span>
+                                    </div>
+                                    <div className="rating-grid">
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(val => (
+                                            <button
+                                                key={val}
+                                                type="button"
+                                                className={`rating-num-btn ${rating === val ? 'active' : ''} ${suggestedRating === val ? 'is-suggested' : ''}`}
+                                                aria-pressed={rating === val}
+                                                onClick={() => setRating(val)}
+                                            >
+                                                {val}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="form-group stats-section">
+                                <span className="form-label">{t.form.attributes}</span>
+                                <div className="attributes-grid">
+                                    {attributeKeys.map(renderAttributeRow)}
+                                </div>
+                            </div>
+                        </section>
+
+                        {otherPeople.length > 0 && (
+                            <section className="form-col form-col--links">
+                                <h4 className="form-col-title">{t.form.links}</h4>
+                                <div className="relationships-container">
+                                    {renderLinks('wants', wantsOrder, wantsWith, inverseWants, toggleWantsWith)}
+                                    {renderLinks('avoids', avoidsOrder, avoidsWith, inverseAvoids, toggleAvoidsWith)}
+                                </div>
+                            </section>
                         )}
                     </div>
 
-                    <div className="form-actions">
-                        <button type="button" className="btn btn-secondary" onClick={onCancel}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="btn btn-primary">
-                            {person ? 'Save Changes' : 'Add Player'}
-                        </button>
-                    </div>
+                    <footer className="form-actions">
+                        <ActionButton type="button" variant="neutral" onClick={onCancel}>
+                            {t.common.cancel}
+                        </ActionButton>
+                        <ActionButton type="submit" variant="primary">
+                            {person ? t.form.save : t.form.add}
+                        </ActionButton>
+                    </footer>
                 </form>
             </div>
         </div>

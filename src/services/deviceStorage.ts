@@ -56,3 +56,22 @@ export function clearSavedRead(): void {
     /* storage unavailable */
   }
 }
+
+const LANGUAGE_STORAGE = 'armaduki-lang';
+
+/** The language picked on this device; empty when it never picked one. It outlives the key. */
+export function readLanguage(): string {
+  try {
+    return localStorage.getItem(LANGUAGE_STORAGE) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function saveLanguage(lang: string): void {
+  try {
+    localStorage.setItem(LANGUAGE_STORAGE, lang);
+  } catch {
+    /* storage unavailable: the choice lasts for this visit */
+  }
+}

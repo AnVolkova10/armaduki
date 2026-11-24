@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useT } from '../i18n';
 import { ActionButton } from './ActionButton';
 import './ConfirmDialog.css';
 
@@ -20,13 +21,15 @@ export function ConfirmDialog({
     open,
     title,
     message,
-    confirmLabel = 'Confirm',
-    cancelLabel = 'Cancel',
+    confirmLabel,
+    cancelLabel,
     tone = 'default',
     loading = false,
     onConfirm,
     onCancel,
 }: ConfirmDialogProps) {
+    const t = useT();
+
     useEffect(() => {
         if (!open) return;
 
@@ -63,7 +66,7 @@ export function ConfirmDialog({
                         onClick={onCancel}
                         disabled={loading}
                     >
-                        {cancelLabel}
+                        {cancelLabel ?? t.common.cancel}
                     </ActionButton>
                     <ActionButton
                         variant="primary"
@@ -72,7 +75,7 @@ export function ConfirmDialog({
                         onClick={onConfirm}
                         disabled={loading}
                     >
-                        {confirmLabel}
+                        {confirmLabel ?? t.common.confirm}
                     </ActionButton>
                 </div>
             </div>

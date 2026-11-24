@@ -1,7 +1,7 @@
 .players-page {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 20px;
 }
 
 .players-page .page-header {
@@ -9,13 +9,18 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 16px;
 }
 
 .players-page .page-header h2 {
   margin: 0;
-  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 700;
   line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text);
 }
 
 /* Title and "+ Add Player": the first row on the phone, the left side on wider screens. */
@@ -23,150 +28,227 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-}
-
-@media (max-width: 640px) {
-  .players-page .page-title-row {
-    width: 100%;
-  }
+  gap: 16px;
 }
 
 .players-page .header-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 12px;
   align-items: center;
   flex-wrap: wrap;
 }
 
-.players-page .relationship-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: nowrap;
-  align-items: center;
-  position: relative;
-  width: fit-content;
+@media (max-width: 640px) {
+  .players-page {
+    gap: 16px;
+  }
+
+  .players-page .page-header {
+    gap: 12px;
+  }
+
+  .players-page .page-title-row,
+  .players-page .header-actions {
+    width: 100%;
+  }
+
+  .players-page .header-actions {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
 }
 
-.players-page .clear-links-trigger {
-  display: inline-flex;
-  gap: 0.4rem;
+/* ---------- The counter: big numbers, and ten dots that fill one by one ---------- */
+
+.players-page .selection-count {
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-template-rows: auto auto;
+  justify-content: start;
   align-items: center;
-  justify-content: space-between;
+  column-gap: 8px;
+  row-gap: 5px;
+  min-height: 40px;
+  color: var(--text-2);
+}
+
+.players-page .selection-count-num {
+  grid-row: 1 / 3;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+  transition: color var(--t-press) ease;
+}
+
+.players-page .selection-count-label {
+  align-self: end;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  line-height: 1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.players-page .selection-dots {
+  align-self: start;
+  display: flex;
+  gap: 3px;
+}
+
+.players-page .selection-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  transition: background var(--t-press) ease, transform var(--t-press) var(--ease-out);
+}
+
+.players-page .selection-dots i.is-on {
+  background: var(--red);
+  transform: scale(1.12);
+}
+
+.players-page .selection-count--complete .selection-count-num,
+.players-page .selection-count--over .selection-count-num {
+  color: var(--red-text);
+}
+
+@media (max-width: 640px) {
+  /* The phone has no room for the word: the number over its ten dots, then Clear, and
+     Generate takes what is left. The word stays for screen readers. */
+  .players-page .selection-count {
+    flex: 0 0 auto;
+    grid-template-columns: auto;
+    justify-items: start;
+    row-gap: 4px;
+  }
+
+  .players-page .selection-count-num {
+    grid-row: auto;
+    font-size: 1.85rem;
+  }
+
+  .players-page .selection-count-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .players-page .selection-dots {
+    gap: 2px;
+  }
+
+  .players-page .selection-dots i {
+    width: 4px;
+    height: 4px;
+  }
+
+  .players-page .generate-teams-btn {
+    flex: 1 1 auto;
+  }
+}
+
+/* Ready: one flash on Generate, once. */
+.players-page .generate-teams-btn.is-ready {
+  animation: generate-ready 0.7s var(--ease-out);
+}
+
+@keyframes generate-ready {
+  0% {
+    box-shadow: 0 0 0 0 var(--red-line);
+  }
+
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+/* ---------- The Clear menu ---------- */
+
+.players-page .relationship-actions {
+  position: relative;
+  display: flex;
+  width: fit-content;
 }
 
 .players-page .clear-links-caret {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 12px;
-  height: 12px;
-  opacity: 0.9;
-}
-
-.players-page .clear-links-caret svg {
-  width: 12px;
-  height: 12px;
-  display: block;
-  stroke: currentColor;
-  stroke-width: 2.3;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .players-page .clear-links-menu {
   position: absolute;
-  top: calc(100% + 0.35rem);
+  top: calc(100% + 4px);
   left: 0;
-  right: auto;
   width: max-content;
-  min-width: 150px;
-  box-sizing: border-box;
-  padding: 0.3rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
+  min-width: 160px;
+  padding: 4px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-float);
   display: grid;
-  gap: 0.25rem;
+  gap: 2px;
   z-index: 30;
+}
+
+@media (max-width: 640px) {
+  .players-page .clear-links-menu {
+    left: auto;
+    right: 0;
+  }
 }
 
 .players-page .clear-links-option {
   min-height: 34px;
-  padding: 0.35rem 0.55rem;
-  border-radius: 6px;
-  border: 1px solid transparent;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 0;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-2);
   text-align: left;
-  font-size: 0.84rem;
+  font-size: 0.9rem;
   cursor: pointer;
 }
 
-.players-page .clear-links-option:hover,
-.players-page .clear-links-option:focus-visible {
-  outline: none;
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.03);
+.players-page .clear-links-option:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--surface-3);
 }
 
-.players-page .clear-links-option--positive:hover,
-.players-page .clear-links-option--positive:focus-visible {
-  color: #22c55e;
-  border-color: rgba(34, 197, 94, 0.65);
+/* These erase links in the sheet. */
+.players-page .clear-links-option--danger:hover:not(:disabled) {
+  color: var(--red-text);
+  background: var(--red-soft);
 }
 
-.players-page .clear-links-option--negative:hover,
-.players-page .clear-links-option--negative:focus-visible {
-  color: #ef4444;
-  border-color: rgba(239, 68, 68, 0.65);
+.players-page .clear-links-option:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
-.players-page .selection-count {
-  padding: 0 1rem;
-  background: var(--bg-secondary);
-  border: 1px solid transparent;
-  border-radius: 6px;
-  color: var(--text-secondary);
-  font-weight: 600;
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-
-.players-page .selection-count--complete {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.65);
-  color: #ef4444;
-}
-
-.players-page .selection-count--over {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.65);
-  color: #ef4444;
-}
-
-.players-page .generate-teams-btn:hover:not(:disabled),
-.players-page .generate-teams-btn:focus-visible:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.75);
-}
+/* ---------- List, states and status line ---------- */
 
 .players-page .empty-state {
   text-align: center;
-  padding: 4rem 2rem;
-  color: var(--text-secondary);
+  padding: 64px 32px;
+  color: var(--text-2);
+}
+
+.players-page .empty-state p {
+  margin: 0;
 }
 
 .players-page .empty-state .hint {
   font-size: 0.875rem;
-  margin-top: 0.5rem;
+  margin-top: 8px;
+  color: var(--text-3);
 }
 
 .players-page .loading-shell {
@@ -178,52 +260,133 @@
 
 .players-page .people-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)); /* 2 cols on mobile too */
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr)); /* two per row on the phone too */
+  gap: 8px;
 }
 
 @media (min-width: 640px) {
   .players-page .people-grid {
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 1rem;
+    gap: 12px;
   }
 }
 
 .players-page .error {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid #ef4444;
-  border-radius: 8px;
-  padding: 1rem;
-  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--red);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.players-page .error-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.players-page .error .btn {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 4px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.players-page .error .btn:hover {
+  border-color: var(--text-3);
+  background: var(--surface-2);
+}
+
+.players-page .error .btn-icon {
+  min-width: 32px;
+  padding: 0;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
 .players-page .players-count {
-  text-align: right;
-  color: var(--text-secondary);
-  font-size: 0.875rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  color: var(--text-3);
+  font-size: 0.82rem;
 }
 
+/* A read is running behind the saved copy. */
 .players-page .players-refreshing {
-  color: var(--accent);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text-2);
+}
+
+.players-page .players-refreshing::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+  animation: status-pulse 1.1s ease-in-out infinite alternate;
+}
+
+@keyframes status-pulse {
+  from {
+    opacity: 0.25;
+  }
 }
 
 .players-page .players-refresh {
-  margin-right: 0.6rem;
-  padding: 0.2rem 0.6rem;
-  border-radius: 6px;
-  border: 1px solid rgba(239, 68, 68, 0.65);
-  background: rgba(239, 68, 68, 0.12);
-  color: #ef4444;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
 }
 
-.players-page .clear-links-option:disabled {
-  opacity: 0.4;
-  cursor: default;
+.players-page .players-refresh::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+.players-page .players-refresh:hover {
+  border-color: var(--text-3);
+  background: var(--surface-2);
 }
 
 .players-page .team-result-scroll-anchor {
-  scroll-margin-top: 5rem;
+  scroll-margin-top: 72px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .players-page .generate-teams-btn.is-ready,
+  .players-page .players-refreshing::before {
+    animation: none;
+  }
+
+  .players-page .selection-dots i {
+    transition: none;
+  }
 }

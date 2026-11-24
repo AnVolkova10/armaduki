@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useT } from '../i18n';
 import useAppStore from '../store/useAppStore';
+import { LangSwitch } from './LangSwitch';
 import './Gate.css';
 
 /** What the ball is doing. The scene's animations hang from it (see Gate.css). */
@@ -12,14 +14,6 @@ const MIN_RUN_UP_MS = 800;
 // these match the length of their animations in Gate.css.
 const REPLAY_MS: Record<'saved' | 'post', number> = { saved: 2800, post: 2200 };
 
-const CAPTION: Record<Shot, string> = {
-    idle: 'Score to get in',
-    aiming: '',
-    goal: 'Goal',
-    saved: "Saved. That's not the key.",
-    post: 'Off the post. No answer, try again.',
-};
-
 const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 /**
@@ -30,6 +24,14 @@ const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve,
 export function Gate({ onGone }: { onGone: () => void }) {
     const access = useAppStore((state) => state.access);
     const unlock = useAppStore((state) => state.unlock);
+    const t = useT();
+    const caption: Record<Shot, string> = {
+        idle: t.gate.idle,
+        aiming: '',
+        goal: t.gate.goal,
+        saved: t.gate.saved,
+        post: t.gate.post,
+    };
     const [key, setKey] = useState('');
     const [shot, setShot] = useState<Shot>('idle');
     const input = useRef<HTMLInputElement>(null);
@@ -86,7 +88,7 @@ export function Gate({ onGone }: { onGone: () => void }) {
                 </p>
 
                 {/* Ground line at y=150, goal from (60, 50) to (260, 150), ball on the spot at (160, 196). */}
-                <svg ref={scene} className="gate-scene" viewBox="40 34 240 180" role="img" aria-label="A goalkeeper on her line, waiting for a penalty">
+                <svg ref={scene} className="gate-scene" viewBox="40 34 240 180" role="img" aria-label={t.gate.scene}>
                     <defs>
                         <linearGradient id="gate-back" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0" stopColor="#111216" />
@@ -199,7 +201,7 @@ export function Gate({ onGone }: { onGone: () => void }) {
                 </svg>
 
                 <p className="gate-caption" role="status">
-                    {access === 'asking' && shot === 'idle' ? '' : CAPTION[shot]}
+                    {access === 'asking' && shot === 'idle' ? '' : caption[shot]}
                 </p>
 
                 <form className="gate-form" data-shown={showForm || undefined} onSubmit={submit}>
@@ -211,17 +213,18 @@ export function Gate({ onGone }: { onGone: () => void }) {
                         autoCapitalize="none"
                         autoCorrect="off"
                         spellCheck={false}
-                        aria-label="Access key"
-                        placeholder="Key"
+                        aria-label={t.gate.keyLabel}
+                        placeholder={t.gate.keyPlaceholder}
                         value={key}
                         readOnly={busy || open}
                         onChange={(event) => setKey(event.target.value)}
                     />
                     <button type="submit" className="gate-shoot" disabled={!key.trim() || busy || open}>
-                        Shoot
+                        {t.gate.shoot}
                     </button>
                 </form>
             </div>
+            <LangSwitch className="gate-lang" />
         </div>
     );
 }

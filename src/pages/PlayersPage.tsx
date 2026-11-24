@@ -2,17 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { ActionButton } from '../components/ActionButton';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { Icon } from '../components/Icon';
 import { PersonCard } from '../components/PersonCard';
 import { PersonForm } from '../components/PersonForm';
 import { PlayerListControls } from '../components/PlayerListControls';
 import { SheetLoader } from '../components/SheetLoader';
 import { TeamResult } from '../components/TeamResult';
+import { useFlipList } from '../hooks/useFlipList';
 import { usePlayerListing } from '../hooks/usePlayerListing';
+import { useT } from '../i18n';
 import { generateTeams } from '../services/teamGenerator';
 import type { Person } from '../types';
+import { scrollBehavior } from '../utils/motion';
 import './PlayersPage.css';
 
 const MATCH_SIZE = 10;
+const DOTS = Array.from({ length: MATCH_SIZE }, (_, index) => index);
 
 interface ConfirmState {
     title: string;
@@ -21,6 +26,9 @@ interface ConfirmState {
     tone: 'default' | 'danger';
     onConfirm: () => Promise<void> | void;
 }
+
+/** A problem with the selection itself, kept as data so it follows the language. */
+type LocalError = { kind: 'count'; selected: number } | { kind: 'noTeams' };
 
 /**
  * The app's only screen (Players and Match became one on 19/11/2026): tap a card to pick it
@@ -49,6 +57,7 @@ export function PlayersPage() {
         isFresh,
         isReading,
     } = useAppStore();
+    const t = useT();
     const isLoading = peopleStatus === 'loading';
     const isLoaded = peopleStatus === 'loaded';
     // Opened from the copy saved on this device: picking works at once, editing waits for the sheet.
@@ -57,17 +66,23 @@ export function PlayersPage() {
     const [showForm, setShowForm] = useState(false);
     const [editingPerson, setEditingPerson] = useState<Person | undefined>();
     const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
-    const [localError, setLocalError] = useState<string | null>(null);
+    const [localError, setLocalError] = useState<LocalError | null>(null);
     const [showClearMenu, setShowClearMenu] = useState(false);
+    // Counts the results generated, so each one is dealt again even with the same players.
+    const [generation, setGeneration] = useState(0);
     const clearMenuRef = useRef<HTMLDivElement | null>(null);
     const previousSelectedCountRef = useRef<number | null>(null);
     const resultRef = useRef<HTMLDivElement | null>(null);
+    const gridRef = useRef<HTMLDivElement | null>(null);
     const shouldScrollToResultRef = useRef(false);
     const { controls, updateControls, resetControls, visiblePeople, isFiltered } = usePlayerListing(
         people,
         selectedIds,
         privacyMode,
+        MATCH_SIZE,
     );
+    // The same cards in another order travel to their new place (the picks going to the top).
+    useFlipList(gridRef, visiblePeople.map((person) => person.id).join(','));
 
     const selectedCount = selectedIds.size;
     const canGenerate = selectedCount === MATCH_SIZE;
@@ -98,13 +113,13 @@ export function PlayersPage() {
         return () => document.removeEventListener('mousedown', handleDocumentClick);
     }, [showClearMenu]);
 
-    // With the tenth pick, go back up to "Generate Teams".
+    // With the tenth pick, go back up to "Generate Teams" (the picks go to the top of the list too).
     useEffect(() => {
         const previousSelectedCount = previousSelectedCountRef.current;
         previousSelectedCountRef.current = selectedCount;
 
         if (previousSelectedCount !== null && selectedCount === MATCH_SIZE && previousSelectedCount !== MATCH_SIZE) {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: scrollBehavior() });
         }
     }, [selectedCount]);
 
@@ -113,7 +128,7 @@ export function PlayersPage() {
 
         shouldScrollToResultRef.current = false;
         window.requestAnimationFrame(() => {
-            resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            resultRef.current?.scrollIntoView({ behavior: scrollBehavior(), block: 'start' });
         });
     }, [generatedTeams]);
 
@@ -122,7 +137,7 @@ export function PlayersPage() {
         setGeneratedTeams(null);
 
         if (selectedCount !== MATCH_SIZE) {
-            setLocalError(`Select exactly 10 players. Selected: ${selectedCount}`);
+            setLocalError({ kind: 'count', selected: selectedCount });
             return;
         }
 
@@ -131,10 +146,11 @@ export function PlayersPage() {
 
         if (teams) {
             shouldScrollToResultRef.current = true;
+            setGeneration((count) => count + 1);
             setGeneratedTeams(teams);
         } else {
             shouldScrollToResultRef.current = false;
-            setLocalError('Could not generate valid teams. Check roles and goalkeeper availability.');
+            setLocalError({ kind: 'noTeams' });
         }
     };
 
@@ -183,9 +199,9 @@ export function PlayersPage() {
 
     const handleDelete = (id: string) => {
         requestConfirm({
-            title: 'Delete player?',
-            message: 'This will remove the player from this app and from the sheet.',
-            confirmLabel: 'Delete',
+            title: t.confirm.deleteTitle,
+            message: t.confirm.deleteMessage,
+            confirmLabel: t.confirm.deleteLabel,
             tone: 'danger',
             onConfirm: () => deletePerson(id),
         });
@@ -204,9 +220,9 @@ export function PlayersPage() {
 
     const handleClearAllRelationships = () => {
         requestConfirm({
-            title: 'Clear Links?',
-            message: 'This will remove every positive and negative relationship for all players.',
-            confirmLabel: 'Clear Links',
+            title: t.confirm.linksTitle,
+            message: t.confirm.linksMessage,
+            confirmLabel: t.confirm.linksLabel,
             tone: 'danger',
             onConfirm: () => clearAllRelationships(),
         });
@@ -214,9 +230,9 @@ export function PlayersPage() {
 
     const handleClearWantsRelationships = () => {
         requestConfirm({
-            title: 'Clear positive links?',
-            message: 'This will remove all wants links for every player.',
-            confirmLabel: 'Clear Wants',
+            title: t.confirm.wantsTitle,
+            message: t.confirm.wantsMessage,
+            confirmLabel: t.confirm.wantsLabel,
             tone: 'danger',
             onConfirm: () => clearWantsRelationships(),
         });
@@ -224,9 +240,9 @@ export function PlayersPage() {
 
     const handleClearAvoidsRelationships = () => {
         requestConfirm({
-            title: 'Clear negative links?',
-            message: 'This will remove all avoids links for every player.',
-            confirmLabel: 'Clear Avoids',
+            title: t.confirm.avoidsTitle,
+            message: t.confirm.avoidsMessage,
+            confirmLabel: t.confirm.avoidsLabel,
             tone: 'danger',
             onConfirm: () => clearAvoidsRelationships(),
         });
@@ -236,19 +252,26 @@ export function PlayersPage() {
         <div className="players-page">
             <div className="page-header">
                 <div className="page-title-row">
-                    <h2>Players</h2>
+                    <h2>{t.page.title}</h2>
                     <ActionButton
-                        variant="primary"
+                        variant="neutral"
+                        className="add-player-btn"
                         onClick={() => setShowForm(true)}
                         disabled={!canEdit}
-                        title={canEdit ? undefined : 'Players must load from Google Sheets first'}
+                        title={canEdit ? undefined : t.page.addPlayerWaits}
                     >
-                        + Add Player
+                        {t.page.addPlayer}
                     </ActionButton>
                 </div>
                 <div className="header-actions">
                     <span className={selectionCountClassName} aria-live="polite">
-                        {selectedCount}/10 selected
+                        <span className="selection-count-num">{selectedCount}/10</span>{' '}
+                        <span className="selection-count-label">{t.page.selected}</span>
+                        <span className="selection-dots" aria-hidden="true">
+                            {DOTS.map((dot) => (
+                                <i key={dot} className={dot < selectedCount ? 'is-on' : undefined} />
+                            ))}
+                        </span>
                     </span>
                     <div className="relationship-actions" ref={clearMenuRef}>
                         <ActionButton
@@ -260,11 +283,9 @@ export function PlayersPage() {
                             aria-expanded={showClearMenu}
                             aria-haspopup="menu"
                         >
-                            Clear
+                            {t.page.clear}
                             <span className="clear-links-caret" aria-hidden="true">
-                                <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                    <path d="M6 9l6 6 6-6" />
-                                </svg>
+                                <Icon name="chevronDown" size={13} />
                             </span>
                         </ActionButton>
 
@@ -272,52 +293,52 @@ export function PlayersPage() {
                             <div className="clear-links-menu" role="menu">
                                 <button
                                     type="button"
-                                    className="clear-links-option clear-links-option--light"
+                                    className="clear-links-option"
                                     onClick={handleClearSelection}
                                 >
-                                    Clear Selection
+                                    {t.page.clearSelection}
                                 </button>
                                 <button
                                     type="button"
-                                    className="clear-links-option clear-links-option--light"
+                                    className="clear-links-option"
                                     onClick={handleClearFilters}
                                 >
-                                    Clear Filters
+                                    {t.page.clearFilters}
                                 </button>
                                 <button
                                     type="button"
-                                    className="clear-links-option clear-links-option--positive"
+                                    className="clear-links-option clear-links-option--danger"
                                     disabled={!canEdit}
                                     onClick={handleClearWantsRelationships}
                                 >
-                                    Clear Wants
+                                    {t.page.clearWants}
                                 </button>
                                 <button
                                     type="button"
-                                    className="clear-links-option clear-links-option--negative"
+                                    className="clear-links-option clear-links-option--danger"
                                     disabled={!canEdit}
                                     onClick={handleClearAvoidsRelationships}
                                 >
-                                    Clear Avoids
+                                    {t.page.clearAvoids}
                                 </button>
                                 <button
                                     type="button"
-                                    className="clear-links-option clear-links-option--light"
+                                    className="clear-links-option clear-links-option--danger"
                                     disabled={!canEdit}
                                     onClick={handleClearAllRelationships}
                                 >
-                                    Clear Links
+                                    {t.page.clearLinks}
                                 </button>
                             </div>
                         )}
                     </div>
                     <ActionButton
                         variant="primary"
-                        className="generate-teams-btn"
+                        className={`generate-teams-btn ${canGenerate ? 'is-ready' : ''}`}
                         onClick={handleGenerate}
                         disabled={!canGenerate}
                     >
-                        Generate Teams
+                        {t.page.generate}
                     </ActionButton>
                 </div>
             </div>
@@ -326,13 +347,13 @@ export function PlayersPage() {
 
             {error && (
                 <div className="error">
-                    {error}
+                    <span className="error-text">{error}</span>
                     {(peopleStatus === 'error' || !isFresh) && (
                         <button className="btn btn-secondary" onClick={() => void fetchPeople()}>
-                            Retry
+                            {t.common.retry}
                         </button>
                     )}
-                    <button className="btn btn-secondary" onClick={() => setError(null)} aria-label="Dismiss error">
+                    <button className="btn btn-secondary btn-icon" onClick={() => setError(null)} aria-label={t.page.dismissError}>
                         &times;
                     </button>
                 </div>
@@ -340,28 +361,22 @@ export function PlayersPage() {
 
             {isLoading ? (
                 <div className="loading-shell">
-                    <SheetLoader ariaLabel="Loading players from Google Sheets" />
+                    <SheetLoader ariaLabel={t.page.loading} />
                 </div>
             ) : people.length === 0 ? (
                 isLoaded && (
                     <div className="empty-state">
-                        <p>No players yet.</p>
-                        <p className="hint">
-                            Data is loaded from Google Sheets. You can add players manually or edit the spreadsheet.
-                        </p>
+                        <p>{t.page.empty}</p>
+                        <p className="hint">{t.page.emptyHint}</p>
                     </div>
                 )
             ) : visiblePeople.length === 0 ? (
                 <div className="empty-state">
-                    <p>No players match current controls.</p>
-                    <p className="hint">
-                        {isFiltered
-                            ? 'Try another search prefix or role/score filter.'
-                            : 'Try adjusting search, filter, or sort.'}
-                    </p>
+                    <p>{t.page.noMatch}</p>
+                    <p className="hint">{isFiltered ? t.page.noMatchFiltered : t.page.noMatchSorted}</p>
                 </div>
             ) : (
-                <div className="people-grid">
+                <div className="people-grid" ref={gridRef}>
                     {visiblePeople.map((person) => (
                         <PersonCard
                             key={person.id}
@@ -381,22 +396,28 @@ export function PlayersPage() {
             {isLoaded && people.length > 0 && (
                 <div className="players-count">
                     {/* On a saved copy: either the refresh is running, or it failed and can be asked again here. */}
-                    {!isFresh && isReading && <span className="players-refreshing">Updating from Google Sheets... </span>}
+                    {!isFresh && isReading && <span className="players-refreshing">{t.page.updating} </span>}
                     {!isFresh && !isReading && (
                         <button type="button" className="players-refresh" onClick={() => void fetchPeople()}>
-                            Saved copy · Refresh
+                            {t.page.savedCopyRefresh}
                         </button>
                     )}
-                    {isFiltered
-                        ? `Showing ${visiblePeople.length} of ${people.length} players`
-                        : `Total: ${people.length} players`}
+                    <span className="players-total">
+                        {isFiltered ? t.page.showing(visiblePeople.length, people.length) : t.page.total(people.length)}
+                    </span>
                 </div>
             )}
 
-            {localError && <div className="error">{localError}</div>}
+            {localError && (
+                <div className="error">
+                    <span className="error-text">
+                        {localError.kind === 'count' ? t.page.selectExactly(localError.selected) : t.page.couldNotGenerate}
+                    </span>
+                </div>
+            )}
             {generatedTeams && (
                 <div ref={resultRef} className="team-result-scroll-anchor">
-                    <TeamResult result={generatedTeams} />
+                    <TeamResult key={generation} result={generatedTeams} />
                 </div>
             )}
 
@@ -415,7 +436,7 @@ export function PlayersPage() {
                 open={Boolean(confirmState)}
                 title={confirmState?.title || ''}
                 message={confirmState?.message || ''}
-                confirmLabel={confirmState?.confirmLabel || 'Confirm'}
+                confirmLabel={confirmState?.confirmLabel}
                 tone={confirmState?.tone || 'default'}
                 onCancel={handleConfirmCancel}
                 onConfirm={handleConfirmAccept}

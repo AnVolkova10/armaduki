@@ -5,6 +5,7 @@ import './Layout.css';
 import useAppStore from '../store/useAppStore';
 import { AppNotices } from './AppNotices';
 import { Gate } from './Gate';
+import { LangSwitch } from './LangSwitch';
 
 export function Layout() {
     const privacyMode = useAppStore((state) => state.privacyMode);
@@ -27,6 +28,7 @@ export function Layout() {
                     <h1 className="logo">armaduki</h1>
                     <img className="brand-ball" src="/ball.svg" alt="" aria-hidden="true" />
                 </div>
+                <LangSwitch />
             </header>
             <main className="main">
                 {/* Locked: nothing of the roster is on screen, and nothing asks the backend. */}
@@ -40,6 +42,7 @@ export function Layout() {
                 </div>
                 <img className="footer-ball" src="/ball.svg" alt="" aria-hidden="true" />
                 <div className="footer-actions">
+                    {/* Privacy mode stays hidden on purpose: three quick taps on the eye. */}
                     <button
                         className="privacy-toggle-mini"
                         onClick={(e) => { if (e.detail === 3) togglePrivacyMode(); }}

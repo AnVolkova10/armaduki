@@ -1,11 +1,12 @@
 import { create } from 'zustand';
+import { tr } from '../i18n/index.ts';
 import { clearSavedRead, readAccessKey, readSavedRead, saveAccessKey, saveRead } from '../services/deviceStorage';
 import type { Attributes, AttributeLevel, GeneratedTeams, GKWillingness, Person, Role, TeamCatalog } from '../types';
 
 // Google Apps Script Web App URL
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
-const MISSING_URL_MESSAGE =
-  'Missing VITE_APPS_SCRIPT_URL. Add it to .env (local) or to the Vercel environment variables.';
+// Messages are written in the language chosen at that moment (see src/i18n).
+const missingUrlMessage = () => tr().store.missingUrl;
 
 // Bulk writes (clear links, delete cleanup) run a few requests at a time so Apps Script
 // does not hit its simultaneous-executions limit.
@@ -300,7 +301,7 @@ function parsePeopleRows(rawData: unknown[]): ParsedPeople {
 
       const firstRow = firstRowById.get(parsed.id);
       if (firstRow !== undefined) {
-        duplicates.push(`id ${parsed.id} (rows ${firstRow} and ${toSheetRow(index)})`);
+        duplicates.push(tr().store.duplicateId(parsed.id, firstRow, toSheetRow(index)));
         return;
       }
 
@@ -315,14 +316,10 @@ function parsePeopleRows(rawData: unknown[]): ParsedPeople {
 
   const warnings: string[] = [];
   if (duplicates.length > 0) {
-    warnings.push(
-      `Duplicate player ids in Google Sheets: ${duplicates.join(', ')}. Only the first row is shown; give each row its own id.`,
-    );
+    warnings.push(tr().store.duplicateIds(duplicates.join(', ')));
   }
   if (missingIdRows.length > 0) {
-    warnings.push(
-      `Players without id in Google Sheets (rows ${missingIdRows.join(', ')}). Add an id in the sheet before editing them here.`,
-    );
+    warnings.push(tr().store.missingIds(missingIdRows.join(', ')));
   }
 
   return { people, skippedRows, warnings };
@@ -416,7 +413,7 @@ const SUCCESS_RESPONSES: Record<SheetsPayload['action'], string[]> = {
 };
 
 async function postAppsScriptPayload(payload: SheetsPayload): Promise<void> {
-  if (!APPS_SCRIPT_URL) throw new Error(MISSING_URL_MESSAGE);
+  if (!APPS_SCRIPT_URL) throw new Error(missingUrlMessage());
 
   const controller = new AbortController();
   const timeoutId = window.setTimeout(() => controller.abort(), SYNC_REQUEST_TIMEOUT_MS);
@@ -433,19 +430,19 @@ async function postAppsScriptPayload(payload: SheetsPayload): Promise<void> {
     const responseText = (await response.text()).trim();
 
     if (!response.ok) {
-      throw new Error(`Apps Script returned HTTP ${response.status}.`);
+      throw new Error(tr().store.httpStatus(response.status));
     }
 
     if (responseText === `Error: ${UNAUTHORIZED}`) {
-      throw new UnauthorizedError('The access key was refused. Enter it again and retry.');
+      throw new UnauthorizedError(tr().store.keyRefused);
     }
 
     if (!SUCCESS_RESPONSES[payload.action].includes(responseText)) {
-      throw new Error(`Apps Script answered: ${responseText.slice(0, 200) || '(empty response)'}`);
+      throw new Error(tr().store.answered(responseText.slice(0, 200)));
     }
   } catch (error) {
     if (controller.signal.aborted) {
-      throw new Error(`Apps Script did not answer within ${SYNC_REQUEST_TIMEOUT_MS / 1000}s.`, { cause: error });
+      throw new Error(tr().store.timeout(SYNC_REQUEST_TIMEOUT_MS / 1000), { cause: error });
     }
     throw error;
   } finally {
@@ -683,7 +680,7 @@ const useAppStore = create<AppStore>()((set, get) => {
 
     await runSyncOperation({
       label,
-      errorMessage: `Couldn't clear ${label} in Google Sheets.`,
+      errorMessage: tr().store.couldntClear(label),
       run: () => syncFieldsForPlayers(affectedIds, kinds),
     });
   };
@@ -708,7 +705,7 @@ const useAppStore = create<AppStore>()((set, get) => {
     set({
       people,
       peopleStatus: 'loaded',
-      error: people.length === 0 && skippedRows > 0 ? 'No valid players found in Google Sheets' : null,
+      error: people.length === 0 && skippedRows > 0 ? tr().store.noValidPlayers : null,
       dataWarning: warnings.length > 0 ? warnings.join(' ') : null,
     });
   };
@@ -723,7 +720,7 @@ const useAppStore = create<AppStore>()((set, get) => {
     set({
       teamsCatalog: [],
       teamsCatalogLoaded: true,
-      teamsCatalogError: 'Error loading teams catalog from Google Sheets',
+      teamsCatalogError: tr().store.teamsError,
       isTeamsCatalogLoading: false,
     });
   };
@@ -752,9 +749,9 @@ const useAppStore = create<AppStore>()((set, get) => {
       set({
         access: 'open',
         peopleStatus: 'error',
-        error: MISSING_URL_MESSAGE,
+        error: missingUrlMessage(),
         teamsCatalogLoaded: true,
-        teamsCatalogError: MISSING_URL_MESSAGE,
+        teamsCatalogError: missingUrlMessage(),
       });
       return Promise.resolve('failed');
     }
@@ -822,8 +819,8 @@ const useAppStore = create<AppStore>()((set, get) => {
           // A device still waiting at the gate goes in to see the usual error and its retry.
           access: state.access === 'asking' ? 'open' : state.access,
           error: hadCopy
-            ? `Couldn't refresh from Google Sheets. ${getErrorMessage(fetchError)} Showing the copy saved on this device; editing waits for a fresh read.`
-            : `Error loading data from Google Sheets. ${getErrorMessage(fetchError)}`,
+            ? tr().store.couldntRefresh(getErrorMessage(fetchError))
+            : tr().store.couldntLoad(getErrorMessage(fetchError)),
           peopleStatus: hadCopy ? 'loaded' : 'error',
         }));
         if (get().isTeamsCatalogLoading) {
@@ -900,7 +897,7 @@ const useAppStore = create<AppStore>()((set, get) => {
       if (get().isTeamsCatalogLoading) return;
 
       if (!APPS_SCRIPT_URL) {
-        set({ teamsCatalogLoaded: true, teamsCatalogError: MISSING_URL_MESSAGE });
+        set({ teamsCatalogLoaded: true, teamsCatalogError: missingUrlMessage() });
         return;
       }
 
@@ -918,7 +915,7 @@ const useAppStore = create<AppStore>()((set, get) => {
 
       await runSyncOperation({
         label: `player "${personWithId.nickname}"`,
-        errorMessage: `Couldn't save new player "${personWithId.nickname}" to Google Sheets.`,
+        errorMessage: tr().store.couldntAdd(personWithId.nickname),
         run: async () => {
           const current = findPerson(id);
           if (!current) return; // Deleted locally before it was saved.
@@ -941,7 +938,7 @@ const useAppStore = create<AppStore>()((set, get) => {
 
       await runSyncOperation({
         label: `player "${person.nickname}"`,
-        errorMessage: `Couldn't save changes to "${person.nickname}" in Google Sheets.`,
+        errorMessage: tr().store.couldntUpdate(person.nickname),
         run: async () => {
           const current = findPerson(person.id);
           if (!current) return;
@@ -982,11 +979,11 @@ const useAppStore = create<AppStore>()((set, get) => {
 
       await runSyncOperation({
         label: `delete "${label}"`,
-        errorMessage: `Couldn't delete "${label}" in Google Sheets.`,
+        errorMessage: tr().store.couldntDelete(label),
         run: async () => {
           if (id.startsWith(MISSING_ID_PREFIX)) {
             // The Apps Script finds rows by id, so this row can only be removed in the sheet.
-            throw new Error('This row has no id in Google Sheets. Delete it there, or add an id first.');
+            throw new Error(tr().store.rowWithoutId);
           }
           await postAppsScriptPayload({ action: 'delete', id });
           await syncFieldsForPlayers(referencingIds, ['wantsWith', 'avoidsWith']);

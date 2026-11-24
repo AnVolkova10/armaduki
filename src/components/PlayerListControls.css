@@ -1,5 +1,4 @@
-/* Search, filters and sort shared by Players and Match. Rules keep two classes of
-   specificity, like the per-page rules they replaced. */
+/* Search, filters and sort of the player list. */
 
 .list-controls {
   width: 100%;
@@ -8,7 +7,7 @@
 .list-controls .list-controls-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.4rem;
+  gap: 8px;
 }
 
 .list-controls .list-controls-grid--privacy {
@@ -18,7 +17,7 @@
 .list-controls .list-sort-group {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 0.35rem;
+  gap: 6px;
 }
 
 .list-controls .list-sort-group--with-toggle {
@@ -26,34 +25,21 @@
 }
 
 .list-controls .list-sort-direction-toggle {
-  min-height: 34px;
-  width: 34px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
-  color: #fff;
+  min-height: 44px;
+  width: 40px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface-1);
+  color: var(--text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: border-color var(--t-press) ease;
 }
 
-.list-controls .list-sort-direction-toggle:hover,
-.list-controls .list-sort-direction-toggle:focus-visible {
-  outline: none;
-  border-color: rgba(255, 255, 255, 0.65);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.list-controls .list-sort-direction-toggle svg {
-  width: 13px;
-  height: 13px;
-  display: block;
-  stroke: currentColor;
-  stroke-width: 2.3;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+.list-controls .list-sort-direction-toggle:hover {
+  border-color: var(--text-3);
 }
 
 .list-controls .list-search-field {
@@ -64,38 +50,24 @@
 
 .list-controls .list-search-icon {
   position: absolute;
-  left: 0.72rem;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  width: 14px;
-  height: 14px;
-  color: var(--text-secondary);
+  color: var(--text-3);
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   pointer-events: none;
-}
-
-.list-controls .list-search-icon svg {
-  width: 14px;
-  height: 14px;
-  display: block;
-  stroke: currentColor;
-  stroke-width: 2.2;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .list-controls .list-search-input {
   width: 100%;
-  min-height: 34px;
-  padding: 0.5rem 0.75rem 0.5rem 2rem;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  font-size: 0.84rem;
+  min-height: 44px;
+  padding: 0 12px 0 36px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface-1);
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: border-color var(--t-press) ease;
 }
 
 /* iOS Safari zooms the page when an input under 16px gets focus. */
@@ -105,20 +77,19 @@
   }
 }
 
-.list-controls .list-search-input::placeholder {
-  color: var(--text-secondary);
+.list-controls .list-search-input:hover {
+  border-color: var(--text-3);
 }
 
 .list-controls .list-search-input:focus-visible {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.65);
+  border-color: var(--text);
 }
 
-/* Wider screens: search on the left, the dropdowns in one row. Kept after the base rules. */
+/* Wider screens: search on the left, the menus in one row. Kept after the base rules. */
 @media (min-width: 640px) {
   .list-controls .list-controls-grid {
     grid-template-columns: minmax(0, 1fr) repeat(3, minmax(0, 150px));
-    gap: 0.35rem;
   }
 
   .list-controls .list-controls-grid--privacy {

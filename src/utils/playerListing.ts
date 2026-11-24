@@ -89,3 +89,32 @@ export function filterAndSortPeople<T extends Person>(
             return filtered;
     }
 }
+
+/** The sort in use, and the one to give back when the selection empties (null: nothing to give back). */
+export interface SortMemory {
+    sort: SortMode;
+    restore: SortMode | null;
+}
+
+/**
+ * The picks go to the top by themselves: each time the selection reaches a full match, the sort
+ * switches to 'selected' and remembers the one it replaced. It stays while the picks change, and
+ * the remembered sort comes back when the selection empties, unless the sort was changed by hand
+ * in between (the caller forgets `restore` then).
+ */
+export function sortAfterSelectionChange(
+    previousCount: number,
+    count: number,
+    matchSize: number,
+    { sort, restore }: SortMemory,
+): SortMemory {
+    if (previousCount < matchSize && count >= matchSize) {
+        return sort === 'selected' ? { sort, restore } : { sort: 'selected', restore: sort };
+    }
+
+    if (count === 0 && previousCount > 0) {
+        return { sort: restore !== null && sort === 'selected' ? restore : sort, restore: null };
+    }
+
+    return { sort, restore };
+}

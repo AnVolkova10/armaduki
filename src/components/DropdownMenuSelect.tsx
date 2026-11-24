@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Icon } from './Icon';
 import './DropdownMenuSelect.css';
 
 export interface DropdownMenuOption {
@@ -11,6 +12,8 @@ interface DropdownMenuSelectProps {
     options: DropdownMenuOption[];
     onChange: (value: string) => void;
     ariaLabel: string;
+    /** The small name over the value: what this menu chooses. */
+    caption?: string;
     disabled?: boolean;
 }
 
@@ -19,6 +22,7 @@ export function DropdownMenuSelect({
     options,
     onChange,
     ariaLabel,
+    caption,
     disabled = false,
 }: DropdownMenuSelectProps) {
     const [open, setOpen] = useState(false);
@@ -68,11 +72,12 @@ export function DropdownMenuSelect({
                 aria-haspopup="menu"
                 disabled={disabled}
             >
-                <span className="dropdown-select-label">{selected?.label || ''}</span>
+                <span className="dropdown-select-text">
+                    {caption && <span className="dropdown-select-caption">{caption}</span>}
+                    <span className="dropdown-select-label">{selected?.label || ''}</span>
+                </span>
                 <span className="dropdown-select-caret" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                        <path d="M6 9l6 6 6-6" />
-                    </svg>
+                    <Icon name="chevronDown" size={14} />
                 </span>
             </button>
 

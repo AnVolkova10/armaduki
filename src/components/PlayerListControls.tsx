@@ -1,31 +1,13 @@
+import { useMemo } from 'react';
 import type { ListingControlsUpdate } from '../hooks/usePlayerListing';
+import { useT } from '../i18n';
 import type { ListingControls, RoleFilter, ScoreFilter, SortMode } from '../utils/playerListing';
 import { DropdownMenuSelect, type DropdownMenuOption } from './DropdownMenuSelect';
+import { Icon } from './Icon';
 import './PlayerListControls.css';
 
-const ROLE_FILTER_OPTIONS: DropdownMenuOption[] = [
-    { value: 'all', label: 'Filter: all roles' },
-    { value: 'GK', label: 'Filter: GK' },
-    { value: 'FLEX', label: 'Filter: FLEX' },
-    { value: 'DEF', label: 'Filter: DEF' },
-    { value: 'MID', label: 'Filter: MID' },
-    { value: 'ATT', label: 'Filter: ATT' },
-];
-
-const SCORE_FILTER_OPTIONS: DropdownMenuOption[] = [
-    { value: 'all', label: 'Score: all' },
-    ...Array.from({ length: 10 }, (_, index) => ({ value: String(index + 1), label: `Score: ${index + 1}` })),
-];
-
-const SORT_OPTIONS: DropdownMenuOption[] = [
-    { value: 'none', label: 'Sort: none' },
-    { value: 'selected', label: 'Sort: selected' },
-    { value: 'score', label: 'Sort: score' },
-    { value: 'position', label: 'Sort: position' },
-];
-
-// Privacy mode hides ratings, so it cannot sort by them.
-const SORT_OPTIONS_PRIVACY = SORT_OPTIONS.filter((option) => option.value !== 'score');
+const ROLE_VALUES = ['GK', 'FLEX', 'DEF', 'MID', 'ATT'];
+const SCORE_VALUES = Array.from({ length: 10 }, (_, index) => String(index + 1));
 
 interface PlayerListControlsProps {
     /** Controls with privacy mode already applied (see usePlayerListing). */
@@ -34,20 +16,38 @@ interface PlayerListControlsProps {
     privacyMode: boolean;
 }
 
-/** Search, role and score filters, and sort, shared by Players and Match. */
+/** Search, role and score filters, and sort. Each menu shows what it chooses over its value. */
 export function PlayerListControls({ controls, onChange, privacyMode }: PlayerListControlsProps) {
+    const t = useT();
     const showScoreDirection = !privacyMode && controls.sort === 'score';
     const isDescending = controls.scoreDirection === 'desc';
+
+    const roleOptions = useMemo<DropdownMenuOption[]>(
+        () => [{ value: 'all', label: t.controls.all }, ...ROLE_VALUES.map((role) => ({ value: role, label: role }))],
+        [t],
+    );
+    const scoreOptions = useMemo<DropdownMenuOption[]>(
+        () => [{ value: 'all', label: t.controls.all }, ...SCORE_VALUES.map((score) => ({ value: score, label: score }))],
+        [t],
+    );
+    // Privacy mode hides ratings, so it cannot sort by them.
+    const sortOptions = useMemo<DropdownMenuOption[]>(
+        () =>
+            [
+                { value: 'none', label: t.controls.sortDefault },
+                { value: 'selected', label: t.controls.sortSelected },
+                { value: 'score', label: t.controls.sortScore },
+                { value: 'position', label: t.controls.sortPosition },
+            ].filter((option) => !privacyMode || option.value !== 'score'),
+        [t, privacyMode],
+    );
 
     return (
         <div className="list-controls">
             <div className={`list-controls-grid ${privacyMode ? 'list-controls-grid--privacy' : ''}`}>
                 <div className="list-search-field">
                     <span className="list-search-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                            <circle cx="11" cy="11" r="7" />
-                            <path d="M20 20l-4-4" />
-                        </svg>
+                        <Icon name="search" size={15} />
                     </span>
                     <input
                         type="text"
@@ -55,32 +55,35 @@ export function PlayerListControls({ controls, onChange, privacyMode }: PlayerLi
                         placeholder=""
                         value={controls.query}
                         onChange={(event) => onChange({ query: event.target.value })}
-                        aria-label="Search players by nickname or name"
+                        aria-label={t.controls.search}
                     />
                 </div>
 
                 <DropdownMenuSelect
                     value={controls.role}
-                    options={ROLE_FILTER_OPTIONS}
+                    options={roleOptions}
                     onChange={(value) => onChange({ role: value as RoleFilter })}
-                    ariaLabel="Filter by role"
+                    ariaLabel={t.controls.filterByRole}
+                    caption={t.controls.role}
                 />
 
                 {!privacyMode && (
                     <DropdownMenuSelect
                         value={controls.score}
-                        options={SCORE_FILTER_OPTIONS}
+                        options={scoreOptions}
                         onChange={(value) => onChange({ score: value as ScoreFilter })}
-                        ariaLabel="Filter by score"
+                        ariaLabel={t.controls.filterByScore}
+                        caption={t.controls.score}
                     />
                 )}
 
                 <div className={`list-sort-group ${showScoreDirection ? 'list-sort-group--with-toggle' : ''}`}>
                     <DropdownMenuSelect
                         value={controls.sort}
-                        options={privacyMode ? SORT_OPTIONS_PRIVACY : SORT_OPTIONS}
+                        options={sortOptions}
                         onChange={(value) => onChange({ sort: value as SortMode })}
-                        ariaLabel="Sort players"
+                        ariaLabel={t.controls.sortPlayers}
+                        caption={t.controls.sort}
                     />
 
                     {showScoreDirection && (
@@ -92,16 +95,10 @@ export function PlayerListControls({ controls, onChange, privacyMode }: PlayerLi
                                     scoreDirection: current.scoreDirection === 'desc' ? 'asc' : 'desc',
                                 }))
                             }
-                            aria-label={isDescending ? 'Score direction: high to low' : 'Score direction: low to high'}
-                            title={isDescending ? 'Score: high -> low' : 'Score: low -> high'}
+                            aria-label={isDescending ? t.controls.highToLow : t.controls.lowToHigh}
+                            title={isDescending ? t.controls.highToLow : t.controls.lowToHigh}
                         >
-                            <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
-                                {isDescending ? (
-                                    <path d="M12 5v14m0 0l5-5m-5 5l-5-5" />
-                                ) : (
-                                    <path d="M12 19V5m0 0l5 5m-5-5l-5 5" />
-                                )}
-                            </svg>
+                            <Icon name={isDescending ? 'arrowDown' : 'arrowUp'} size={15} />
                         </button>
                     )}
                 </div>

@@ -1,0 +1,71 @@
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--radius);
+}
+
+.lang-switch-code {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  transition: color var(--t-move) ease;
+}
+
+.lang-switch-code[data-active] {
+  color: var(--text);
+}
+
+/* A strip of pitch: the track with its halfway line. */
+.lang-switch-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  transition: border-color var(--t-press) ease;
+}
+
+.lang-switch-track::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: var(--line-strong);
+}
+
+.lang-switch:hover .lang-switch-track {
+  border-color: var(--text-3);
+}
+
+/* It rolls: 18px of travel on a 9px radius is two radians of turn. */
+.lang-switch-ball {
+  position: absolute;
+  left: 1px;
+  top: 1px;
+  width: 18px;
+  height: 18px;
+  display: block;
+  transition: transform var(--t-move) ease-in-out;
+}
+
+.lang-switch[data-lang='es'] .lang-switch-ball {
+  transform: translateX(18px) rotate(115deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lang-switch-ball,
+  .lang-switch-code {
+    transition: none;
+  }
+}

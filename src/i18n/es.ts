@@ -1,0 +1,313 @@
+// Castellano rioplatense: voseo, y en femenino para las jugadoras. Los roles quedan con sus
+// códigos (GK, DEF, MID, ATT, FLEX), que son los de la planilla.
+import type { Attributes, BalanceLabel, FallbackCause, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
+import type { Dict } from './en.ts';
+
+const team = (label: TeamLabel): string => (label === 'T1' ? 'Equipo 1' : 'Equipo 2');
+const theTeam = (label: TeamLabel) => `El ${team(label)}`;
+
+const attributes: Record<keyof Attributes, string> = {
+    shooting: 'Remate',
+    control: 'Control',
+    passing: 'Pase',
+    defense: 'Marca',
+    pace: 'Velocidad',
+    vision: 'Visión',
+    grit: 'Garra',
+    stamina: 'Aire',
+};
+
+const balance: Record<BalanceLabel, string> = {
+    highlyBalanced: 'Muy parejo',
+    balanced: 'Parejo',
+    playable: 'Jugable, pero desparejo',
+    imbalanced: 'Desparejo',
+};
+
+const rules: Record<HardRule, string> = {
+    avoids: 'Avoids',
+    wants: 'Wants mutuos',
+    ownerBias: 'Owner bias',
+    roleSpread: 'Reparto de ATT y DEF',
+    roleLimits: 'Límites de GK y DEF',
+};
+
+const CLEARED: Record<string, string> = {
+    'all links': 'los links',
+    'positive links': 'los wants',
+    'negative links': 'los avoids',
+};
+
+export const es: Dict = {
+    common: {
+        cancel: 'Cancelar',
+        confirm: 'Confirmar',
+        retry: 'Reintentar',
+        close: 'Cerrar',
+        team,
+        attributes,
+    },
+
+    lang: {
+        label: 'Idioma',
+        english: 'Inglés',
+        spanish: 'Castellano',
+    },
+
+    page: {
+        title: 'Jugadoras',
+        addPlayer: '+ Sumar jugadora',
+        addPlayerWaits: 'Primero tienen que cargar las jugadoras desde Google Sheets',
+        selected: 'elegidas',
+        clear: 'Limpiar',
+        clearSelection: 'Limpiar selección',
+        clearFilters: 'Limpiar filtros',
+        clearWants: 'Borrar wants',
+        clearAvoids: 'Borrar avoids',
+        clearLinks: 'Borrar links',
+        generate: 'Armar equipos',
+        dismissError: 'Cerrar aviso',
+        loading: 'Cargando jugadoras desde Google Sheets',
+        empty: 'Todavía no hay jugadoras.',
+        emptyHint: 'Los datos vienen de Google Sheets. Podés sumar jugadoras acá o editar la planilla.',
+        noMatch: 'Ninguna jugadora coincide con la búsqueda y los filtros.',
+        noMatchFiltered: 'Probá con otro comienzo de nombre o con otro filtro de rol o score.',
+        noMatchSorted: 'Probá cambiando la búsqueda, el filtro o el orden.',
+        updating: 'Actualizando desde Google Sheets...',
+        savedCopyRefresh: 'Copia guardada · Actualizar',
+        showing: (shown, total) => `${shown} de ${total} jugadoras`,
+        total: (total) => `Total: ${total} jugadoras`,
+        selectExactly: (selected) => `Elegí exactamente 10 jugadoras. Elegidas: ${selected}`,
+        couldNotGenerate: 'No se pudieron armar equipos válidos. Revisá los roles y quién puede atajar.',
+    },
+
+    confirm: {
+        deleteTitle: '¿Borrar jugadora?',
+        deleteMessage: 'Se borra de la app y de la planilla.',
+        deleteLabel: 'Borrar',
+        linksTitle: '¿Borrar los links?',
+        linksMessage: 'Se borran todos los wants y los avoids de todas las jugadoras.',
+        linksLabel: 'Borrar links',
+        wantsTitle: '¿Borrar los wants?',
+        wantsMessage: 'Se borran los wants de todas las jugadoras.',
+        wantsLabel: 'Borrar wants',
+        avoidsTitle: '¿Borrar los avoids?',
+        avoidsMessage: 'Se borran los avoids de todas las jugadoras.',
+        avoidsLabel: 'Borrar avoids',
+    },
+
+    controls: {
+        search: 'Buscar jugadoras por apodo o nombre',
+        role: 'Rol',
+        score: 'Score',
+        sort: 'Orden',
+        all: 'Todos',
+        sortDefault: 'Normal',
+        sortSelected: 'Elegidas',
+        sortScore: 'Score',
+        sortPosition: 'Puesto',
+        filterByRole: 'Filtrar por rol',
+        filterByScore: 'Filtrar por score',
+        sortPlayers: 'Ordenar jugadoras',
+        highToLow: 'Score: de mayor a menor',
+        lowToHigh: 'Score: de menor a mayor',
+    },
+
+    card: {
+        select: (nickname) => `Elegir a ${nickname}`,
+        edit: 'Editar',
+        editPlayer: (nickname) => `Editar a ${nickname}`,
+        delete: 'Borrar',
+        deletePlayer: (nickname) => `Borrar a ${nickname}`,
+    },
+
+    notices: {
+        dismissWarning: 'Cerrar aviso',
+        dismissSyncErrors: 'Cerrar errores de guardado',
+        manyFailed: (count) => `${count} cambios no se pudieron guardar en Google Sheets.`,
+        unsavedOnlyHere: 'Lo que no se guardó vive solo en esta pestaña hasta que un reintento funcione.',
+        saving: 'Guardando...',
+        loadingSheet: 'Cargando desde Google Sheets',
+    },
+
+    gate: {
+        idle: 'Hacé el gol para entrar',
+        goal: 'Gol',
+        saved: 'Atajada. Esa no es la clave.',
+        post: 'Palo. No hubo respuesta, probá de nuevo.',
+        scene: 'Una arquera en su línea, esperando un penal',
+        keyLabel: 'Clave de acceso',
+        keyPlaceholder: 'Clave',
+        shoot: 'Patear',
+    },
+
+    form: {
+        newPlayer: 'Jugadora nueva',
+        identity: 'Identidad',
+        game: 'Juego',
+        links: 'Relaciones',
+        nickname: 'Apodo',
+        nicknameBlank: 'El apodo no puede quedar vacío',
+        name: 'Nombre o descripción',
+        photoUpload: 'Subir',
+        photoChange: 'Cambiar',
+        photoAlt: 'Vista previa',
+        photoTooHeavy: 'La foto pesa demasiado para Sheets. Probá con otra.',
+        photoUnreadable: 'No se puede leer esta imagen. Usá un JPG o un PNG.',
+        shirtNumber: 'Número de camiseta',
+        teams: 'Equipos',
+        teamsSelected: (count) => (count === 1 ? '1 elegido' : `${count} elegidos`),
+        teamsLoading: 'Cargando equipos...',
+        teamsEmpty: 'Todavía no hay equipos cargados',
+        teamSelected: 'Elegido',
+        teamAdd: 'Sumar',
+        teamIsMain: (name) => `${name} es el equipo principal`,
+        teamSetMain: (name) => `Poner ${name} como equipo principal`,
+        position: 'Puesto',
+        goalkeeper: '¿Ataja?',
+        gkGood: 'Bien',
+        gkLow: 'Poco',
+        gkNo: 'No',
+        rating: 'Rating',
+        suggested: 'sugerido',
+        attributes: 'Atributos',
+        level: { low: 'bajo', mid: 'medio', high: 'alto' },
+        wants: 'Quiere jugar con',
+        avoids: 'Evita jugar con',
+        wantsYou: (nickname) => `${nickname} quiere jugar con ella`,
+        avoidsYou: (nickname) => `${nickname} la evita`,
+        extraInfo: 'Más datos',
+        save: 'Guardar cambios',
+        add: 'Sumar jugadora',
+    },
+
+    result: {
+        title: 'Equipos',
+        allRulesKept: 'Todas las reglas',
+        fallback: 'Fallback',
+        power: 'Power',
+        copy: 'Copiar equipos',
+        copied: 'Copiado',
+        balance: 'Parejo',
+        balanceLabel: balance,
+        score: (score) => `Score ${score}`,
+        ratingDiff: (diff, favors) => `rating +${diff} ${team(favors)}`,
+        ratingEven: 'rating igual',
+        social: 'Social',
+        wantsKept: (met, total) => `Wants ${met}/${total}`,
+        avoidsKept: (met, total) => `Avoids ${met}/${total}`,
+        noLinks: 'No hay links entre ellas',
+        rules: 'Reglas',
+        allKept: 'Todas se cumplen',
+        brokenCount: (count) => (count === 1 ? 'Se rompió 1' : `Se rompieron ${count}`),
+        strictNote: 'Ninguna regla fuerte se rompe',
+        fallbackNote: 'El reparto que menos rompe',
+
+        fallbackTitle: 'Ningún reparto cumple todas las reglas',
+        why: 'Por qué',
+        broken: 'Se rompió',
+        kept: 'Se mantuvo',
+        noSingleCause: 'No hay una sola causa: las reglas chocan cuando se combinan.',
+        relaxOrder: 'Las reglas ceden en este orden',
+        rule: rules,
+        cause: (cause: FallbackCause): string => {
+            switch (cause.kind) {
+                case 'tooManyGK':
+                    return `Hay ${cause.count} GK elegidas y el máximo es ${cause.maxPerTeam} por equipo.`;
+                case 'tooManyDEF':
+                    return `Hay ${cause.count} DEF elegidas y el máximo es ${cause.maxPerTeam} por equipo.`;
+                case 'fewKeepers':
+                    return `Hay ${cause.gkCount} GK elegidas y solo ${cause.capable} arqueras de emergencia: cada equipo sin GK necesita ${cause.neededPerTeam}.`;
+                case 'wantsChain':
+                    return `Los wants mutuos encadenan a ${cause.nicknames.length} jugadoras (${cause.nicknames.join(', ')}) y en un equipo entran ${cause.teamSize}.`;
+                case 'avoidInChain':
+                    return `${cause.from} evita a ${cause.to}, pero los wants mutuos las encadenan en el mismo equipo.`;
+            }
+        },
+        issue: (issue: RuleIssue): string => {
+            switch (issue.kind) {
+                case 'avoidTogether':
+                    return issue.link.mutual
+                        ? `${issue.link.from} y ${issue.link.to} se evitan y quedaron juntas.`
+                        : `${issue.link.from} evita a ${issue.link.to} y quedaron juntas.`;
+                case 'wantSplit':
+                    return `${issue.link.from} y ${issue.link.to} quieren jugar juntas y quedaron separadas.`;
+                case 'ownerOnStronger':
+                    return `${issue.nickname} quedó en el equipo más fuerte.`;
+                case 'defSplit':
+                    return `Las 2 DEF van una por equipo: el Equipo 1 tiene ${issue.team1} y el Equipo 2, ${issue.team2}.`;
+                case 'attSplit':
+                    return `Las ATT pueden diferir en 1 como mucho: el Equipo 1 tiene ${issue.team1} y el Equipo 2, ${issue.team2}.`;
+                case 'tooManyGK':
+                    return `${theTeam(issue.team)} quedó con ${issue.count} GK (máximo ${issue.max}).`;
+                case 'tooManyDEF':
+                    return `${theTeam(issue.team)} quedó con ${issue.count} DEF (máximo ${issue.max}).`;
+                case 'fewKeepers':
+                    return `${theTeam(issue.team)} no tiene GK y tiene ${issue.capable} de las ${issue.needed} arqueras de emergencia que necesita.`;
+            }
+        },
+
+        showAnalysis: 'Análisis completo',
+        hideAnalysis: 'Ocultar análisis',
+        comparison: 'Equipo 1 vs Equipo 2',
+        rating: 'Rating',
+        keepers: 'Arqueras y ATT',
+        hasGK: (label) => `${theTeam(label)} tiene GK.`,
+        emergency: (label, capable, needed, good, low) =>
+            `${theTeam(label)} no tiene GK: ${capable} de ${needed} arqueras de emergencia (${good} bien, ${low} poco).`,
+        attSplit: (team1, team2) => `ATT: el Equipo 1 tiene ${team1} y el Equipo 2, ${team2}.`,
+        links: 'Links',
+        wantsTogether: 'Wants, juntas',
+        avoidsApart: 'Avoids, separadas',
+        oneWayKept: (kept, total, penalty) =>
+            `Wants de un solo lado cumplidos: ${kept}/${total} (uno roto cuesta ${penalty} puntos).`,
+        oneWayBroken: 'Wants de un solo lado, separadas',
+        none: 'Ninguno',
+        formula: 'Score',
+        formulaBase: 'Base',
+        formulaRating: 'Rating',
+        formulaAttributes: 'Atributos',
+        formulaPace: 'Velocidad',
+        formulaStamina: 'Aire',
+        formulaDefense: 'Marca',
+        formulaKeepers: 'Arqueras de emergencia',
+        formulaAtt: 'Reparto de ATT',
+        formulaWants: 'Wants de un solo lado',
+        formulaTotal: 'Score',
+
+        showSecond: 'Ver otra opción',
+        hideSecond: 'Ocultar otra opción',
+        second: 'Otra opción',
+        secondReason: 'El siguiente mejor reparto con las mismas reglas. Se ordena por score, después por social y después por diferencia de rating.',
+        noSecond: 'No hay otra opción con estas reglas.',
+        scoreDelta: 'Score',
+        ratingDiffDelta: 'Dif. de rating',
+        socialDelta: 'Social',
+        movedTo: (label) => `Pasa al ${team(label)}`,
+        noSwaps: 'Sin cambios',
+        copySecond: 'Copiar otra opción',
+    },
+
+    store: {
+        missingUrl: 'Falta VITE_APPS_SCRIPT_URL. Agregala en .env (local) o en las variables de entorno de Vercel.',
+        duplicateIds: (list) =>
+            `Hay ids de jugadora repetidos en Google Sheets: ${list}. Se muestra solo la primera fila; dale a cada fila su propio id.`,
+        duplicateId: (id, firstRow, row) => `id ${id} (filas ${firstRow} y ${row})`,
+        missingIds: (rows) =>
+            `Hay jugadoras sin id en Google Sheets (filas ${rows}). Agregales un id en la planilla antes de editarlas acá.`,
+        httpStatus: (status) => `Apps Script devolvió HTTP ${status}.`,
+        keyRefused: 'La clave de acceso fue rechazada. Escribila de nuevo y reintentá.',
+        answered: (text) => `Apps Script respondió: ${text || '(respuesta vacía)'}`,
+        timeout: (seconds) => `Apps Script no respondió en ${seconds} s.`,
+        couldntClear: (label) => `No se pudieron borrar ${CLEARED[label] ?? label} en Google Sheets.`,
+        noValidPlayers: 'No hay jugadoras válidas en Google Sheets',
+        teamsError: 'No se pudieron cargar los equipos desde Google Sheets',
+        couldntRefresh: (detail) =>
+            `No se pudo actualizar desde Google Sheets. ${detail} Ves la copia guardada en este dispositivo; para editar hace falta una lectura nueva.`,
+        couldntLoad: (detail) => `No se pudieron cargar los datos desde Google Sheets. ${detail}`,
+        couldntAdd: (nickname) => `No se pudo guardar a la jugadora nueva «${nickname}» en Google Sheets.`,
+        couldntUpdate: (nickname) => `No se pudieron guardar los cambios de «${nickname}» en Google Sheets.`,
+        couldntDelete: (label) => `No se pudo borrar a «${label}» en Google Sheets.`,
+        rowWithoutId: 'Esta fila no tiene id en Google Sheets. Borrala ahí, o agregale un id primero.',
+    },
+};

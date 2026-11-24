@@ -75,6 +75,10 @@
   --role-att: #e37a66;
   --role-flex: #a295d6;
 
+  /* A team from the sheet with no colours of its own. */
+  --team-default-1: #3a3a3a;
+  --team-default-2: #111111;
+
   /* The two sides of a match, like bibs: light and dark. */
   --t1: #f2f1ee;
   --t2: #6d6c75;
@@ -171,6 +175,30 @@ input, select, textarea {
   text-transform: uppercase;
   color: var(--text-3);
 }
+
+/* Role codes, on cards and in the result: the colour of the role as ink on a tint of itself. */
+.role {
+  --role-color: var(--role-gk);
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
+  padding: 0 6px;
+  border-radius: 3px;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--role-color);
+  background: color-mix(in srgb, var(--role-color) 16%, transparent);
+}
+
+.role.gk { --role-color: var(--role-gk); }
+.role.def { --role-color: var(--role-def); }
+.role.mid { --role-color: var(--role-mid); }
+.role.att { --role-color: var(--role-att); }
+.role.flex { --role-color: var(--role-flex); }
 
 .visually-hidden {
   position: absolute;

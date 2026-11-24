@@ -2,60 +2,67 @@
   position: fixed;
   inset: 0;
   z-index: 200;
-  padding: 1rem;
+  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.78);
-  backdrop-filter: blur(3px);
+  background: var(--scrim);
+  animation: confirm-fade 0.16s ease;
 }
 
 .confirm-modal {
   width: 100%;
-  max-width: 430px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
+  max-width: 420px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-float);
+  animation: confirm-rise 0.2s var(--ease-out);
+}
+
+@keyframes confirm-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes confirm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 .confirm-title {
   margin: 0;
-  font-size: 1rem;
-  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text);
 }
 
 .confirm-message {
-  margin: 0.5rem 0 0;
-  color: var(--text-secondary);
-  font-size: 0.88rem;
+  margin: 8px 0 0;
+  color: var(--text-2);
+  font-size: 0.92rem;
   line-height: 1.45;
 }
 
 .confirm-actions {
-  margin-top: 1rem;
+  margin-top: 20px;
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: 8px;
   flex-wrap: wrap;
-}
-
-.confirm-actions .confirm-confirm-btn {
-  background: var(--accent);
-  color: #fff;
-  border-color: var(--accent);
-}
-
-.confirm-actions .confirm-confirm-btn:hover:not(:disabled),
-.confirm-actions .confirm-confirm-btn:focus-visible:not(:disabled) {
-  background: var(--accent);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.75);
 }
 
 @media (max-width: 640px) {
   .confirm-modal {
-    padding: 0.85rem;
+    padding: 16px;
   }
 
   .confirm-actions {
@@ -66,5 +73,12 @@
 
   .confirm-actions .action-btn {
     width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-overlay,
+  .confirm-modal {
+    animation: none;
   }
 }

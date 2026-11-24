@@ -1,5 +1,7 @@
 import type { Person } from '../types';
+import { useT } from '../i18n';
 import useAppStore from '../store/useAppStore';
+import { Icon } from './Icon';
 import './PersonCard.css';
 
 interface PersonCardProps {
@@ -14,9 +16,6 @@ interface PersonCardProps {
     actionsDisabled?: boolean;
 }
 
-const DEFAULT_TEAM_COLOR_1 = '#3a3a3a';
-const DEFAULT_TEAM_COLOR_2 = '#111111';
-
 export function PersonCard({
     person,
     onEdit,
@@ -27,13 +26,15 @@ export function PersonCard({
     selectionDisabled,
     actionsDisabled,
 }: PersonCardProps) {
+    const t = useT();
     const privacyMode = useAppStore((state) => state.privacyMode);
     const teamsCatalog = useAppStore((state) => state.teamsCatalog);
     const mainTeamId = person.primaryTeam;
     const mainTeam = mainTeamId ? teamsCatalog.find((team) => team.teamId === mainTeamId) : undefined;
+    // Team colours come from the sheet; a team without them gets the neutral pair.
     const teamMarkerStyle = mainTeam ? {
-        '--team-color-1': mainTeam.color1 || DEFAULT_TEAM_COLOR_1,
-        '--team-color-2': mainTeam.color2 || mainTeam.color1 || DEFAULT_TEAM_COLOR_2,
+        '--team-color-1': mainTeam.color1 || 'var(--team-default-1)',
+        '--team-color-2': mainTeam.color2 || mainTeam.color1 || 'var(--team-default-2)',
     } as React.CSSProperties : undefined;
 
     const canSelect = Boolean(selectable && !selectionDisabled && onSelect);
@@ -42,6 +43,7 @@ export function PersonCard({
     return (
         <div
             className={`person-card ${selected ? 'selected' : ''} ${selectable ? 'selectable' : ''} ${selectionDisabled ? 'selection-disabled' : ''}`}
+            data-flip-id={person.id}
         >
             {selectable && (
                 // Covers the whole card, under the edit and delete icons: a tap anywhere else selects.
@@ -52,7 +54,7 @@ export function PersonCard({
                     onClick={canSelect ? onSelect : undefined}
                     disabled={!canSelect}
                     aria-pressed={Boolean(selected)}
-                    aria-label={`Select ${person.nickname}`}
+                    aria-label={t.card.select(person.nickname)}
                 />
             )}
 
@@ -67,21 +69,28 @@ export function PersonCard({
 
             <div className="card-content">
                 <div className="avatar-stack">
-                    {person.avatar && person.avatar.trim() !== '' ? (
-                        <img src={person.avatar} alt={person.nickname} className="avatar" />
-                    ) : (
-                        <div className="avatar-placeholder">
-                            {(Array.from(person.nickname)[0] ?? '?').toUpperCase()}
-                        </div>
-                    )}
+                    <div className="card-avatar">
+                        {person.avatar && person.avatar.trim() !== '' ? (
+                            <img src={person.avatar} alt={person.nickname} className="avatar" />
+                        ) : (
+                            <div className="avatar-placeholder">
+                                {(Array.from(person.nickname)[0] ?? '?').toUpperCase()}
+                            </div>
+                        )}
+                        {selected && (
+                            <span className="avatar-check" aria-hidden="true">
+                                <Icon name="check" size={11} />
+                            </span>
+                        )}
+                    </div>
                     <span className={`shirt-number ${person.shirtNumber?.trim() ? '' : 'is-empty'}`}>
-                        {person.shirtNumber?.trim() ? `#${person.shirtNumber.trim()}` : '\u00A0'}
+                        {person.shirtNumber?.trim() ? `#${person.shirtNumber.trim()}` : ' '}
                     </span>
                 </div>
 
                 <div className="info">
                     <div className="nickname">{person.nickname}</div>
-                    <div className="name">{person.name || '\u00A0'}</div>
+                    <div className="name">{person.name || ' '}</div>
 
                     <div className="tags">
                         <span className={`role ${person.role.toLowerCase()}`}>{person.role}</span>
@@ -93,18 +102,13 @@ export function PersonCard({
             {hasActions && (
                 <div className="actions">
                     {onEdit && (
-                        <button type="button" onClick={onEdit} disabled={actionsDisabled} className="edit-btn" title="Edit" aria-label={`Edit ${person.nickname}`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                            </svg>
+                        <button type="button" onClick={onEdit} disabled={actionsDisabled} className="edit-btn" title={t.card.edit} aria-label={t.card.editPlayer(person.nickname)}>
+                            <Icon name="pencil" size={15} />
                         </button>
                     )}
                     {onDelete && (
-                        <button type="button" onClick={onDelete} disabled={actionsDisabled} className="delete-btn" title="Delete" aria-label={`Delete ${person.nickname}`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
+                        <button type="button" onClick={onDelete} disabled={actionsDisabled} className="delete-btn" title={t.card.delete} aria-label={t.card.deletePlayer(person.nickname)}>
+                            <Icon name="trash" size={15} />
                         </button>
                     )}
                 </div>

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useT } from '../i18n';
 import useAppStore from '../store/useAppStore';
 import './AppNotices.css';
 
@@ -13,6 +14,7 @@ export function AppNotices() {
     const dismissSyncErrors = useAppStore((state) => state.dismissSyncErrors);
     const dataWarning = useAppStore((state) => state.dataWarning);
     const dismissDataWarning = useAppStore((state) => state.dismissDataWarning);
+    const t = useT();
 
     const hasUnsavedChanges = pendingSyncCount > 0 || syncErrors.length > 0;
 
@@ -43,7 +45,7 @@ export function AppNotices() {
                             type="button"
                             className="app-notice-btn app-notice-btn--icon"
                             onClick={dismissDataWarning}
-                            aria-label="Dismiss warning"
+                            aria-label={t.notices.dismissWarning}
                         >
                             &times;
                         </button>
@@ -57,10 +59,10 @@ export function AppNotices() {
                         <strong>
                             {syncErrors.length === 1
                                 ? latestError.errorMessage
-                                : `${syncErrors.length} changes couldn't be saved to Google Sheets.`}
+                                : t.notices.manyFailed(syncErrors.length)}
                         </strong>
                         <span className="app-notice-detail">
-                            {latestError.detail} Unsaved changes only live in this tab until a retry works.
+                            {latestError.detail} {t.notices.unsavedOnlyHere}
                         </span>
                     </div>
                     <div className="app-notice-actions">
@@ -70,13 +72,13 @@ export function AppNotices() {
                             onClick={() => void retryFailedSyncs()}
                             disabled={pendingSyncCount > 0}
                         >
-                            {pendingSyncCount > 0 ? 'Saving...' : 'Retry'}
+                            {pendingSyncCount > 0 ? t.notices.saving : t.common.retry}
                         </button>
                         <button
                             type="button"
                             className="app-notice-btn app-notice-btn--icon"
                             onClick={dismissSyncErrors}
-                            aria-label="Dismiss sync errors"
+                            aria-label={t.notices.dismissSyncErrors}
                         >
                             &times;
                         </button>
