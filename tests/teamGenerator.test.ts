@@ -238,3 +238,122 @@ test('a one-way want against an avoid is just a broken preference, not a fallbac
   assert.notEqual(teamOf(result.primary, '2'), teamOf(result.primary, '3'));
   assert.match(result.primary.explanation ?? '', /Broken one-way wants: P2 -> P3/);
 });
+
+// ---------------------------------------------------------------------------
+// The analysis as data (Sprint 5): what the app shows and translates.
+// ---------------------------------------------------------------------------
+
+test('a strict result reports its numbers and no fallback', () => {
+  const pool = basePool();
+  byId(pool, 2).wantsWith = ['3'];
+  byId(pool, 3).wantsWith = ['2'];
+  const result = generateTeams(pool);
+  assert.ok(result);
+  const { report, team1, team2 } = result.primary;
+  assert.equal(report.fallback, null);
+  assert.equal(report.rating.team1, team1.totalRating);
+  assert.equal(report.rating.team2, team2.totalRating);
+  assert.equal(report.rating.diff, Math.abs(team1.totalRating - team2.totalRating));
+  assert.deepEqual(
+    report.attributes.map((attribute) => attribute.key),
+    ['shooting', 'control', 'passing', 'defense', 'pace', 'vision', 'grit', 'stamina'],
+  );
+  assert.equal(report.formula.total, result.primary.score);
+  assert.equal(report.social.pct, result.primary.socialSatisfactionPct);
+  assert.deepEqual(report.social.metWants, [{ from: 'P2', to: 'P3', mutual: true }]);
+  assert.equal(report.social.oneWay, null);
+  assert.ok(result.secondary?.report);
+});
+
+test('fallback with 3 GK reports the cause, the broken rule and the kept ones', () => {
+  const pool = basePool();
+  byId(pool, 2).role = 'GK';
+  const result = generateTeams(pool);
+  assert.ok(result);
+  const fallback = result.primary.report.fallback;
+  assert.ok(fallback);
+  assert.deepEqual(fallback.causes, [{ kind: 'tooManyGK', count: 3, maxPerTeam: 1 }]);
+  // No owner (id 10) among the selected, so owner bias is not a rule here.
+  assert.deepEqual(
+    fallback.rules.map((status) => [status.rule, status.kept]),
+    [['avoids', true], ['wants', true], ['roleSpread', true], ['roleLimits', false]],
+  );
+  const crowded = count(result.primary.team1.players, 'GK') === 2 ? 'T1' : 'T2';
+  assert.deepEqual(fallback.rules.at(-1)?.issues, [{ kind: 'tooManyGK', team: crowded, count: 2, max: 1 }]);
+});
+
+test('fallback with a wants chain names the players and the pair it split', () => {
+  const pool = basePool();
+  for (const [a, b] of [[2, 3], [3, 4], [4, 5], [5, 7], [7, 8]]) {
+    byId(pool, a).wantsWith.push(String(b));
+    byId(pool, b).wantsWith.push(String(a));
+  }
+  const result = generateTeams(pool);
+  assert.ok(result);
+  const fallback = result.primary.report.fallback;
+  assert.ok(fallback);
+  assert.deepEqual(fallback.causes, [
+    { kind: 'wantsChain', nicknames: ['P2', 'P3', 'P4', 'P5', 'P7', 'P8'], teamSize: 5 },
+  ]);
+  const wants = fallback.rules.find((status) => status.rule === 'wants');
+  assert.ok(wants && !wants.kept);
+  assert.equal(wants.issues.length, 1);
+  const [issue] = wants.issues;
+  assert.ok(issue.kind === 'wantSplit' && issue.link.mutual);
+  assert.notEqual(
+    teamOf(result.primary, issue.link.from.slice(1)),
+    teamOf(result.primary, issue.link.to.slice(1)),
+  );
+});
+
+test('fallback without a single cause still says what broke and what was kept', () => {
+  const pool = basePool();
+  // The two GK want each other: together they break the GK limit, apart they break the want.
+  byId(pool, 1).wantsWith = ['6'];
+  byId(pool, 6).wantsWith = ['1'];
+  const result = generateTeams(pool);
+  assert.ok(result);
+  assert.equal(result.primary.stage, 'FALLBACK');
+  const fallback = result.primary.report.fallback;
+  assert.ok(fallback);
+  assert.deepEqual(fallback.causes, []);
+  assert.match(result.primary.explanation ?? '', /Why: no single cause/);
+  // Wants outrank the GK limit, so the pair stays together and the limit gives way.
+  assert.equal(teamOf(result.primary, '1'), teamOf(result.primary, '6'));
+  const broken = fallback.rules.filter((status) => !status.kept);
+  assert.deepEqual(broken.map((status) => status.rule), ['roleLimits']);
+  assert.equal(broken[0].issues[0].kind, 'tooManyGK');
+  assert.ok(fallback.rules.find((status) => status.rule === 'wants')?.kept);
+});
+
+test('owner bias shows up among the rules only when the owner is selected', () => {
+  const pool = basePool();
+  pool[9] = player(10, { rating: 8 });
+  byId(pool, 2).role = 'GK';
+  const result = generateTeams(pool);
+  assert.ok(result);
+  const fallback = result.primary.report.fallback;
+  assert.ok(fallback);
+  assert.deepEqual(
+    fallback.rules.map((status) => status.rule),
+    ['avoids', 'wants', 'ownerBias', 'roleSpread', 'roleLimits'],
+  );
+});
+
+test('a broken one-way want is reported as a preference, with the pair', () => {
+  const pool = basePool();
+  byId(pool, 2).wantsWith = ['3'];
+  byId(pool, 3).avoidsWith = ['2'];
+  const result = generateTeams(pool);
+  assert.ok(result);
+  const { report } = result.primary;
+  assert.equal(report.fallback, null);
+  assert.deepEqual(report.social.oneWay, {
+    total: 1,
+    broken: 1,
+    penaltyEach: ONE_WAY_WANT_PENALTY,
+    adjustment: -ONE_WAY_WANT_PENALTY,
+    brokenLinks: [{ from: 'P2', to: 'P3', mutual: false }],
+  });
+  assert.equal(report.formula.wantsPref, -ONE_WAY_WANT_PENALTY);
+});

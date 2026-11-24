@@ -1,10 +1,20 @@
 import type {
   Person,
   GeneratedTeams,
+  AnalysisReport,
   AttributeLevel,
   Attributes,
+  BalanceLabel,
+  FallbackCause,
+  FallbackReport,
+  Favors,
   GeneratedTeamOption,
   GenerationStage,
+  HardRule,
+  LinkRef,
+  RuleIssue,
+  RuleStatus,
+  TeamKeeperReport,
   TeamOptionComparison,
 } from '../types';
 
@@ -677,21 +687,20 @@ function calculateSocialSatisfaction(team1: Person[], team2: Person[]): SocialSa
 
 /**
  * Lists wants/avoids links between selected players, filtered by whether both ends
- * are in the same team. Mutual links are listed once with the mutual arrow.
+ * are in the same team. Mutual links are listed once.
  */
-function describeLinks(
+function listLinks(
   team1: Person[],
   team2: Person[],
   linkKey: 'wantsWith' | 'avoidsWith',
   sameTeam: boolean,
-  arrows: { oneWay: string; mutual: string },
   only?: 'mutual' | 'oneWay',
-): string[] {
+): LinkRef[] {
   const allPlayers = [...team1, ...team2];
   const byId = new Map(allPlayers.map((player) => [player.id, player]));
   const team1Ids = new Set(team1.map((player) => player.id));
   const processed = new Set<string>();
-  const links: string[] = [];
+  const links: LinkRef[] = [];
 
   for (const source of allPlayers) {
     for (const targetId of source[linkKey]) {
@@ -704,11 +713,27 @@ function describeLinks(
       const pairKey = isMutual ? [source.id, targetId].sort().join('|') : `${source.id}->${targetId}`;
       if (processed.has(pairKey)) continue;
       processed.add(pairKey);
-      links.push(`${source.nickname} ${isMutual ? arrows.mutual : arrows.oneWay} ${target.nickname}`);
+      links.push({ from: source.nickname, to: target.nickname, mutual: isMutual });
     }
   }
 
   return links;
+}
+
+function formatLink(link: LinkRef, arrows: { oneWay: string; mutual: string }): string {
+  return `${link.from} ${link.mutual ? arrows.mutual : arrows.oneWay} ${link.to}`;
+}
+
+/** The same links as text, with the mutual arrow for mutual ones. */
+function describeLinks(
+  team1: Person[],
+  team2: Person[],
+  linkKey: 'wantsWith' | 'avoidsWith',
+  sameTeam: boolean,
+  arrows: { oneWay: string; mutual: string },
+  only?: 'mutual' | 'oneWay',
+): string[] {
+  return listLinks(team1, team2, linkKey, sameTeam, only).map((link) => formatLink(link, arrows));
 }
 
 const WANTS_ARROWS = { oneWay: '->', mutual: '<->' };
@@ -944,26 +969,29 @@ ${attPreferenceLine}
 - Met dislikes links: ${getMetDislikeDetails(team1Players, team2Players)}`;
 }
 
-/** Explains why no split can satisfy every rule, using causes that can be checked up front. */
-function diagnoseRuleConflicts(players: Person[]): string[] {
-  const reasons: string[] = [];
+/** Why no split can satisfy every rule, from causes that can be checked up front. */
+function diagnoseCauses(players: Person[]): FallbackCause[] {
+  const causes: FallbackCause[] = [];
   const gkCount = countRole(players, 'GK');
   const defCount = countRole(players, 'DEF');
 
   if (gkCount > MAX_GK * 2) {
-    reasons.push(`${gkCount} GK selected: max ${MAX_GK} GK per team.`);
+    causes.push({ kind: 'tooManyGK', count: gkCount, maxPerTeam: MAX_GK });
   }
 
   if (defCount > MAX_DEF * 2) {
-    reasons.push(`${defCount} DEF selected: max ${MAX_DEF} DEF per team.`);
+    causes.push({ kind: 'tooManyDEF', count: defCount, maxPerTeam: MAX_DEF });
   }
 
   const teamsWithoutGK = Math.max(0, 2 - gkCount);
   const capableOutfield = players.filter((player) => player.role !== 'GK' && player.gkWillingness !== 'no').length;
   if (capableOutfield < teamsWithoutGK * REQUIRED_GK_CAPABLE_WHEN_NO_GK) {
-    reasons.push(
-      `${gkCount} GK selected and ${capableOutfield} capable emergency keepers: each team without GK needs ${REQUIRED_GK_CAPABLE_WHEN_NO_GK}.`,
-    );
+    causes.push({
+      kind: 'fewKeepers',
+      gkCount,
+      capable: capableOutfield,
+      neededPerTeam: REQUIRED_GK_CAPABLE_WHEN_NO_GK,
+    });
   }
 
   // Only mutual wants are a rule, so only they can make every split impossible.
@@ -973,8 +1001,7 @@ function diagnoseRuleConflicts(players: Person[]): string[] {
     group.forEach((player) => groupIndexById.set(player.id, index));
 
     if (group.length > TEAM_SIZE) {
-      const names = group.map((player) => player.nickname).join(', ');
-      reasons.push(`Wants chain ${group.length} players together (${names}); a team has ${TEAM_SIZE} spots.`);
+      causes.push({ kind: 'wantsChain', nicknames: group.map((player) => player.nickname), teamSize: TEAM_SIZE });
     }
   });
 
@@ -991,70 +1018,147 @@ function diagnoseRuleConflicts(players: Person[]): string[] {
       const pairKey = [player.id, avoidId].sort().join('|');
       if (reportedPairs.has(pairKey)) continue;
       reportedPairs.add(pairKey);
-      reasons.push(`${player.nickname} avoids ${target.nickname}, but wants links chain them into the same team.`);
+      causes.push({ kind: 'avoidInChain', from: player.nickname, to: target.nickname });
     }
   }
 
-  return reasons;
+  return causes;
 }
 
-function createFallbackSection(players: Person[], evaluation: SplitEvaluation): string {
-  const { team1Players, team2Players, violations } = evaluation;
-  const selectedGK = getTeamGKProfile(players);
-  const reasons = diagnoseRuleConflicts(players);
-  const lines = [
-    '- FALLBACK USED: no split meets every rule, so the split that breaks the fewest rules was picked.',
-    '- Relax order: avoids > wants > owner bias > ATT/DEF spread > GK/DEF limits.',
-    ...(reasons.length > 0
-      ? reasons.map((reason) => `- Why: ${reason}`)
-      : ['- Why: no single cause; the rules only conflict when combined.']),
-  ];
+function describeCause(cause: FallbackCause): string {
+  switch (cause.kind) {
+    case 'tooManyGK':
+      return `${cause.count} GK selected: max ${cause.maxPerTeam} GK per team.`;
+    case 'tooManyDEF':
+      return `${cause.count} DEF selected: max ${cause.maxPerTeam} DEF per team.`;
+    case 'fewKeepers':
+      return `${cause.gkCount} GK selected and ${cause.capable} capable emergency keepers: each team without GK needs ${cause.neededPerTeam}.`;
+    case 'wantsChain':
+      return `Wants chain ${cause.nicknames.length} players together (${cause.nicknames.join(', ')}); a team has ${cause.teamSize} spots.`;
+    case 'avoidInChain':
+      return `${cause.from} avoids ${cause.to}, but wants links chain them into the same team.`;
+  }
+}
 
-  const brokenAvoids = describeLinks(team1Players, team2Players, 'avoidsWith', true, AVOIDS_ARROWS);
-  lines.push(violations.avoids === 0 ? '- Avoids: kept.' : `- Avoids: BROKEN (${brokenAvoids.join(', ')}).`);
+/** Every hard rule that applies to this selection, kept or broken in this split, in relax order. */
+function getRuleStatuses(players: Person[], evaluation: SplitEvaluation): RuleStatus[] {
+  const { team1Players, team2Players, violations } = evaluation;
+  const status = (rule: HardRule, kept: boolean, issues: RuleIssue[]): RuleStatus => ({
+    rule,
+    kept,
+    issues: kept ? [] : issues,
+  });
+  const statuses: RuleStatus[] = [];
+
+  statuses.push(
+    status(
+      'avoids',
+      violations.avoids === 0,
+      listLinks(team1Players, team2Players, 'avoidsWith', true).map((link) => ({ kind: 'avoidTogether', link })),
+    ),
+  );
 
   // Only mutual wants are a rule; broken one-way wants show up under Social.
-  const brokenWants = describeLinks(team1Players, team2Players, 'wantsWith', false, WANTS_ARROWS, 'mutual');
-  lines.push(
-    violations.wants === 0 ? '- Mutual wants: kept.' : `- Mutual wants: BROKEN (${brokenWants.join(', ')}).`,
+  statuses.push(
+    status(
+      'wants',
+      violations.wants === 0,
+      listLinks(team1Players, team2Players, 'wantsWith', false, 'mutual').map((link) => ({ kind: 'wantSplit', link })),
+    ),
   );
 
   const owner = players.find((player) => player.id === OWNER_ID);
   if (owner) {
-    lines.push(
-      violations.ownerBias === 0
-        ? '- Owner bias: kept.'
-        : `- Owner bias: BROKEN (${owner.nickname} is on the stronger team).`,
+    statuses.push(
+      status('ownerBias', violations.ownerBias === 0, [{ kind: 'ownerOnStronger', nickname: owner.nickname }]),
     );
   }
 
-  const spreadIssues: string[] = [];
+  const spreadIssues: RuleIssue[] = [];
   const team1Def = countRole(team1Players, 'DEF');
   const team2Def = countRole(team2Players, 'DEF');
   if (countRole(players, 'DEF') === 2 && (team1Def !== 1 || team2Def !== 1)) {
-    spreadIssues.push(`DEF split T1 ${team1Def} / T2 ${team2Def}, 2 DEF must split 1/1`);
+    spreadIssues.push({ kind: 'defSplit', team1: team1Def, team2: team2Def });
   }
   const team1Att = countRole(team1Players, 'ATT');
   const team2Att = countRole(team2Players, 'ATT');
   if (Math.abs(team1Att - team2Att) > 1) {
-    spreadIssues.push(`ATT split T1 ${team1Att} / T2 ${team2Att}, max difference 1`);
+    spreadIssues.push({ kind: 'attSplit', team1: team1Att, team2: team2Att });
   }
-  lines.push(spreadIssues.length === 0 ? '- ATT/DEF spread: kept.' : `- ATT/DEF spread: BROKEN (${spreadIssues.join('; ')}).`);
+  statuses.push(status('roleSpread', spreadIssues.length === 0, spreadIssues));
 
-  const limitIssues: string[] = [];
-  const describeTeamLimits = (label: 'T1' | 'T2', teamPlayers: Person[], profile: TeamGKProfile) => {
-    if (profile.gkRoleCount > MAX_GK) limitIssues.push(`${label} has ${profile.gkRoleCount} GK, max ${MAX_GK}`);
+  const limitIssues: RuleIssue[] = [];
+  const collectTeamLimits = (team: 'T1' | 'T2', teamPlayers: Person[], profile: TeamGKProfile) => {
+    if (profile.gkRoleCount > MAX_GK) {
+      limitIssues.push({ kind: 'tooManyGK', team, count: profile.gkRoleCount, max: MAX_GK });
+    }
     const defCount = countRole(teamPlayers, 'DEF');
-    if (defCount > MAX_DEF) limitIssues.push(`${label} has ${defCount} DEF, max ${MAX_DEF}`);
+    if (defCount > MAX_DEF) limitIssues.push({ kind: 'tooManyDEF', team, count: defCount, max: MAX_DEF });
     if (profile.gkRoleCount === 0 && profile.capableCount < REQUIRED_GK_CAPABLE_WHEN_NO_GK) {
-      limitIssues.push(
-        `${label} has no GK and ${profile.capableCount}/${REQUIRED_GK_CAPABLE_WHEN_NO_GK} capable keepers`,
-      );
+      limitIssues.push({
+        kind: 'fewKeepers',
+        team,
+        capable: profile.capableCount,
+        needed: REQUIRED_GK_CAPABLE_WHEN_NO_GK,
+      });
     }
   };
-  describeTeamLimits('T1', team1Players, evaluation.team1GKProfile);
-  describeTeamLimits('T2', team2Players, evaluation.team2GKProfile);
-  lines.push(limitIssues.length === 0 ? '- GK/DEF limits: kept.' : `- GK/DEF limits: BROKEN (${limitIssues.join('; ')}).`);
+  collectTeamLimits('T1', team1Players, evaluation.team1GKProfile);
+  collectTeamLimits('T2', team2Players, evaluation.team2GKProfile);
+  statuses.push(status('roleLimits', limitIssues.length === 0, limitIssues));
+
+  return statuses;
+}
+
+function describeRuleIssue(issue: RuleIssue): string {
+  switch (issue.kind) {
+    case 'avoidTogether':
+      return formatLink(issue.link, AVOIDS_ARROWS);
+    case 'wantSplit':
+      return formatLink(issue.link, WANTS_ARROWS);
+    case 'ownerOnStronger':
+      return `${issue.nickname} is on the stronger team`;
+    case 'defSplit':
+      return `DEF split T1 ${issue.team1} / T2 ${issue.team2}, 2 DEF must split 1/1`;
+    case 'attSplit':
+      return `ATT split T1 ${issue.team1} / T2 ${issue.team2}, max difference 1`;
+    case 'tooManyGK':
+      return `${issue.team} has ${issue.count} GK, max ${issue.max}`;
+    case 'tooManyDEF':
+      return `${issue.team} has ${issue.count} DEF, max ${issue.max}`;
+    case 'fewKeepers':
+      return `${issue.team} has no GK and ${issue.capable}/${issue.needed} capable keepers`;
+  }
+}
+
+const RULE_TEXT: Record<HardRule, { label: string; separator: string }> = {
+  avoids: { label: 'Avoids', separator: ', ' },
+  wants: { label: 'Mutual wants', separator: ', ' },
+  ownerBias: { label: 'Owner bias', separator: ', ' },
+  roleSpread: { label: 'ATT/DEF spread', separator: '; ' },
+  roleLimits: { label: 'GK/DEF limits', separator: '; ' },
+};
+
+function buildFallbackReport(players: Person[], evaluation: SplitEvaluation): FallbackReport {
+  return { causes: diagnoseCauses(players), rules: getRuleStatuses(players, evaluation) };
+}
+
+function createFallbackSection(players: Person[], fallback: FallbackReport): string {
+  const selectedGK = getTeamGKProfile(players);
+  const lines = [
+    '- FALLBACK USED: no split meets every rule, so the split that breaks the fewest rules was picked.',
+    '- Relax order: avoids > wants > owner bias > ATT/DEF spread > GK/DEF limits.',
+    ...(fallback.causes.length > 0
+      ? fallback.causes.map((cause) => `- Why: ${describeCause(cause)}`)
+      : ['- Why: no single cause; the rules only conflict when combined.']),
+  ];
+
+  for (const { rule, kept, issues } of fallback.rules) {
+    const { label, separator } = RULE_TEXT[rule];
+    lines.push(
+      kept ? `- ${label}: kept.` : `- ${label}: BROKEN (${issues.map(describeRuleIssue).join(separator)}).`,
+    );
+  }
 
   lines.push(
     `- Selected GK roles: ${selectedGK.gkRoleCount}; willingness good=${selectedGK.goodCount}, low=${selectedGK.lowCount}, no=${selectedGK.noCount}.`,
@@ -1063,16 +1167,166 @@ function createFallbackSection(players: Person[], evaluation: SplitEvaluation): 
   return lines.join('\n');
 }
 
+// ---------------------------------------------------------------------------
+// Analysis as data: what the app shows and translates
+// ---------------------------------------------------------------------------
+
+const ATTRIBUTE_ORDER: (keyof Attributes)[] = [
+  'shooting',
+  'control',
+  'passing',
+  'defense',
+  'pace',
+  'vision',
+  'grit',
+  'stamina',
+];
+
+function getFavoredSide(team1Value: number, team2Value: number): Favors {
+  if (team1Value > team2Value) return 'T1';
+  if (team2Value > team1Value) return 'T2';
+  return 'Even';
+}
+
+function getBalanceLabel(balanceScore: number): BalanceLabel {
+  if (balanceScore >= 70) return 'highlyBalanced';
+  if (balanceScore >= 40) return 'balanced';
+  if (balanceScore >= 0) return 'playable';
+  return 'imbalanced';
+}
+
+function buildKeeperReport(profile: TeamGKProfile, breakdown: TeamGKScoreBreakdown): TeamKeeperReport {
+  return {
+    gkCount: profile.gkRoleCount,
+    good: profile.goodCount,
+    low: profile.lowCount,
+    no: profile.noCount,
+    capable: profile.capableCount,
+    missing: breakdown.missingCapable,
+    adjustment: breakdown.adjustment,
+  };
+}
+
+function buildAnalysisReport(evaluation: SplitEvaluation, fallback: FallbackReport | null): AnalysisReport {
+  const {
+    score,
+    stats1,
+    stats2,
+    team1Players,
+    team2Players,
+    team1GKProfile,
+    team2GKProfile,
+    gkPreference,
+    attPreference,
+    wantsPreference,
+    social,
+  } = evaluation;
+
+  const attributes = ATTRIBUTE_ORDER.map((key) => ({
+    key,
+    team1: stats1.attributes[key],
+    team2: stats2.attributes[key],
+    diff: Math.abs(stats1.attributes[key] - stats2.attributes[key]),
+    favors: getFavoredSide(stats1.attributes[key], stats2.attributes[key]),
+  }));
+  const diffOf = (key: keyof Attributes) => Math.abs(stats1.attributes[key] - stats2.attributes[key]);
+
+  const ratingDiff = Math.abs(stats1.rating - stats2.rating);
+  const attrDiff = attributes.reduce((sum, attribute) => sum + attribute.diff, 0);
+  const paceDiff = diffOf('pace');
+  const staminaDiff = diffOf('stamina');
+  const defenseDiff = diffOf('defense');
+  const ratingPenalty = ratingDiff * 10;
+  const attrPenalty = attrDiff * 5;
+  const pacePenalty = paceDiff * 10;
+  const staminaPenalty = staminaDiff * 8;
+  const defensePenalty = defenseDiff * 5;
+
+  return {
+    score,
+    // The label describes how even the teams are, so it leaves out the one-way wants penalty.
+    balanceLabel: getBalanceLabel(score - wantsPreference.adjustment),
+    formula: {
+      base: POINTS.RATING_BALANCE_BASE,
+      ratingDiff,
+      ratingPenalty,
+      attrDiff,
+      attrPenalty,
+      paceDiff,
+      pacePenalty,
+      staminaDiff,
+      staminaPenalty,
+      defenseDiff,
+      defensePenalty,
+      gkPref: gkPreference.applies ? gkPreference.adjustment : null,
+      attPref: attPreference.adjustment,
+      wantsPref: wantsPreference.applies ? wantsPreference.adjustment : null,
+      total:
+        POINTS.RATING_BALANCE_BASE -
+        ratingPenalty -
+        attrPenalty -
+        pacePenalty -
+        staminaPenalty -
+        defensePenalty +
+        gkPreference.adjustment +
+        attPreference.adjustment +
+        wantsPreference.adjustment,
+    },
+    rating: {
+      team1: stats1.rating,
+      team2: stats2.rating,
+      diff: ratingDiff,
+      favors: getFavoredSide(stats1.rating, stats2.rating),
+    },
+    attributes,
+    keepers: {
+      neededWithoutGK: REQUIRED_GK_CAPABLE_WHEN_NO_GK,
+      team1: buildKeeperReport(team1GKProfile, gkPreference.team1),
+      team2: buildKeeperReport(team2GKProfile, gkPreference.team2),
+      pass: gkPreference.team1.missingCapable === 0 && gkPreference.team2.missingCapable === 0,
+    },
+    att: {
+      total: attPreference.totalAtt,
+      team1: attPreference.team1Att,
+      team2: attPreference.team2Att,
+      spreadKept: Math.abs(attPreference.team1Att - attPreference.team2Att) <= 1,
+      overloaded: attPreference.totalAtt >= 5 ? attPreference.overloadedTeam : 'Even',
+      overloadedDef: attPreference.overloadedDefCount,
+      adjustment: attPreference.adjustment,
+    },
+    social: {
+      pct: social.percentage,
+      wantsMet: social.wantsMet,
+      wantsTotal: social.wantsTotal,
+      avoidsMet: social.dislikesMet,
+      avoidsTotal: social.dislikesTotal,
+      metWants: listLinks(team1Players, team2Players, 'wantsWith', true),
+      metAvoids: listLinks(team1Players, team2Players, 'avoidsWith', false),
+      oneWay: wantsPreference.applies
+        ? {
+            total: wantsPreference.oneWayTotal,
+            broken: wantsPreference.oneWayBroken,
+            penaltyEach: ONE_WAY_WANT_PENALTY,
+            adjustment: wantsPreference.adjustment,
+            brokenLinks: listLinks(team1Players, team2Players, 'wantsWith', false, 'oneWay'),
+          }
+        : null,
+    },
+    fallback,
+  };
+}
+
 function buildOption(
   evaluation: SplitEvaluation,
   stage: GenerationStage,
-  fallbackSection?: string,
+  fallback?: { report: FallbackReport; section: string },
 ): GeneratedTeamOption {
   return {
     team1: { players: evaluation.team1Players, totalRating: evaluation.stats1.rating },
     team2: { players: evaluation.team2Players, totalRating: evaluation.stats2.rating },
     socialSatisfactionPct: evaluation.socialPct,
-    explanation: createAnalysisExplanation(evaluation, fallbackSection),
+    explanation: createAnalysisExplanation(evaluation, fallback?.section),
+    report: buildAnalysisReport(evaluation, fallback?.report ?? null),
     isFallback: stage === 'FALLBACK',
     score: evaluation.score,
     stage,
@@ -1134,8 +1388,13 @@ export function generateTeams(players: Person[]): GeneratedTeams | null {
   // in priority order, so avoids are only broken when no avoid-safe split exists.
   const [closest] = [...evaluations].sort(compareByFewestViolations);
 
+  const fallbackReport = buildFallbackReport(players, closest);
+
   return {
-    primary: buildOption(closest, 'FALLBACK', createFallbackSection(players, closest)),
+    primary: buildOption(closest, 'FALLBACK', {
+      report: fallbackReport,
+      section: createFallbackSection(players, fallbackReport),
+    }),
     secondary: null,
     secondaryReason: NO_SECONDARY_OPTION_REASON,
     comparison: null,

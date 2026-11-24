@@ -156,7 +156,7 @@ Prueba (después de prender la clave; en https://armaduki.vercel.app, mejor desd
 Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se usa (24/11). Se hace con Claude Fable 5.2 en la rama `sprint-5`, que pasa a `main`, y de ahí a Vercel, recién cuando Ángela la aprueba. El detalle está en `docs/DESIGN_DIRECTION.md`.
 
 - [x] Borrador de la dirección de diseño en `docs/DESIGN_DIRECTION.md`, en la rama `sprint-5` (24/11): idea, decisiones, lenguaje visual, la pantalla, el resultado, el modal, el idioma y lo que no cambia.
-- [ ] **Ángela:** aprobar la dirección, o corregirla, antes de tocar la UI.
+- [x] **Ángela:** aprobar la dirección, o corregirla, antes de tocar la UI.
 - [ ] Lenguaje visual nuevo en toda la app: colores propios, la letra Barlow servida desde la app, superficies, íconos y estados. Se van los emojis de los atributos y las etiquetas «Filter: …» y «Sort: …».
 - [ ] Tarjetas con la foto un poco más grande: 48 px en la computadora y 40 en el teléfono (hoy, 40 y 32).
 - [ ] Con la décima elegida, las elegidas suben solas al principio de la lista (la regla exacta está en la dirección), con tests en `playerListing`.
