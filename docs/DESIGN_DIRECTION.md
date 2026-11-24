@@ -59,7 +59,7 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 
 Debajo de la lista, como hoy, en tres partes:
 
-1. **Los equipos.** Team 1 y Team 2 lado a lado, también en el teléfono, marcados como pecheras: clara y oscura. Cada jugadora con su foto chica, el apodo y el rol, ordenadas por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
+1. **Los equipos.** Team 1 y Team 2 lado a lado, también en el teléfono, marcados como pecheras: clara y oscura. Cada jugadora con su foto chica (en el teléfono, sin foto, para que entre un apodo largo), el apodo y el rol, ordenadas por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
 2. **El resumen.** Tres datos en una fila:
    - **Parejo:** la etiqueta del score (highly balanced, balanced…) y, sin privacy mode, la diferencia de rating y a qué equipo favorece.
    - **Social:** el porcentaje y los wants cumplidos.
@@ -94,7 +94,7 @@ Uno solo para sumar y para editar.
   - **Juego:** el rol, ¿ataja? (good, low, no), el rating del 1 al 10 con la sugerencia marcada con un punto (oculto con privacy mode) y los 8 atributos, cada uno con un control de tres rayitas, como la señal del teléfono, en lugar de los emojis. Lugar reservado para el Sprint 6: «también juega», para los varios roles (el rol de hoy pasa a ser el principal, que es el que cuentan las reglas mientras no se decida otra cosa), y grupos y día o lugar.
   - **Relaciones:** «Wants to play with» y «Avoids», con las marcadas primero y las pistas de relación inversa de hoy. La lista scrollea por dentro; arriba queda el lugar del buscador del Sprint 8.
   - Abajo, siempre a la vista: «Cancel» y «Save». Enter guarda y Escape cierra, como hoy.
-- **En el teléfono**, una hoja de pantalla completa: las tres partes una debajo de la otra, el apodo y la × arriba, y «Cancel» y «Save» fijos abajo.
+- **En el teléfono**, una hoja de pantalla completa: las tres partes una debajo de la otra, el apodo y la × arriba, y «Cancel» y «Save» fijos abajo. Cada lista de relaciones va en su caja y scrollea por dentro, para que la hoja no se haga eterna.
 - «Extra info» deja de hacer falta en la computadora, porque todo tiene su lugar; en el teléfono puede seguir plegado.
 
 ## El idioma

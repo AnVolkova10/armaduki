@@ -168,11 +168,11 @@ Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se
 - [x] Modal de jugadora en tres columnas (identidad, juego y relaciones), con lugar para los campos del Sprint 6. En la computadora entra sin scroll en una ventana de 1280 × 680; en el teléfono es una hoja de pantalla completa.
 - [x] Movimiento al nivel del penal: elegir, reordenar, repartir los equipos, abrir el modal y el switch. Todo se apaga con «reducir movimiento».
 - [x] El penal ya no se saltea el gol cuando el backend contesta en menos de 0,8 s (apareció al probar; con Apps Script no pasaba).
-- [x] Verificado: lint, tipos, 100 tests, build y pruebas en Edge contra una API local, en tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado: 54 chequeos del rediseño en cada tamaño, más las suites de la pantalla única (Sprint 3b) y del penal (Sprint 4), que siguen pasando.
+- [x] Verificado: lint, tipos, 100 tests, build y pruebas en Edge contra una API local, en tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado: 54 chequeos del rediseño en cada tamaño, más las suites de la pantalla única (Sprint 3b) y del penal (Sprint 4), que siguen pasando, y una corrida a escala real con 61 jugadoras inventadas.
 
 Prueba (en tu computadora, con la rama `sprint-5`; todavía no está en Vercel):
 
-1. En la terminal del proyecto: `npm run dev`, y abrí la dirección que muestra (`http://localhost:5173`). Va a pedir la clave: en esa dirección el navegador todavía no la tiene. Para verla desde el teléfono, en la misma wifi: `npm run dev -- --host` y abrí la dirección «Network».
+1. En la terminal del proyecto: `npm run dev`, y abrí la dirección «Local» que muestra. Si entra directo, sin el penal, es porque ese navegador ya tiene la clave guardada para esa dirección: para ver el penal, abrila en una ventana privada. Para verla desde el teléfono, en la misma wifi: `npm run dev -- --host` y abrí la dirección «Network».
 2. En el penal, tocá el switch de la esquina: los textos pasan a castellano. Entrá con la clave.
 3. Mirá la pantalla: la letra nueva, el contador con sus diez puntitos y las fotos un poco más grandes. Tocá el switch EN / ES del header: la pelota rueda y todo cambia de idioma. Recargá: sigue en el idioma que elegiste.
 4. Elegí 10: con la décima suben arriba y el menú de orden dice «Selected». Sacá una y elegí otra. «Clear» → «Clear Selection» devuelve el orden que tenías.

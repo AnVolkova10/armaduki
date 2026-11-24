@@ -176,6 +176,7 @@
   overflow-wrap: anywhere;
 }
 
+/* Two lines at most, so a long description does not stretch the row of cards. */
 .name {
   margin: 1px 0 7px;
   font-size: 0.78rem;
@@ -183,6 +184,11 @@
   color: var(--text-3);
   min-height: 1.25em;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .tags {
