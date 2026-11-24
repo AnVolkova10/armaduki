@@ -151,22 +151,36 @@ Prueba (después de prender la clave; en https://armaduki.vercel.app, mejor desd
 4. Para volver a ver el penal: una ventana privada, o borrar los datos del sitio en el navegador.
 5. Con privacy mode prendido, generá equipos: en el análisis, la línea «Rating» muestra la diferencia pero no el total de cada equipo.
 
-## Sprint 5 - Rediseño con Fable
+## Sprint 5 - Rediseño con Fable (hecho, falta tu prueba)
 
-Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se usa (24/11). Se hace con Claude Fable 5.2 en la rama `sprint-5`, que pasa a `main`, y de ahí a Vercel, recién cuando Ángela la aprueba. El detalle está en `docs/DESIGN_DIRECTION.md`.
+Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se usa (24/11). Hecho con Claude Fable 5.2 en la rama `sprint-5`, que pasa a `main`, y de ahí a Vercel, recién cuando Ángela la aprueba. La dirección está en `docs/DESIGN_DIRECTION.md`; lo que cambió y cómo se verificó, en `docs/REDESIGN_REVIEW.md`.
 
-- [x] Borrador de la dirección de diseño en `docs/DESIGN_DIRECTION.md`, en la rama `sprint-5` (24/11): idea, decisiones, lenguaje visual, la pantalla, el resultado, el modal, el idioma y lo que no cambia.
-- [x] **Ángela:** aprobar la dirección, o corregirla, antes de tocar la UI.
-- [ ] Lenguaje visual nuevo en toda la app: colores propios, la letra Barlow servida desde la app, superficies, íconos y estados. Se van los emojis de los atributos y las etiquetas «Filter: …» y «Sort: …».
-- [ ] Tarjetas con la foto un poco más grande: 48 px en la computadora y 40 en el teléfono (hoy, 40 y 32).
-- [ ] Con la décima elegida, las elegidas suben solas al principio de la lista (la regla exacta está en la dirección), con tests en `playerListing`.
-- [ ] Switch de idioma: inglés y castellano rioplatense, con la pelota del logo como perilla, en el header y en el penal.
-- [ ] El resultado, debajo de la lista como hoy, rediseñado: los equipos, un resumen corto y el análisis completo plegado.
-- [ ] Fallback legible: arriba, por qué no se pudo cumplir todo; después, qué regla se rompió y con quién, y qué reglas se mantuvieron. Rojo solo en lo roto. El generador elige igual (los tests lo cuidan) y además devuelve esos datos, para que la app los muestre y los traduzca.
-- [ ] Modal de jugadora en tres columnas (identidad, juego y relaciones), con lugar para los campos del Sprint 6. En la computadora, sin scroll en una ventana de 1280 × 680.
-- [ ] Movimiento al nivel del penal: elegir, reordenar, repartir los equipos, abrir el modal y el switch. Todo se apaga con «reducir movimiento».
-- [ ] Recorrido en escritorio y en el teléfono contra una API local, sin tocar la planilla real, en los dos idiomas y con privacy mode.
-- [ ] **Ángela:** probar la rama antes de pasarla a `main`.
+- [x] Dirección de diseño en `docs/DESIGN_DIRECTION.md` (24/11): idea, decisiones, lenguaje visual, la pantalla, el resultado, el modal, el idioma y lo que no cambia.
+- [x] **Ángela:** aprobó la dirección (24/11).
+- [ ] **Ángela:** probar la rama con los pasos de abajo, antes de pasarla a `main`.
+- [ ] **Ángela:** decir la resolución de su computadora. El modal está pensado para entrar sin scroll en una ventana de 1280 × 680; si su pantalla es otra, se ajusta.
+- [x] Lenguaje visual nuevo en toda la app: colores propios como variables, Barlow y Barlow Condensed servidas desde la app, una sola familia de íconos y estados claros. Se fueron los emojis de los atributos y las etiquetas «Filter: …» y «Sort: …».
+- [x] Tarjetas con la foto un poco más grande: 48 px en la computadora y 40 en el teléfono.
+- [x] Con la décima elegida, el orden pasa solo a «Sort: Selected» y las tarjetas viajan arriba; al vaciar la selección vuelve el orden que había. Con tests en `playerListing`.
+- [x] Switch de idioma: inglés por defecto y castellano rioplatense, con la pelota del logo como perilla, en el header y en el penal. El dispositivo lo recuerda, también si pierde la clave.
+- [x] El resultado, debajo de la lista como siempre, rediseñado: los equipos, un resumen de tres datos y el análisis completo plegado.
+- [x] Fallback legible: arriba, por qué no se pudo cumplir todo; después, qué regla se rompió y con quién, y qué reglas se mantuvieron. Rojo solo en lo roto. El generador elige igual (2000 selecciones al azar dan lo mismo que en `main`) y además devuelve esos datos, para que la app los muestre y los traduzca.
+- [x] Modal de jugadora en tres columnas (identidad, juego y relaciones), con lugar para los campos del Sprint 6. En la computadora entra sin scroll en una ventana de 1280 × 680; en el teléfono es una hoja de pantalla completa.
+- [x] Movimiento al nivel del penal: elegir, reordenar, repartir los equipos, abrir el modal y el switch. Todo se apaga con «reducir movimiento».
+- [x] El penal ya no se saltea el gol cuando el backend contesta en menos de 0,8 s (apareció al probar; con Apps Script no pasaba).
+- [x] Verificado: lint, tipos, 100 tests, build y pruebas en Edge contra una API local, en tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado: 54 chequeos del rediseño en cada tamaño, más las suites de la pantalla única (Sprint 3b) y del penal (Sprint 4), que siguen pasando.
+
+Prueba (en tu computadora, con la rama `sprint-5`; todavía no está en Vercel):
+
+1. En la terminal del proyecto: `npm run dev`, y abrí la dirección que muestra (`http://localhost:5173`). Va a pedir la clave: en esa dirección el navegador todavía no la tiene. Para verla desde el teléfono, en la misma wifi: `npm run dev -- --host` y abrí la dirección «Network».
+2. En el penal, tocá el switch de la esquina: los textos pasan a castellano. Entrá con la clave.
+3. Mirá la pantalla: la letra nueva, el contador con sus diez puntitos y las fotos un poco más grandes. Tocá el switch EN / ES del header: la pelota rueda y todo cambia de idioma. Recargá: sigue en el idioma que elegiste.
+4. Elegí 10: con la décima suben arriba y el menú de orden dice «Selected». Sacá una y elegí otra. «Clear» → «Clear Selection» devuelve el orden que tenías.
+5. «Generate Teams»: los equipos se reparten debajo de la lista, con el resumen. Probá «Full Analysis», «Show Second Option» y «Copy Teams».
+6. Para ver el fallback: elegí 10 con 3 GK. Arriba del resultado aparece por qué, qué se rompió y qué se mantuvo, y lo único rojo es lo roto.
+7. Tocá el lápiz de una jugadora: el modal en tres columnas. Fijate si entra sin scroll en tu pantalla. Los atributos se eligen con las rayitas. Guardar escribe en la planilla, como siempre.
+8. Privacy mode (tres toques en el ojo del pie): prendido, no se ven ratings, Power ni la diferencia de rating del resumen.
+9. Si te gusta, decime y la paso a `main`. Si algo no, decime qué.
 
 ## Sprint 6 - Campos de jugadora
 

@@ -1,6 +1,6 @@
 # armaduki — Camiseta nueva
 
-Borrador del 24/11/2026, para que Ángela lo apruebe antes de tocar la UI. Se implementa en la rama `sprint-5`, que pasa a `main` cuando ella la aprueba. Parte de lo que eligió el 24/11: un cambio moderado y no radical, la identidad de armaduki, la app más linda, profesional y animada, y que no parezca hecha por IA.
+Dirección vigente desde el 24/11/2026: Ángela la aprobó ese día y se implementó en la rama `sprint-5`, que pasa a `main` cuando ella la prueba. Cómo quedó y cómo se verificó: [REDESIGN_REVIEW.md](REDESIGN_REVIEW.md). Parte de lo que eligió el 24/11: un cambio moderado y no radical, la identidad de armaduki, la app más linda, profesional y animada, y que no parezca hecha por IA.
 
 ## Idea
 
@@ -22,7 +22,7 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
   - el análisis entero en rojo cuando hay fallback.
 
   Tampoco entra nada de lo típico: degradados, brillos, sombras de neón, vidrio esmerilado, chispitas, emojis ni tarjetas infladas con bordes muy redondos.
-- **El rojo se gana.** El rojo de la pelota marca solo lo elegido, la acción principal, lo que se rompió y lo que borra. Lo que se cumplió nunca va en rojo.
+- **El rojo se gana.** El rojo de la pelota marca solo lo elegido, la acción principal, lo que se rompió y lo que borra. Lo que se cumplió nunca va en rojo. Por eso «+ Add Player» pasa a ser un botón de borde: el rojo queda para «Generate Teams».
 - **La foto, un poco más grande.** 48 px en la computadora y 40 en el teléfono (hoy, 40 y 32). La grilla sigue igual: dos por fila en el teléfono.
 - **Las 10 suben solas.** Cada vez que la selección llega a 10, el orden pasa solo a «Sort: selected», que se ve en el menú y se puede cambiar: las elegidas quedan primero, con el orden de siempre dentro de cada grupo, y la pantalla sube al contador, como hoy. La búsqueda y los filtros siguen valiendo. Si sacás una, baja a su lugar entre las demás; la próxima que elijas sube. Cuando la selección queda vacía, vuelve el orden que había antes de la décima, salvo que lo hayas cambiado a mano. Esto cierra el pedido de Notion de ver las seleccionadas en el navbar.
 - **El resultado se lee de arriba hacia abajo:** los equipos, un resumen de tres datos y el análisis completo plegado.
@@ -50,8 +50,8 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 ## La pantalla
 
 - **Header.** El logo a la izquierda (`armaduki`, en minúscula y rojo, ahora en Barlow Condensed, con la pelota) y el switch de idioma a la derecha.
-- **Arriba de la lista.** «Players», «+ Add Player», el contador, «Clear» y «Generate Teams», en los mismos lugares. El contador va en números grandes («7/10») con diez puntitos que se llenan de a uno; con 10, «Generate Teams» se enciende con un destello, una sola vez.
-- **Controles.** Búsqueda, rol, score y orden, como hoy. Los menús muestran un nombre chico y el valor («Role · All», «Sort · Selected»).
+- **Arriba de la lista.** «Players», «+ Add Player», el contador, «Clear» y «Generate Teams», en los mismos lugares. El contador va en números grandes («7/10») con diez puntitos que se llenan de a uno; con 10, «Generate Teams» se enciende con un destello, una sola vez. En el teléfono, el número va sobre sus puntitos, sin la palabra, para que entren «Clear» y «Generate Teams» en la misma fila.
+- **Controles.** Búsqueda, rol, score y orden, como hoy. Los menús muestran un nombre chico arriba y el valor abajo («Role» / «All», «Sort» / «Selected»); el orden de siempre se llama «Default».
 - **Tarjeta.** La misma información en el mismo orden: foto y número, apodo, nombre, rol y rating (oculto con privacy mode), y el marcador del equipo en la esquina. Elegida: borde rojo, fondo apenas teñido y una marca chica sobre la foto. Con 10 elegidas, las demás se apagan, pero el lápiz y el tacho siguen andando; en la computadora aparecen al pasar el mouse, como hoy.
 - **Estados.** La pelota que se llena sigue siendo la carga. «Updating from Google Sheets...» y «Saved copy · Refresh» pasan a una línea de estado discreta. Los errores van en una franja con el estilo del resto, con «Retry» y «×».
 
@@ -59,7 +59,7 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 
 Debajo de la lista, como hoy, en tres partes:
 
-1. **Los equipos.** Team 1 y Team 2 lado a lado, también en el teléfono. Cada jugadora con su foto chica, el apodo y el rol, ordenadas por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
+1. **Los equipos.** Team 1 y Team 2 lado a lado, también en el teléfono, marcados como pecheras: clara y oscura. Cada jugadora con su foto chica, el apodo y el rol, ordenadas por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
 2. **El resumen.** Tres datos en una fila:
    - **Parejo:** la etiqueta del score (highly balanced, balanced…) y, sin privacy mode, la diferencia de rating y a qué equipo favorece.
    - **Social:** el porcentaje y los wants cumplidos.
@@ -90,7 +90,7 @@ Para esto, el generador entrega, además del texto de hoy, los datos de cada reg
 Uno solo para sumar y para editar.
 
 - **En la computadora**, ancho y en tres columnas. Entra sin scroll en una ventana de 1280 × 680 o más grande, medido con los lugares del Sprint 6 ocupados; si la ventana es más chica, scrollea cada columna por dentro, nunca la página.
-  - **Identidad:** la foto más grande (tocarla la cambia), apodo, nombre o descripción, número de camiseta y equipos, con el principal. Lugar reservado para el Sprint 6: fecha de nacimiento (con la edad), activa o no, y notas.
+  - **Identidad:** la foto más grande (tocarla la cambia), apodo, nombre o descripción, número de camiseta y equipos como fichas, con la pelota para marcar el principal. Lugar reservado para el Sprint 6: la fecha de nacimiento (con la edad) al lado del número de camiseta, «activa» a la derecha del título de la columna, y las notas abajo.
   - **Juego:** el rol, ¿ataja? (good, low, no), el rating del 1 al 10 con la sugerencia marcada con un punto (oculto con privacy mode) y los 8 atributos, cada uno con un control de tres rayitas, como la señal del teléfono, en lugar de los emojis. Lugar reservado para el Sprint 6: «también juega», para los varios roles (el rol de hoy pasa a ser el principal, que es el que cuentan las reglas mientras no se decida otra cosa), y grupos y día o lugar.
   - **Relaciones:** «Wants to play with» y «Avoids», con las marcadas primero y las pistas de relación inversa de hoy. La lista scrollea por dentro; arriba queda el lugar del buscador del Sprint 8.
   - Abajo, siempre a la vista: «Cancel» y «Save». Enter guarda y Escape cierra, como hoy.
@@ -105,6 +105,7 @@ Uno solo para sumar y para editar.
 - Los atributos, como se dicen en la cancha: remate, control, pase, marca, velocidad, visión, garra y aire.
 - Los roles quedan con sus códigos (GK, DEF, MID, ATT, FLEX) en los dos idiomas: son los de la planilla y los que ya se usan.
 - No se traduce lo que viene de la planilla: apodos, nombres y notas.
+- Los avisos de error se escriben en el idioma que había cuando pasaron: uno que ya está en pantalla no cambia al tocar el switch.
 
 ## No cambia
 

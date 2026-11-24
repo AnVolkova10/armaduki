@@ -39,7 +39,7 @@ Arranca en 100 y resta lo desparejo:
 
 El **Power** de un equipo, que usa el owner bias, es la suma de ratings más la suma de atributos.
 
-El análisis muestra esta cuenta completa, el balance de cada atributo, las arqueras, el reparto de ATT y la **social satisfaction**: el porcentaje de wants y avoids cumplidos. La social satisfaction no suma al score, pero desempata. Si hay wants de un solo lado, el análisis dice cuántos se respetaron y cuáles se rompieron. La etiqueta «balanced» mira solo lo parejo de los equipos y no descuenta los wants rotos.
+Desde el Sprint 5, el generador devuelve el análisis también como datos (`report`, además del texto de siempre), y la app arma las frases con ellos, en inglés o en castellano. El análisis muestra esta cuenta completa, el balance de cada atributo, las arqueras, el reparto de ATT y la **social satisfaction**: el porcentaje de wants y avoids cumplidos. La social satisfaction no suma al score, pero desempata. Si hay wants de un solo lado, el análisis dice cuántos se respetaron y cuáles se rompieron. La etiqueta «balanced» mira solo lo parejo de los equipos y no descuenta los wants rotos.
 
 ## Cuando ningún reparto cumple todo (fallback)
 
@@ -67,7 +67,7 @@ Si empatan, gana el de mejor score.
 
 - Si existe un reparto social-hard, sigue siendo el elegido, como antes, pero ahora con la menor cantidad posible de límites rotos: con 3 GK reparte 2/1.
 - Un avoid solo se rompe si no hay ningún reparto que lo respete.
-- El análisis suma un bloque «Fallback» con el motivo (por ejemplo, «3 GK selected» o una cadena de wants mutuos de más de 5) y qué regla se rompió, con nombres.
+- El análisis suma un bloque «Fallback» con el motivo (por ejemplo, «3 GK selected» o una cadena de wants mutuos de más de 5) y qué regla se rompió, con nombres. En pantalla (Sprint 5) va arriba del resultado: primero por qué, después qué se rompió y con quién, y qué reglas se mantuvieron. Si no hay una causa única, empieza por lo que se rompió.
 
 Cuando hay solución estricta, el resultado es idéntico al de antes de la revisión: se comparó contra la versión anterior en 6000 grupos al azar.
 
