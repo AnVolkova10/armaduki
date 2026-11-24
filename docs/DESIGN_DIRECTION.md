@@ -24,7 +24,7 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
   Tampoco entra nada de lo típico: degradados, brillos, sombras de neón, vidrio esmerilado, chispitas, emojis ni tarjetas infladas con bordes muy redondos.
 - **El rojo se gana.** El rojo de la pelota marca solo lo elegido, la acción principal, lo que se rompió y lo que borra. Lo que se cumplió nunca va en rojo.
 - **La foto, un poco más grande.** 48 px en la computadora y 40 en el teléfono (hoy, 40 y 32). La grilla sigue igual: dos por fila en el teléfono.
-- **Las 10 suben solas.** Cada vez que la selección llega a 10, las elegidas pasan al principio de la lista y la pantalla sube al contador, como hoy. Dentro de cada grupo se respeta el orden que había, y la búsqueda y los filtros siguen valiendo. Si sacás una, vuelve a su lugar entre las demás y las otras 9 quedan arriba; la próxima que elijas se suma arriba. Se desarma cuando la selección queda vacía o cuando elegís un orden a mano. «Sort: selected» sigue en el menú. Esto cierra el pedido de Notion de ver las seleccionadas en el navbar.
+- **Las 10 suben solas.** Cada vez que la selección llega a 10, el orden pasa solo a «Sort: selected», que se ve en el menú y se puede cambiar: las elegidas quedan primero, con el orden de siempre dentro de cada grupo, y la pantalla sube al contador, como hoy. La búsqueda y los filtros siguen valiendo. Si sacás una, baja a su lugar entre las demás; la próxima que elijas sube. Cuando la selección queda vacía, vuelve el orden que había antes de la décima, salvo que lo hayas cambiado a mano. Esto cierra el pedido de Notion de ver las seleccionadas en el navbar.
 - **El resultado se lee de arriba hacia abajo:** los equipos, un resumen de tres datos y el análisis completo plegado.
 - **El fallback dice primero por qué.** Después, qué se rompió y con quién, y qué se mantuvo. Rojo solo en lo roto.
 - **Inglés, con un switch al castellano.** Inglés por defecto; la pelota del logo hace de perilla para pasar a castellano rioplatense.
@@ -89,7 +89,7 @@ Para esto, el generador entrega, además del texto de hoy, los datos de cada reg
 
 Uno solo para sumar y para editar.
 
-- **En la computadora**, ancho y en tres columnas. Entra sin scroll en una ventana de 1280 × 680 o más grande; si la ventana es más chica, scrollea cada columna por dentro, nunca la página.
+- **En la computadora**, ancho y en tres columnas. Entra sin scroll en una ventana de 1280 × 680 o más grande, medido con los lugares del Sprint 6 ocupados; si la ventana es más chica, scrollea cada columna por dentro, nunca la página.
   - **Identidad:** la foto más grande (tocarla la cambia), apodo, nombre o descripción, número de camiseta y equipos, con el principal. Lugar reservado para el Sprint 6: fecha de nacimiento (con la edad), activa o no, y notas.
   - **Juego:** el rol, ¿ataja? (good, low, no), el rating del 1 al 10 con la sugerencia marcada con un punto (oculto con privacy mode) y los 8 atributos, cada uno con un control de tres rayitas, como la señal del teléfono, en lugar de los emojis. Lugar reservado para el Sprint 6: «también juega», para los varios roles (el rol de hoy pasa a ser el principal, que es el que cuentan las reglas mientras no se decida otra cosa), y grupos y día o lugar.
   - **Relaciones:** «Wants to play with» y «Avoids», con las marcadas primero y las pistas de relación inversa de hoy. La lista scrollea por dentro; arriba queda el lugar del buscador del Sprint 8.
@@ -109,7 +109,7 @@ Uno solo para sumar y para editar.
 ## No cambia
 
 - Una sola pantalla: tocar la tarjeta la elige; editar y borrar, en la tarjeta (borrar, con confirmación); el resultado, debajo de la lista.
-- El penal de entrada: la misma escena y la misma arquera. Solo se traduce y suma el switch.
+- El penal de entrada: la misma escena y la misma arquera. Solo se traduce, suma el switch y sus textos toman la letra nueva.
 - Privacy mode: el ojo escondido del pie, que se prende con tres toques, y lo que oculta.
 - El fondo oscuro y el diseño pensado primero para el teléfono.
 - El backend, la planilla, las reglas y cómo elige el generador.
