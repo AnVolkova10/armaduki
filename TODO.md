@@ -6,7 +6,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 
 - [x] Se lee y se ejecuta de arriba hacia abajo, de a un ítem por vez. Un ítem no toca otros módulos salvo lo que necesita.
 - [x] Los sprints son por objetivo, no por fecha. Al cerrar cada uno, Ángela lo revisa antes de seguir.
-- [x] Cuando Ángela dice «hacé el Sprint N», Claude lo implementa, lo verifica (lint, tests, build y una prueba en navegador contra una API local), hace commit y push a `main`, que publica en Vercel, y le pasa dónde y cómo probarlo. El sprint se cierra cuando ella lo prueba.
+- [x] Cuando Ángela dice «hacé el Sprint N», Claude lo implementa, lo verifica (lint, tests, build y una prueba en navegador contra una API local), hace commit y push a `main`, que publica en Vercel, y le pasa dónde y cómo probarlo. El sprint se cierra cuando ella lo prueba. Excepción: el rediseño (Sprint 5) se hace en la rama `sprint-5` y pasa a `main` recién cuando Ángela lo aprueba (24/11).
 - [x] Primero la base (Sprints 1 a 5), después las funciones nuevas (Sprints 6 a 10).
 - [x] En cada sprint va solo lo que se puede hacer ya. Lo que espera una decisión va en «Cosas por cerrar», con quién decide y un default para seguir.
 - [x] Un ítem nuevo se conversa antes de construirlo. Lo que sugiere Claude está marcado como **Propuesta**: Ángela lo acepta o lo descarta.
@@ -14,7 +14,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 - [x] Los ítems que vienen de la v1 conservan su código entre paréntesis (`F2-…`, `RV-…`).
 - [x] Cada ítem se prueba en local al cerrarlo. Cada sprint cierra con lint, tests, build, commit y pasos cortos de prueba manual.
 - [x] Mobile-first: cada cambio de UI se diseña y se prueba primero en el teléfono.
-- [x] La UI de la app sigue en inglés; este TODO y las conversaciones, en castellano.
+- [x] La UI de la app está en inglés por defecto; el Sprint 5 le suma un switch a castellano rioplatense (24/11). Este TODO y las conversaciones, en castellano.
 - [x] El generador no cambia sin tests: `npm test`, lint y build antes y después. Cómo funciona: `docs/GENERADOR.md`.
 - [x] Si un ítem toca la planilla o el Apps Script, primero se actualiza el contrato de datos y se confirma que lo anterior sigue andando. La planilla solo suma columnas, así la versión anterior del backend siempre sirve para volver atrás.
 - [x] El backend se publica con `npm run backend:release` (detalle en `apps-script/README.md`): tests, versión nueva, prueba en una implementación temporal y recién ahí producción, que vuelve sola a la versión anterior si algo falla.
@@ -33,6 +33,10 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 - [x] Fecha de nacimiento: opcional; se guarda la fecha y se muestra la edad (18/11).
 - [x] Clave (20/11): vive en la propiedad `ACCESS_KEY` del script; nunca en el código, en `.env`, en Vercel ni en el repo, que es público. Con la clave cargada no se lee ni se guarda sin ella. Cada dispositivo la escribe una vez, en el penal de entrada.
 - [x] Players y Match son una sola pantalla (19/11): tocar la tarjeta la elige; editar y borrar siguen en la tarjeta, para borrar rápido (con confirmación); el resultado aparece debajo de la lista.
+- [x] Rediseño (24/11): un cambio moderado, no radical. La misma pantalla, con cada cosa en su lugar, más moderna, prolija y animada, y que no parezca hecha por IA. Sigue la identidad de armaduki: oscuro, rojo y la pelota. Las ideas de un rediseño grande quedan en «Para otra versión».
+- [x] Idioma (24/11): la UI sigue en inglés por defecto, con un switch a castellano rioplatense que cada dispositivo recuerda.
+- [x] Las seleccionadas (24/11): no hace falta verlas aparte en el header; con la décima, las elegidas suben solas al principio de la lista. Cierra el pedido de Notion «que en el navbar aparezcan los seleccionados».
+- [x] El rediseño se hace con Claude Fable 5.2, el modelo del rediseño de VolkosFood (24/11).
 
 ## Sprint 0 - Revisión técnica (hecho)
 
@@ -124,13 +128,13 @@ Prueba (en https://armaduki.vercel.app, mejor desde el teléfono):
 3. «Generate Teams»: el resultado aparece debajo de la lista.
 4. En la computadora, el lápiz y el tacho aparecen al pasar el mouse por la tarjeta.
 
-## Sprint 4 - Clave y privacidad (hecho, falta tu prueba)
+## Sprint 4 - Clave y privacidad (hecho)
 
 Objetivo: proteger los datos con una clave, con el mismo esquema que VolkosFood.
 
 - [x] **Ángela:** aprobó publicar el backend con la clave (20/11). Claude lo publicó con `npm run backend:release`: producción pasó de la versión 20 a la 21.
 - [x] **Ángela:** prendió la clave (20/11): `npm run backend:release -- --check` confirma que producción la pide y que la de `.env.release` es aceptada. Cómo se hace: En el editor de Apps Script del proyecto: Configuración del proyecto (el engranaje) → Propiedades del script → Agregar propiedad de script → nombre `ACCESS_KEY`, valor: la clave → Guardar. Funciona al instante. Para apagarla, borrar la propiedad.
-- [ ] **Ángela:** probarlo con los pasos de abajo.
+- [x] **Ángela:** probarlo con los pasos de abajo.
 - [x] La clave se pide para leer y para guardar (RV-13, F2-12.4): sin ella el backend responde «unauthorized» antes de abrir la planilla. Backend versión 21. Sin la propiedad, todo queda abierto.
 - [x] El penal de entrada: un dispositivo sin la clave ve un arco, la pelota y la arquera en lugar de la app. Escribir la clave es patear: si está bien, gol y entra; si está mal, la arquera ataja; si no hay respuesta, palo. Mientras el backend contesta, la pelota se carga y la arquera se mueve en la línea. Rediseñado el 20/11 a pedido de Ángela: más chico y minimalista, sin carteles ni papelitos, con la arquera flaquita y chiquita del equipo (camiseta roja, mangas y pantalón negros, guantes naranjas). Después de atajar se levanta y la pelota vuelve al punto. Con codos, rodillas y manos con forma de guante; la postura previa al penal (pies bien separados, rodillas apenas flexionadas, brazos abiertos) y la pelota del logo, roja y negra.
 - [x] El dispositivo guarda la clave recién cuando el backend la aceptó. Si el backend la rechaza más adelante (por ejemplo, porque cambió), el dispositivo la olvida, borra su copia y vuelve al penal.
@@ -149,15 +153,20 @@ Prueba (después de prender la clave; en https://armaduki.vercel.app, mejor desd
 
 ## Sprint 5 - Rediseño con Fable
 
-Objetivo: darle a la app el mismo nivel de diseño que VolkosFood. Se hace en una sesión con Claude Fable 5.2, el modelo del rediseño de VolkosFood.
+Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se usa (24/11). Se hace con Claude Fable 5.2 en la rama `sprint-5`, que pasa a `main`, y de ahí a Vercel, recién cuando Ángela la aprueba. El detalle está en `docs/DESIGN_DIRECTION.md`.
 
-- [ ] Escribir la dirección de diseño en `docs/DESIGN_DIRECTION.md` (idea, decisiones, lenguaje visual, movimiento y flujos), partiendo de lo que ya es armaduki: oscuro, rojo, la pelota, mobile-first y privacy mode. **Ángela la aprueba antes de tocar la UI.**
-- [ ] Rediseñar la pantalla única (desde el Sprint 3b, jugadoras y partido juntos), el resultado de equipos, el análisis y el modal de jugadora.
-- [ ] En el teléfono, una barra fija abajo con «7/10 · Generate Teams», a mano con el pulgar. **Propuesta** (19/11).
-- [ ] El resultado en su propia vista, con «volver» que conserva la selección; hoy queda debajo de la lista, como eligió Ángela (19/11). **Propuesta.**
-- [ ] Repensar cómo mostrar las seleccionadas en el navbar (pedido de Notion). La primera versión, con chips en una segunda fila del header, no gustó (19/11).
-- [ ] Recorrido en escritorio y en el teléfono contra una API local, sin tocar la planilla real.
-- [ ] Revisión de Ángela antes de seguir.
+- [x] Borrador de la dirección de diseño en `docs/DESIGN_DIRECTION.md`, en la rama `sprint-5` (24/11): idea, decisiones, lenguaje visual, la pantalla, el resultado, el modal, el idioma y lo que no cambia.
+- [ ] **Ángela:** aprobar la dirección, o corregirla, antes de tocar la UI.
+- [ ] Lenguaje visual nuevo en toda la app: colores propios, la letra Barlow servida desde la app, superficies, íconos y estados. Se van los emojis de los atributos y las etiquetas «Filter: …» y «Sort: …».
+- [ ] Tarjetas con la foto un poco más grande: 48 px en la computadora y 40 en el teléfono (hoy, 40 y 32).
+- [ ] Con la décima elegida, las elegidas suben solas al principio de la lista (la regla exacta está en la dirección), con tests en `playerListing`.
+- [ ] Switch de idioma: inglés y castellano rioplatense, con la pelota del logo como perilla, en el header y en el penal.
+- [ ] El resultado, debajo de la lista como hoy, rediseñado: los equipos, un resumen corto y el análisis completo plegado.
+- [ ] Fallback legible: arriba, por qué no se pudo cumplir todo; después, qué regla se rompió y con quién, y qué reglas se mantuvieron. Rojo solo en lo roto. El generador elige igual (los tests lo cuidan) y además devuelve esos datos, para que la app los muestre y los traduzca.
+- [ ] Modal de jugadora en tres columnas (identidad, juego y relaciones), con lugar para los campos del Sprint 6. En la computadora, sin scroll en una ventana de 1280 × 680.
+- [ ] Movimiento al nivel del penal: elegir, reordenar, repartir los equipos, abrir el modal y el switch. Todo se apaga con «reducir movimiento».
+- [ ] Recorrido en escritorio y en el teléfono contra una API local, sin tocar la planilla real, en los dos idiomas y con privacy mode.
+- [ ] **Ángela:** probar la rama antes de pasarla a `main`.
 
 ## Sprint 6 - Campos de jugadora
 
@@ -218,7 +227,7 @@ Objetivo: que las que juegan juntas en un equipo real tiendan a caer juntas, sin
 - [ ] **Cuánto cuesta romper un want de un solo lado.** Hoy, 15 puntos de score, lo mismo que 1,5 puntos de diferencia de rating (`ONE_WAY_WANT_PENALTY`). Más alto respeta más wants y empareja un poco menos; más bajo, al revés. Decide: Ángela. Default: 15.
 - [ ] **Varios roles: qué cuentan las reglas.** Con varios roles por jugadora, el máximo de GK y de DEF y los repartos de DEF y de ATT tienen que contar el rol principal o el puesto que le toca en el equipo. Decide: Ángela, antes del Sprint 6. Default: el rol principal.
 - [x] **Qué es «sort selected».** «Sort: selected» en Match y en Players: deja arriba a las elegidas (19/11).
-- [ ] **«Fable 2.5».** Se entendió Claude Fable 5.2, el modelo del rediseño de VolkosFood. Decide: Ángela. Default: Fable 5.2.
+- [x] **«Fable 2.5».** Era Claude Fable 5.2, el modelo del rediseño de VolkosFood (24/11).
 - [ ] **Default de arquera (`gkWillingness`).** El modal crea jugadoras con `low`, pero una fila de la planilla sin el dato se lee como `no` (RV-14). Decide: Ángela. Default: `no` en los dos, para que lo desconocido no cuente como arquera de emergencia.
 - [x] **Qué oculta privacy mode** (RV-12). Se aplicó el default (20/11): oculta también el total de rating de cada equipo en el análisis. La diferencia entre equipos se sigue viendo, porque el score la necesita para entenderse.
 - [ ] **Guardar partidos: automático o con botón** (F2-11.4). Decide: Ángela. Default: botón explícito, con «prueba» o «partido real».
@@ -241,3 +250,14 @@ Objetivo: que las que juegan juntas en un equipo real tiendan a caer juntas, sin
 - [ ] Que «Copy Teams» no se confunda con apodos de más de una palabra. **Propuesta.**
 - [ ] Mostrar los escudos (`crest`) de los equipos. **Propuesta.**
 - [ ] Accesibilidad de diálogos y menús: el foco queda dentro del diálogo y los menús usan los roles correctos. **Propuesta.**
+- [ ] Que el fallback encuentre la causa en más casos. Hoy detecta de antemano algunas (GK o DEF de más, faltan arqueras de emergencia, cadenas de wants, un avoid dentro de una cadena); si no encuentra ninguna, dice que las reglas chocan cuando se combinan. Encontrar más cambia el generador y lleva tests, así que va aparte del rediseño. **Propuesta.**
+
+## Para otra versión
+
+Ideas de un rediseño grande que Ángela guardó para más adelante (24/11). Por ahora prefiere un cambio moderado (Sprint 5).
+
+- [ ] **La pizarra del DT:** la app como una cancha de noche. La lista es el plantel, elegir es convocar, y al armar los equipos las 10 aparecen dibujadas en la cancha, cada equipo en su mitad y cada una en su puesto.
+- [ ] **El álbum de figuritas:** tarjetas con la foto grande, el apodo y el rol, tres por fila en el teléfono.
+- [ ] **La planilla de partido:** una lista sobria con números de camiseta.
+- [ ] Una barra fija abajo con las caritas de las elegidas y «7/10 · Generate Teams», a mano con el pulgar (Propuesta del 19/11).
+- [ ] El resultado en su propia vista, con «volver» que conserva la selección (Propuesta del 19/11).
