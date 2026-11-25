@@ -4,7 +4,7 @@ Dirección vigente desde el 24/11/2026: Ángela la aprobó ese día, se implemen
 
 ## Idea
 
-Mismo club, camiseta nueva. armaduki sigue siendo la misma pantalla: la lista de jugadoras, tocar para elegir 10, armar los equipos y verlos abajo. Cambia la terminación: letra de camiseta, un rojo usado con criterio, superficies prolijas, movimiento que explica lo que pasa y un resultado que se entiende de un vistazo, sobre todo cuando el generador no pudo cumplir todas las reglas.
+Mismo club, camiseta nueva. armaduki sigue siendo la misma pantalla: la lista de jugadorxs, tocar para elegir 10, armar los equipos y verlos abajo. Cambia la terminación: letra de camiseta, un rojo usado con criterio, superficies prolijas, movimiento que explica lo que pasa y un resultado que se entiende de un vistazo, sobre todo cuando el generador no pudo cumplir todas las reglas.
 
 El recorrido: tocás 10 tarjetas → suben solas y la pantalla vuelve al contador → «Generate Teams» → los equipos se reparten debajo de la lista → «Copy Teams». Si hubo fallback, lo primero que se lee es por qué.
 
@@ -23,12 +23,12 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
   Tampoco entra nada de lo típico: degradados, brillos, sombras de neón, vidrio esmerilado, chispitas, emojis ni tarjetas infladas con bordes muy redondos.
 - **El rojo se gana.** El rojo de la pelota marca solo lo elegido, la acción principal, lo que se rompió y lo que borra. Lo que se cumplió nunca va en rojo. Por eso «+ Add Player» pasa a ser un botón de borde: el rojo queda para «Generate Teams». La excepción son las pills de rol, que usan sus colores de siempre, incluido el rojo de ATT.
 - **La foto, un poco más grande.** 48 px en la computadora y 40 en el teléfono (hoy, 40 y 32). La grilla sigue igual: dos por fila en el teléfono.
-- **Las 10 suben solas.** Cada vez que la selección llega a 10, el orden pasa solo a «Sort: selected», que se ve en el menú y se puede cambiar: las elegidas quedan primero, con el orden de siempre dentro de cada grupo, y la pantalla sube al contador, como hoy. La búsqueda y los filtros siguen valiendo. Si sacás una, baja a su lugar entre las demás; la próxima que elijas sube. Cuando la selección queda vacía, vuelve el orden que había antes de la décima, salvo que lo hayas cambiado a mano. Esto cierra el pedido de Notion de ver las seleccionadas en el navbar.
+- **Lxs 10 suben solxs.** Cada vez que la selección llega a 10, el orden pasa solo a «Sort: selected», que se ve en el menú y se puede cambiar: lxs elegidxs quedan primero, con el orden de siempre dentro de cada grupo, y la pantalla sube al contador, como hoy. La búsqueda y los filtros siguen valiendo. Si sacás unx, baja a su lugar entre lxs demás; lx próximx que elijas sube. Cuando la selección queda vacía, vuelve el orden que había antes de lx décimx, salvo que lo hayas cambiado a mano. Esto cierra el pedido de Notion de ver lxs seleccionadxs en el navbar.
 - **El resultado se lee de arriba hacia abajo:** los equipos, un resumen de tres datos y el análisis completo plegado.
 - **ROJO y NEGRO, no Team 1 y Team 2** (25/11): los equipos se llaman por el color de la pechera, que se entiende más rápido. En las frases van en mayúscula, en su color y sin artículo: «ROJO suma 2 puntos más de rating». En inglés, RED y BLACK.
 - **El fallback dice primero por qué.** Después, qué se rompió y con quién, y qué se mantuvo. Rojo solo en lo roto.
 - **Inglés, con un switch al castellano.** Inglés por defecto; la pelota del logo hace de perilla para pasar a castellano rioplatense.
-- **El modal de jugadora, compacto:** tan alto como su contenido, sin lugares vacíos reservados. Arriba, quién es; abajo, cómo juega y con quién (25/11).
+- **El modal de jugadorx, compacto:** tan alto como su contenido, sin lugares vacíos reservados. Arriba, quién es; abajo, cómo juega y con quién (25/11).
 - **Movimiento al nivel del penal:** fluido, corto y sin rebotes. Cada animación cuenta algo que pasó.
 
 ## Lenguaje visual
@@ -39,8 +39,8 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 - **Íconos.** Una sola familia de trazo, la de hoy (lápiz, tacho, ojo, lupa), con el mismo grosor y tamaño. Ningún emoji.
 - **Movimiento.**
   - Tocar una tarjeta: se hunde apenas y aparece el borde rojo (150 ms).
-  - La décima: las tarjetas viajan a su lugar nuevo (300 ms) mientras la pantalla sube.
-  - Generar: los equipos aparecen y las jugadoras se reparten de a una, alternando el Rojo y el Negro, como cartas (menos de un segundo en total).
+  - Lx décimx: las tarjetas viajan a su lugar nuevo (300 ms) mientras la pantalla sube.
+  - Generar: los equipos aparecen y lxs jugadorxs se reparten de a unx, alternando el Rojo y el Negro, como cartas (menos de un segundo en total).
   - El modal entra con un fundido y una subida corta (200 ms); en el teléfono, la hoja sube desde abajo.
   - El switch: la pelota rueda hasta el otro idioma (300 ms) y, al pasar al castellano, sus colores se intercambian con un fundido.
   - «Copy Teams» confirma con un ✓ por un momento.
@@ -52,20 +52,20 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 - **Header.** El logo a la izquierda (`armaduki`, en minúscula y rojo, ahora en Barlow Condensed, con la pelota) y el switch de idioma a la derecha.
 - **Arriba de la lista.** «Players», «+ Add Player», el contador, «Clear» y «Generate Teams», en los mismos lugares. El contador va en números grandes («7/10») con diez puntitos que se llenan de a uno; con 10, «Generate Teams» se enciende con un destello, una sola vez. En el teléfono, el número va sobre sus puntitos, sin la palabra, para que entren «Clear» y «Generate Teams» en la misma fila.
 - **Controles.** Búsqueda, rol, score y orden, como hoy. Los menús muestran un nombre chico arriba y el valor abajo («Role» / «All», «Sort» / «Selected»); el orden de siempre se llama «Default».
-- **Tarjeta.** La misma información en el mismo orden: foto y número, apodo, nombre, rol y rating (oculto con privacy mode), y el marcador del equipo en la esquina. Elegida: borde rojo, fondo apenas teñido y una marca chica sobre la foto. Con 10 elegidas, las demás se apagan, pero el lápiz y el tacho siguen andando. Los dos van arriba a la derecha, uno sobre el otro: el lápiz arriba y el tacho abajo (25/11). En la computadora aparecen al pasar el mouse, como hoy.
+- **Tarjeta.** La misma información en el mismo orden: foto y número, apodo, nombre, rol y rating (oculto con privacy mode), y el marcador del equipo en la esquina. Elegida: borde rojo, fondo apenas teñido y una marca chica sobre la foto. Con 10 elegidxs, las demás tarjetas se apagan, pero el lápiz y el tacho siguen andando. Los dos van arriba a la derecha, uno sobre el otro: el lápiz arriba y el tacho abajo (25/11). En la computadora aparecen al pasar el mouse, como hoy.
 - **Estados.** La pelota que se llena sigue siendo la carga. «Updating from Google Sheets...» y «Saved copy · Refresh» pasan a una línea de estado discreta. Los errores van en una franja con el estilo del resto, con «Retry» y «×».
 
 ## El resultado
 
 Debajo de la lista, como hoy, en tres partes:
 
-1. **Los equipos.** El Rojo y el Negro lado a lado, también en el teléfono, cada uno con su color: el Rojo con una línea roja arriba y el fondo apenas teñido de rojo; el Negro, con fondo negro y una línea gris arriba (negra no se vería). La tarjeta del resultado es un toque más clara que el resto, para que NEGRO en negro se lea en las frases. Los nombres van en una etiqueta gris clara, ROJO en rojo y NEGRO en negro (sobre el fondo oscuro el negro no se leería). Cada jugadora con su foto chica (en el teléfono, sin foto, para que entre un apodo largo), el apodo y el rol, ordenadas por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
+1. **Los equipos.** El Rojo y el Negro lado a lado, también en el teléfono, cada uno con su color: el Rojo con una línea roja arriba y el fondo apenas teñido de rojo; el Negro, con fondo negro y una línea gris arriba (negra no se vería). La tarjeta del resultado es un toque más clara que el resto, para que NEGRO en negro se lea en las frases. Los nombres van en una etiqueta gris clara, ROJO en rojo y NEGRO en negro (sobre el fondo oscuro el negro no se leería). Cada jugadorx con su foto chica (en el teléfono, sin foto, para que entre un apodo largo), el apodo y el rol, ordenadxs por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
 2. **El resumen.** Tres datos en una fila:
    - **Parejo:** la etiqueta del score (highly balanced, balanced…) y, sin privacy mode, la diferencia de rating y a qué equipo favorece.
    - **Social:** el porcentaje y los wants cumplidos.
    - **Reglas:** «todas se cumplen» o «fallback: se rompió 1».
 3. **El análisis completo**, plegado, con más palabras que números (25/11):
-   - **En palabras:** una frase por tema, con su palabra al frente: parejo (y el score), rating (cuánto más suma un equipo), atributos (quién es mejor en qué), arqueras (si un equipo no tiene GK, quién ataja bien y cuántas más pueden), ATT y links (cuántos se cumplieron, con las parejas).
+   - **En palabras:** una frase por tema, con su palabra al frente: parejo (y el score), rating (cuánto más suma un equipo), atributos (quién es mejor en qué), arquerxs (si un equipo no tiene GK, quién ataja bien y cuántxs más pueden), ATT y links (cuántos se cumplieron, con las parejas).
    - **ROJO vs NEGRO:** las barras, sin números, sobre un fondo blanco: rojas hacia ROJO y negras hacia NEGRO. Arriba, ROJO y NEGRO en su color, sin pill. Una línea explica cómo leerlas.
    - **Cómo se calcula el score:** arranca en 100 y cada línea dice qué resta o suma y por qué. Solo aparece lo que movió el score; lo demás se nombra en una frase.
 
@@ -77,8 +77,8 @@ Con privacy mode, el resumen muestra la etiqueta y el score, sin números de rat
 
 El resultado sale igual y, arriba del resumen, aparece un bloque que se entiende de un vistazo (los ejemplos van en castellano; en inglés dicen lo mismo):
 
-- **Por qué**, en una línea y más grande: «Hay 3 GK elegidas y el máximo es 1 por equipo».
-- **Qué se rompió**, y con quién: «Límites de GK y DEF: ROJO quedó con 2 GK» o «Wants mutuos: A y B quedaron separadas». Es lo único en rojo.
+- **Por qué**, en una línea y más grande: «Hay 3 GK elegidxs y el máximo es 1 por equipo».
+- **Qué se rompió**, y con quién: «Límites de GK y DEF: ROJO quedó con 2 GK» o «Wants mutuos: A y B quieren jugar juntxs y quedaron separadxs». Es lo único en rojo.
 - **Qué se mantuvo**, en gris y con ✓: avoids, wants mutuos, owner bias y reparto de ATT y DEF.
 - Al pie, chico, el orden en que ceden las reglas, que no cambia: avoids > wants > owner bias > reparto de ATT y DEF > límites de GK y DEF.
 
@@ -88,17 +88,17 @@ El resto del resultado se ve normal: ningún otro texto se pone rojo.
 
 Para esto, el generador entrega, además del texto de hoy, los datos de cada regla (cumplida o rota, y con quién) y las causas que detecta. Elige el reparto igual que antes, y los tests lo cuidan. Con esos datos, la app arma las frases en el idioma elegido.
 
-## El modal de jugadora
+## El modal de jugadorx
 
 Uno solo para sumar y para editar. Rehecho el 25/11: el primero, ancho y con columnas estiradas, dejaba mucho espacio vacío.
 
 - **En la computadora**, de 960 px de ancho y tan alto como su contenido (unos 550 px con privacy mode y 630 sin él, con dos equipos cargados):
   - **Arriba, quién es:** la foto (tocarla la cambia) y, en una fila, apodo, nombre o descripción y camiseta; debajo, los equipos como fichas, con la pelota para marcar el principal.
   - **Abajo a la izquierda, cómo juega:** el puesto (el elegido, como su pill), ¿ataja? (good, low, no), el rating del 1 al 10 con la sugerencia marcada con un punto (oculto con privacy mode) y los 8 atributos con sus tres rayitas.
-  - **Abajo a la derecha, con quién:** «Wants to play with» y «Avoids» lado a lado, con dos nombres por fila, las marcadas primero y las pistas de relación inversa. Ocupan el mismo alto que la columna de juego y scrollean por dentro, así nunca estiran el modal.
+  - **Abajo a la derecha, con quién:** «Wants to play with» y «Avoids» lado a lado, con dos nombres por fila, lxs marcadxs primero y las pistas de relación inversa. Ocupan el mismo alto que la columna de juego y scrollean por dentro, así nunca estiran el modal.
   - Abajo, siempre a la vista: «Cancel» y «Save». Enter guarda y Escape cierra, como hoy.
 - **En el teléfono**, una hoja de pantalla completa: las partes una debajo de la otra, el apodo y la × arriba, y «Cancel» y «Save» fijos abajo. El número y los equipos siguen plegados en «Más datos». Cada lista de relaciones va en su caja y scrollea por dentro.
-- **Cuando lleguen los campos del Sprint 6** no hay lugar vacío esperándolos: entran donde corresponden y el modal crece lo justo. La fecha de nacimiento, en la fila de arriba o al lado de los equipos; «activa», junto al título; las notas, como una fila más arriba; «también juega» (los varios roles), debajo del puesto; grupos y día o lugar, al final de la columna de juego. Las listas de relaciones crecen solas con esa columna.
+- **Cuando lleguen los campos del Sprint 6** no hay lugar vacío esperándolos: entran donde corresponden y el modal crece lo justo. La fecha de nacimiento, en la fila de arriba o al lado de los equipos; «activx», junto al título; las notas, como una fila más arriba; «también juega» (los varios roles), debajo del puesto; grupos y día o lugar, al final de la columna de juego. Las listas de relaciones crecen solas con esa columna.
 
 ## El idioma
 
@@ -113,7 +113,7 @@ Uno solo para sumar y para editar. Rehecho el 25/11: el primero, ancho y con col
 ## No cambia
 
 - Una sola pantalla: tocar la tarjeta la elige; editar y borrar, en la tarjeta (borrar, con confirmación); el resultado, debajo de la lista.
-- El penal de entrada: la misma escena y la misma arquera. Solo se traduce, suma el switch y sus textos toman la letra nueva.
+- El penal de entrada: la misma escena y lx mismx arquerx. Solo se traduce, suma el switch y sus textos toman la letra nueva.
 - Privacy mode: el ojo escondido del pie, que se prende con tres toques, y lo que oculta.
 - El fondo oscuro y el diseño pensado primero para el teléfono.
 - El backend, la planilla, las reglas y cómo elige el generador.

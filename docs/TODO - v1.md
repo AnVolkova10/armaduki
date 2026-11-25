@@ -30,7 +30,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 
 - [x] F2-01.1 Auditar README vs generador: stages de wants, regla emergency GK, max ATT, 3 GK y fallback.
 - [x] F2-01.2 Decidir y documentar la regla real de emergency GK: cantidad requerida y si cuenta `low`.
-- [x] F2-01.3 Decidir y documentar la regla real para 3 GK seleccionados.
+- [x] F2-01.3 Decidir y documentar la regla real para 3 GK seleccionadxs.
 - [x] F2-01.4 Alinear README con el comportamiento real confirmado.
 - [x] F2-01.5 Ajustar semantica de goalkeeper: `good` suma plus porque le gusta atajar, `low` ataja pero mal, `no` no ataja.
 - [x] F2-01.6 Incluir el plus/penalidad de goalkeeper en el score y en el analisis.
@@ -39,19 +39,19 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 ### Auditoria F2-01.1 - README vs generador actual
 
 - Wants stages: README describe `STRICT`, `RELAXED_UNILATERAL` y `RELAXED_MUTUAL`, pero `generateTeams` solo ejecuta `strict`; los modos relajados existen en helpers/tipos pero hoy son inalcanzables.
-- Emergency GK: la auditoria original detecto que README decia `3` jugadores `gkWillingness: yes`; el codigo exige `2` jugadores capaces. Desde F2-01.5 cuenta `good + low` y lee datos legacy `yes` como `good`.
+- Emergency GK: la auditoria original detecto que README decia `3` jugadorxs `gkWillingness: yes`; el codigo exige `2` jugadorxs capaces. Desde F2-01.5 cuenta `good + low` y lee datos legacy `yes` como `good`.
 - Max ATT: la auditoria original detecto que README declaraba max `2 ATT` por team. El codigo no tiene hard max `2 ATT`; desde F2-01.7 exige spread hard `abs(T1 ATT - T2 ATT) <= 1` y mantiene ajuste soft para ordenar opciones validas.
-- 3 GK seleccionados: el codigo valida max `1` GK por team. Con 3 GK de rol no puede existir split estricto valido en 2 equipos, entonces cae a fallback.
+- 3 GK seleccionadxs: el codigo valida max `1` GK por team. Con 3 GK de rol no puede existir split estricto valido en 2 equipos, entonces cae a fallback.
 - Fallback: README dice fallback si fallan staged constraints; en codigo hay dos niveles: primero un fallback social-hard que conserva avoids + wants strict y relaja reglas no sociales, despues un snake split por power que ignora constraints si no existe split social-hard.
 - Scoring: README dice que el score numerico usa rating + atributos, pero el codigo tambien suma ajustes soft de GK y ATT.
 
 ### Decisiones F2-01.2 / F2-01.3 - Reglas confirmadas
 
 - Wants queda estricto. Si no hay solucion estricta, el algoritmo no debe relajar wants automaticamente antes de fallback.
-- Emergency GK mantiene el algoritmo actual: si un team no tiene GK real, necesita jugadores capaces de ese lado. `good` y `low` cuentan como capaces; `no` no cuenta.
+- Emergency GK mantiene el algoritmo actual: si un team no tiene GK real, necesita jugadorxs capaces de ese lado. `good` y `low` cuentan como capaces; `no` no cuenta.
 - `good`: cuenta como capaz y suma un plus chico porque ademas ataja bien o le gusta atajar.
 - `low`: cuenta como capaz de emergencia, pero no suma plus y por ahora no penaliza.
-- `no`: no cuenta como opcion de arquero.
+- `no`: no cuenta como opcion de arquerx.
 - Si un team tiene GK real, la regla de emergency GK no aplica para ese team. En el resumen debe decir algo tipo "GK real presente, emergency keepers not needed" en vez de mezclar o contar posibles innecesariamente.
 - Si un team no tiene GK real, el resumen debe mostrar claramente cuantos capaces tiene y si pasa/falla la regla.
 - Si se seleccionan 3 GK de rol, no bloquear. Generar igual con warning claro porque es raro pero posible, y explicar si se uso fallback.
@@ -68,7 +68,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - [x] F2-03.4 Mantener `Clear Wants`, `Clear Avoids`, `Clear Filters` y `Clear Selection` sin cambiar comportamiento.
 - [x] F2-03.5 Agregar el icono de la pelota rojo en la UI donde corresponda.
 - [x] F2-03.6 Agregar indicador visual de color cuando la seleccion llega a 10/10.
-- [x] F2-03.7 En lineups/resultados, mostrar la puntuacion de cada jugadora solo cuando el ojito/privacy mode esta apagado.
+- [x] F2-03.7 En lineups/resultados, mostrar la puntuacion de cada jugadorx solo cuando el ojito/privacy mode esta apagado.
 - [x] F2-09.1 Al generar equipos, crear un ref al bloque de resultado.
 - [x] F2-09.2 Cuando aparece `generatedTeams`, hacer `scrollIntoView` hasta el resultado.
 - [x] F2-09.3 Validar que el scroll no dispare si hay error o si se limpia la seleccion.
@@ -86,7 +86,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - [x] F2-04.0.6 Agregar accion App Script `action=migrateSchema` para correr migracion controlada desde URL/script antes de depender de columnas nuevas.
 - [x] F2-04.0.7 Corregir App Script para que `update` preserve valores existentes si el payload no trae una columna nueva, en vez de vaciar celdas faltantes.
 - [x] F2-04.0.8 Corregir App Script para buscar la columna `id` por header normalizado y no asumir que siempre es la primera columna.
-- [x] F2-04.0.9 Mantener backward compatibility: si faltan columnas/pestanas, la app sigue leyendo jugadores actuales y usa defaults seguros.
+- [x] F2-04.0.9 Mantener backward compatibility: si faltan columnas/pestanas, la app sigue leyendo jugadorxs actuales y usa defaults seguros.
 - [x] F2-04.0.10 Documentar paso de deploy de App Script despues de cambiar el codigo del web app.
 - [x] F2-04.1 Agregar a tipos `shirtNumber?: string`, `primaryTeam?: string`, `teams: string[]`, `groups: string[]`, `availability: string[]`, `birthYear?: string`, `secondaryRole?: Role`, `active?: boolean`, `notes?: string`.
 - [x] F2-04.2 Actualizar parser de Sheets para leer campos nuevos aunque falten columnas.
@@ -95,7 +95,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - [x] F2-04.4 Documentar columnas nuevas requeridas en Sheet/App Script.
 - [x] F2-05.1 Agregar `numero de camiseta` al modal dentro de una seccion colapsable `Extra info`.
 - [x] F2-05.2 Planificar `equipo` con multiples valores en el modal; ejecucion dividida en F2-05.2.x.
-- [x] F2-05.2.0 Cargar equipos manualmente en la pestana `Teams` por ahora; no crear equipos desde el modal de jugadora.
+- [x] F2-05.2.0 Cargar equipos manualmente en la pestana `Teams` por ahora; no crear equipos desde el modal de jugadorx.
 - [x] F2-05.2.1 Agregar accion App Script `action=readTeams` que lea la pestana `Teams` con defaults seguros.
 - [x] F2-05.2.2 Agregar tipos frontend para catalogo de equipos (`TeamCatalog`/similar) con `teamId`, `name`, `color1`, `color2`, `crest`.
 - [x] F2-05.2.3 Agregar store/cliente para cargar `teamsCatalog` desde `readTeams`.
@@ -104,13 +104,13 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - [x] F2-05.2.6 Permitir cambiar el equipo principal entre los equipos seleccionados.
 - [x] F2-05.2.7 Guardar `primaryTeam` cuando exista UI de equipo principal; `teams` ya se guarda desde F2-05.2.4 preservando ediciones manuales de Sheets.
 - [ ] F2-05.3 Agregar `grupo/cancha habitual` y `dia/lugar` con multiples valores al modal.
-- [x] F2-05.4 Actualizar labels del modal de arquero a `good`, `low`, `no`.
+- [x] F2-05.4 Actualizar labels del modal de arquerx a `good`, `low`, `no`.
 - [x] F2-05.5 Mostrar camiseta en tarjeta sin romper privacidad ni mobile.
 - [ ] F2-05.6 Mostrar equipo en tarjeta.
 - [x] F2-05.7 Mostrar equipo con senal/swatch de dos colores.
 - [ ] F2-05.8 Agregar `anio de nacimiento` o edad calculada al modal solo si aporta al armado de partidos.
 - [ ] F2-05.9 Agregar `segunda posicion` al modal como campo opcional.
-- [ ] F2-05.10 Agregar `active` para ocultar jugadoras inactivas sin borrarlas.
+- [ ] F2-05.10 Agregar `active` para ocultar jugadorxs inactivxs sin borrarlxs.
 - [ ] F2-05.11 Agregar `notes` como campo opcional de uso interno.
 
 ### Auditoria F2-04.0 - App Script y headers actuales
@@ -140,13 +140,13 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - `avoidsWith`: opcional, IDs separados por pipe; vacio significa sin avoids.
 - `attributes`: JSON string con `shooting`, `control`, `passing`, `defense`, `pace`, `vision`, `grit`, `stamina`; cada valor es `high | mid | low`; si falta o es invalido, default `mid`.
 - `shirtNumber`: opcional, string para permitir numeros especiales o vacio; no participa del algoritmo.
-- `primaryTeam`: opcional, un solo `teamId` que representa el equipo principal actual de la jugadora. Si esta vacio, no hay equipo principal.
-- `teams`: opcional, `teamId`s separados por pipe, ejemplo `armaduki|femix|las-pibas`; depende de la pestana `Teams`. Una jugadora puede no tener equipo, puede tener mas de dos equipos, y `primaryTeam` deberia estar incluido en `teams` cuando exista.
-- `groups`: opcional, `groupId`s separados por pipe, ejemplo `segurola|palermo`; representa grupos/canchas habituales donde suele jugar. Una jugadora puede no tener grupo.
+- `primaryTeam`: opcional, un solo `teamId` que representa el equipo principal actual de lx jugadorx. Si esta vacio, no hay equipo principal.
+- `teams`: opcional, `teamId`s separados por pipe, ejemplo `armaduki|femix|las-pibas`; depende de la pestana `Teams`. Unx jugadorx puede no tener equipo, puede tener mas de dos equipos, y `primaryTeam` deberia estar incluido en `teams` cuando exista.
+- `groups`: opcional, `groupId`s separados por pipe, ejemplo `segurola|palermo`; representa grupos/canchas habituales donde suele jugar. Unx jugadorx puede no tener grupo.
 - `availability`: opcional, tokens/labels separados por pipe para dia/lugar, ejemplo `martes|jueves-noche`; sirve para disponibilidad, no para identidad del grupo/cancha.
 - `birthYear`: opcional, string de 4 digitos; se prefiere anio de nacimiento antes que edad fija para no quedar desactualizado.
 - `secondaryRole`: opcional, enum `GK | FLEX | DEF | MID | ATT`; vacio significa sin segunda posicion.
-- `active`: opcional, boolean/string; default `true` si esta vacio o falta para no ocultar jugadoras existentes.
+- `active`: opcional, boolean/string; default `true` si esta vacio o falta para no ocultar jugadorxs existentes.
 - `notes`: opcional, texto libre interno; no se muestra en cards ni afecta generador por ahora.
 
 ### Migracion F2-04.0.1.1 - `db` a `Players`
@@ -166,7 +166,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - `color2`: opcional, color secundario en hex para swatch/circulo de dos colores; si falta, se usa `color1`.
 - `crest`: opcional, URL/data URL/emoji corto para escudo o identificador visual del equipo.
 - `Players.primaryTeam` guarda el `teamId` principal actual, y `Players.teams` guarda multiples `teamId` separados por pipe, ejemplo `armaduki|femix|las-pibas`.
-- Decision UI: los equipos se cargan a mano en `Teams`; el modal de jugadora solo selecciona equipos existentes. Si se selecciona un primer equipo y `primaryTeam` esta vacio, ese equipo queda como principal por defecto. Despues se puede cambiar el principal entre los equipos seleccionados.
+- Decision UI: los equipos se cargan a mano en `Teams`; el modal de jugadorx solo selecciona equipos existentes. Si se selecciona un primer equipo y `primaryTeam` esta vacio, ese equipo queda como principal por defecto. Despues se puede cambiar el principal entre los equipos seleccionados.
 - Si un `teamId` aparece en `Players.teams` pero no existe en `Teams`, la app debe mostrar el id como texto simple y no romper filtros ni cards.
 - La migracion de App Script debe crear `Teams` con headers si no existe, pero no necesita cargar equipos iniciales automaticamente.
 - Todas las columnas salvo `teamId` y `name` son opcionales para empezar simple.
@@ -181,7 +181,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - `place`: opcional, texto libre para ubicacion/cancha habitual. Varios grupos pueden compartir el mismo lugar.
 - `notes`: opcional, texto libre interno.
 - `Players.groups` guarda multiples `groupId` separados por pipe, ejemplo `segurola|palermo`.
-- Una jugadora puede pertenecer a varios grupos. `Groups` existe principalmente para filtrar jugadoras por grupo/cancha habitual en People y Match.
+- Unx jugadorx puede pertenecer a varios grupos. `Groups` existe principalmente para filtrar jugadorxs por grupo/cancha habitual en People y Match.
 - Si un `groupId` aparece en `Players.groups` pero no existe en `Groups`, la app debe mostrar el id como texto simple y no romper filtros ni cards.
 - `Groups` representa pertenencia/habito de juego, no disponibilidad. Ejemplo: suele jugar en `Canchita de Segurola`; para dias/horarios sigue existiendo `Players.availability`.
 - La migracion de App Script debe crear `Groups` con headers si no existe, pero no necesita cargar grupos iniciales automaticamente.
@@ -191,8 +191,8 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 
 - Nombre canonico de la pestana: `RelationshipHistory`.
 - Orden canonico de columnas: `sourceId`, `targetId`, `wantsCount`, `avoidsCount`, `updatedAt`.
-- `sourceId`: requerido, `Players.id` de la jugadora que define la relacion.
-- `targetId`: requerido, `Players.id` de la jugadora relacionada.
+- `sourceId`: requerido, `Players.id` de lx jugadorx que define la relacion.
+- `targetId`: requerido, `Players.id` de lx jugadorx relacionadx.
 - El par `sourceId -> targetId` es dirigido. `10 -> 14` y `14 -> 10` son relaciones historicas distintas.
 - Debe haber como maximo una fila por par dirigido `sourceId + targetId`.
 - `wantsCount`: entero >= 0; default `0` si falta o esta vacio.
@@ -230,7 +230,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - No reordena columnas existentes y no borra datos existentes.
 - `readPlayers()` y `doPost()` llaman `ensureSchema()` antes de leer/escribir para mantener backward compatibility.
 - Para que el schema nuevo no provoque perdida de datos, tambien se implemento F2-04.0.7/F2-04.0.8: `update` preserva celdas existentes no enviadas y `delete/update` buscan `id` por header normalizado.
-- Validacion manual pendiente al deployar Apps Script: correr `?action=migrateSchema`, confirmar que existen las pestanas nuevas y que `Players` conserva sus datos con columnas nuevas al final. Despues correr `?action=read` para confirmar que la app sigue devolviendo jugadoras.
+- Validacion manual pendiente al deployar Apps Script: correr `?action=migrateSchema`, confirmar que existen las pestanas nuevas y que `Players` conserva sus datos con columnas nuevas al final. Despues correr `?action=read` para confirmar que la app sigue devolviendo jugadorxs.
 
 ### Implementacion F2-04.0.6 - `migrateSchema`
 
@@ -243,7 +243,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - `apps-script/Code.gs` mantiene compatibilidad con Sheet vieja: si falta `Players` usa/renombra `db`; si faltan pestanas o columnas nuevas, las crea/agrega sin borrar datos.
 - `src/store/useAppStore.ts` parsea filas viejas aunque falten columnas opcionales y aplica defaults seguros: `role = FLEX`, `rating = 5`, `gkWillingness = no`, `wantsWith = []`, `avoidsWith = []`, `attributes = mid`.
 - `gkWillingness = yes` sigue leyendo como `good` para datos legacy.
-- Las filas sin `nickname` valido se siguen salteando para evitar jugadoras rotas en UI/generador.
+- Las filas sin `nickname` valido se siguen salteando para evitar jugadorxs rotxs en UI/generador.
 - Los campos nuevos de Phase 2 quedan tipados y parseados desde F2-04.1/F2-04.2. Por seguridad, no se envian en payloads hasta que F2-05 agregue UI real para editarlos.
 
 ### Implementacion F2-04.0.10 - deploy de App Script
@@ -256,19 +256,19 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 
 - `src/types/index.ts` agrega campos Phase 2 a `Person`: camiseta, equipo principal, equipos, grupos, disponibilidad, anio de nacimiento, segunda posicion, activo y notas.
 - `src/store/useAppStore.ts` inicializa `teams`, `groups` y `availability` como arrays vacios cuando no hay datos en Sheet.
-- `src/components/PersonForm.tsx` preserva esos campos al editar una jugadora aunque todavia no esten visibles en el modal.
+- `src/components/PersonForm.tsx` preserva esos campos al editar unx jugadorx aunque todavia no esten visibles en el modal.
 
 ### Implementacion F2-04.2 - parser de campos nuevos
 
 - `src/store/useAppStore.ts` lee de Sheets `shirtNumber`, `primaryTeam`, `teams`, `groups`, `availability`, `birthYear`, `secondaryRole`, `active` y `notes`.
 - Si faltan columnas nuevas, el parser mantiene defaults seguros: arrays vacios, campos opcionales `undefined`, `secondaryRole` vacio y `active = true`.
 - `teams`, `groups` y `availability` se leen como listas separadas por pipe.
-- `active` acepta valores falsos tipo `false`, `no`, `0`, `inactive` u `off`; cualquier valor vacio o no reconocido queda activo para no ocultar jugadoras existentes.
+- `active` acepta valores falsos tipo `false`, `no`, `0`, `inactive` u `off`; cualquier valor vacio o no reconocido queda activo para no ocultar jugadorxs existentes.
 
 ### Implementacion F2-04.3 / F2-04.3.0 - payloads y preservacion de campos nuevos
 
 - `src/store/useAppStore.ts` envia campos Phase 2 en `add` solo si tienen valor real.
-- En `update`, los campos Phase 2 se envian solo si cambiaron contra la version cargada de la jugadora.
+- En `update`, los campos Phase 2 se envian solo si cambiaron contra la version cargada de lx jugadorx.
 - Esto evita pisar cambios manuales hechos en Sheets con valores viejos o vacios que la app tenga en memoria, y permite limpiar un campo desde UI cuando tenga control visible.
 - `wantsWith` y `avoidsWith` siguen enviandose como antes porque esos campos si se editan desde la UI.
 - `shirtNumber` ya tiene control visible en el modal; `primaryTeam`, `teams`, `groups`, `availability`, `birthYear`, `secondaryRole`, `active` y `notes` quedan listos para enviarse cuando F2-05 agregue controles reales para editarlos.
@@ -323,13 +323,13 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - Si hay equipo, el modal muestra solo la mini pill con colores del primer equipo y el numero adentro; si no hay equipo, mantiene el numero gris.
 - El cambio de foto queda como overlay sobre la imagen al hover/focus para no ocupar espacio debajo.
 - La lista muestra estado vacio y respeta errores/carga del catalogo.
-- Al guardar el modal, `teams` se actualiza en la jugadora y se refleja en Sheets por el payload Phase 2 existente.
+- Al guardar el modal, `teams` se actualiza en lx jugadorx y se refleja en Sheets por el payload Phase 2 existente.
 - `primaryTeam` no se modifica todavia; queda para los pasos de equipo principal.
 - `src/components/PersonCard.tsx` muestra un triangulo en la esquina inferior izquierda con los colores del primer equipo, sin texto.
 
 ### Implementacion F2-05.2.5 - default `primaryTeam`
 
-- `src/components/PersonForm.tsx` guarda como `primaryTeam` el primer equipo seleccionado si la jugadora no tenia principal.
+- `src/components/PersonForm.tsx` guarda como `primaryTeam` el primer equipo seleccionado si lx jugadorx no tenia principal.
 - Si se elimina el equipo principal desde el selector, el siguiente equipo seleccionado pasa a ser principal; si no quedan equipos, se limpia.
 - La mini pill del modal usa solo `primaryTeam`; si falta, no muestra senal aunque existan `teams`.
 - `src/components/PersonCard.tsx` usa solo `primaryTeam` para el triangulo de equipo; si falta, no muestra senal aunque existan `teams`.
@@ -363,7 +363,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 
 - [ ] F2-08.1 Agregar buscador al selector de Wants.
 - [ ] F2-08.2 Agregar buscador al selector de Avoids.
-- [ ] F2-08.3 Ordenar seleccionados primero.
+- [ ] F2-08.3 Ordenar seleccionadxs primero.
 - [ ] F2-08.4 Luego ordenar por historial del par `currentPlayer -> target`.
 - [ ] F2-08.5 Si no hay historial del par, ordenar por popularidad global.
 - [ ] F2-08.6 Si empatan, ordenar alfabeticamente por nickname.
@@ -382,7 +382,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 ## Fase 8 - Historial de partidos
 
 - [ ] F2-11.1 Confirmar contrato de pestana `MatchHistory` definido en F2-04.0.4.
-- [ ] F2-11.2 Guardar fecha/id, seleccionados, team1, team2, score, stage y social satisfaction.
+- [ ] F2-11.2 Guardar fecha/id, seleccionadxs, team1, team2, score, stage y social satisfaction.
 - [ ] F2-11.3 Agregar accion App Script para guardar historial al confirmar/generar.
 - [ ] F2-11.4 Decidir si guardar automaticamente al generar o con boton explicito.
 - [ ] F2-11.5 Mantener este historial separado de `RelationshipHistory`.
@@ -403,7 +403,7 @@ Estado original: super TODO de Fase 2, ordenado para ejecutar de a un paso chico
 - [ ] `npm run lint` pasa.
 - [ ] `npm run build` pasa.
 - [ ] QA manual de los cambios principales queda definido y probado.
-- [ ] Campos nuevos leen y escriben contra Sheet sin romper jugadores existentes.
+- [ ] Campos nuevos leen y escriben contra Sheet sin romper jugadorxs existentes.
 - [ ] Selector de Wants/Avoids es buscable y ordena por historial cuando existe.
 - [ ] Generar equipos scrollea al resultado.
 - [ ] Bonus de mismo equipo aparece en analisis y no rompe reglas fuertes.
@@ -416,8 +416,8 @@ Hecho:
 
 - [x] RV-01 Sync con Sheets: se lee la respuesta del Apps Script (antes `no-cors` hacia que todo error pareciera "Synced"). Errores reales con aviso abajo y boton `Retry`; escrituras en cola y en orden; timeout 60s; aviso al cerrar la pestana con cambios sin guardar.
 - [x] RV-02 `update` envia solo los campos que cambiaron: no pisa ediciones manuales de Sheets ni reenvia el avatar en cada guardado.
-- [x] RV-03 IDs: el id nuevo es el mayor id visto en ids y links + 1 (antes, borrar la ultima jugadora y crear otra reusaba el id y heredaba sus wants/avoids). Borrar jugadora limpia sus links en el resto. Filas sin id o con id duplicado muestran warning.
-- [x] RV-04 Clear links: solo jugadoras con links, 4 requests a la vez, payload minimo (antes: N requests simultaneos con payload completo, podian fallar en silencio).
+- [x] RV-03 IDs: el id nuevo es el mayor id visto en ids y links + 1 (antes, borrar lx ultimx jugadorx y crear otrx reusaba el id y heredaba sus wants/avoids). Borrar jugadorx limpia sus links en el resto. Filas sin id o con id duplicado muestran warning.
+- [x] RV-04 Clear links: solo jugadorxs con links, 4 requests a la vez, payload minimo (antes: N requests simultaneos con payload completo, podian fallar en silencio).
 - [x] RV-05 Generador: el fallback elige el split que rompe menos reglas (avoids > wants > owner bias > ATT/DEF spread > limites GK/DEF). Antes el snake podia juntar avoids sin necesidad y con 3 GK podia armar 3/0. El analisis explica el por que en `[Fallback]`. La etapa estricta da resultados identicos (test diferencial contra la version anterior).
 - [x] RV-06 `npm test`: tests del generador con el runner nativo de Node.
 - [x] RV-07 Modal: no se cierra al soltar una seleccion de texto afuera; avatar comprimido bajo 45k chars (limite de celda 50k); error visible si la imagen no se puede leer; links a ids borrados se descartan.
@@ -429,7 +429,7 @@ Pendiente / a decidir:
 
 - [x] RV-10.1 `SPREADSHEET_ID` cargado en Propiedades del script; `Code.gs` nuevo subido con `clasp` como version 19 y probado en un deployment temporal (lectura identica a la version 18, escrituras de prueba sin cambios en la Sheet).
 - [x] RV-10.2 Produccion pasada a la version 19 con `npx @google/clasp redeploy <deploymentId> -V 19` desde `apps-script/` (la URL no cambia). Rollback: el mismo comando con `-V 18`.
-- [ ] RV-11 Probar en local contra la Sheet real con una jugadora de prueba: crear, editar rating, borrar; ver que no aparezca el aviso rojo. Si aparece `Apps Script answered: ...` con un texto de exito distinto, ajustar `SUCCESS_RESPONSES` en el store.
+- [ ] RV-11 Probar en local contra la Sheet real con unx jugadorx de prueba: crear, editar rating, borrar; ver que no aparezca el aviso rojo. Si aparece `Apps Script answered: ...` con un texto de exito distinto, ajustar `SUCCESS_RESPONSES` en el store.
 - [ ] RV-12 Privacidad: definir que tiene que ocultar privacy mode (hoy el analisis sigue mostrando totales de rating por equipo) y que datos deberia devolver `action=read`.
 - [ ] RV-13 Seguridad: agregar autenticacion a las escrituras del Apps Script (ver F2-12.4).
 - [ ] RV-14 Default de `gkWillingness`: el modal usa `low` y el parser de Sheets usa `no`. Unificar.
