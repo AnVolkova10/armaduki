@@ -95,11 +95,12 @@
   --team-black-line: #6b6b73;
 
   /* The result card, a touch lighter than the rest so NEGRO in black reads on it (25/11), with
-     the lines, the raised fallback block and the bars' track that go with it. */
-  --result-bg: #26262b;
-  --result-raised: #2e2e34;
-  --result-line: #4d4d51;
-  --result-track: #151518;
+     the lines and the raised fallback block that go with it. The bars run on a white track, where
+     both the red and the black fills show. */
+  --result-bg: #232327;
+  --result-raised: #2b2b30;
+  --result-line: #4b4b4e;
+  --result-track: var(--team-tag);
 
   --font-body: 'Barlow', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
   --font-display: 'Barlow Condensed', 'Arial Narrow', 'Segoe UI', system-ui, sans-serif;

@@ -411,8 +411,8 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
                     <div className="tape-head" aria-hidden="true">
                         <span />
                         <span className="tape-sides">
-                            <span className="team-tag team-tag--red team-tag--small">{t.common.team('T1')}</span>
-                            <span className="team-tag team-tag--black team-tag--small">{t.common.team('T2')}</span>
+                            <span className="team-word team-word--red">{t.common.team('T1')}</span>
+                            <span className="team-word team-word--black">{t.common.team('T2')}</span>
                         </span>
                     </div>
                     <TapeRow

@@ -66,7 +66,7 @@ Debajo de la lista, como hoy, en tres partes:
    - **Reglas:** «todas se cumplen» o «fallback: se rompió 1».
 3. **El análisis completo**, plegado, con más palabras que números (25/11):
    - **En palabras:** una frase por tema, con su palabra al frente: parejo (y el score), rating (cuánto más suma un equipo), atributos (quién es mejor en qué), arqueras (si un equipo no tiene GK, quién ataja bien y cuántas más pueden), ATT y links (cuántos se cumplieron, con las parejas).
-   - **Rojo vs Negro:** las barras, sin números, rojas hacia el Rojo y negras (con un borde claro, para que se vean) hacia el Negro, con una línea que explica cómo leerlas.
+   - **ROJO vs NEGRO:** las barras, sin números, sobre un fondo blanco: rojas hacia ROJO y negras hacia NEGRO. Arriba, ROJO y NEGRO en su color, sin pill. Una línea explica cómo leerlas.
    - **Cómo se calcula el score:** arranca en 100 y cada línea dice qué resta o suma y por qué. Solo aparece lo que movió el score; lo demás se nombra en una frase.
 
 «Show Second Option» sigue plegada, con la misma estética, y marca quién cambia de equipo.
