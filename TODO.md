@@ -192,14 +192,18 @@ Prueba (desde el 25/11, en https://armaduki.vercel.app; antes, en local con la r
 
 ## Sprint 6 - Campos de jugadorx
 
-Objetivo: cargar desde el modal los datos que la planilla ya tiene (resto de la Fase 2). Las columnas ya existen; los esquemas están en `apps-script/README.md`.
+Objetivo: cargar desde el modal los datos que la planilla ya tiene lugar para guardar (resto de la Fase 2) y crear equipos y grupos sin ir a la planilla. Decidido con Ángela el 25/11. Los esquemas están en `apps-script/README.md`.
 
-- [ ] Grupo o cancha habitual y día/lugar, con varios valores (F2-05.3). Los grupos se cargan en la pestaña `Groups`.
+- [ ] **Segundo puesto** (F2-05.9), opcional: DEF, MID, ATT o GK, distinto del principal, en la columna `secondaryRole`. Se ve en el modal, en las tarjetas y en los equipos armados, al lado del principal, más chico y más apagado. Las reglas siguen mirando solo el puesto principal (ver «Cosas por cerrar»).
+- [ ] Con GK de segundo puesto, «¿Ataja?» no se muestra y queda en `good`, como pasa hoy con un GK principal.
+- [ ] **Cobertura de DEF y ATT**, el híbrido de Ángela: si un equipo se queda sin DEF principal, el score prefiere que tenga a alguien con DEF de segundo puesto, y lo mismo con ATT. Es una preferencia, no una regla, y pesa lo mismo que un want de un solo lado. El análisis lo cuenta: «NEGRO no tiene DEF: defiende Caro, que también juega de DEF». Para MID, FLEX y GK no hace falta (el arco ya tiene a lxs arquerxs de emergencia).
+- [ ] «¿Ataja?» arranca en `no` al sumar a alguien (ver «Cosas por cerrar»).
+- [ ] **Activx** (F2-05.10): un switch arriba del modal. Apagado, esa persona no aparece en la lista ni se puede elegir, pero no se borra nada: quedan sus datos, sus wants y sus avoids. El filtro suma «Inactivxs» para verla y volver a activarla.
+- [ ] **Notas** internas y opcionales (F2-05.11): texto libre en el modal. En la computadora aparecen al pasar el mouse sobre la tarjeta y sobre lx jugadorx en los equipos armados; en el teléfono, solo en el modal. Privacy mode las oculta. La tarjeta no lleva marca y el generador no las usa.
+- [ ] **Fecha de nacimiento** (F2-05.8), opcional: día, mes y año, y con el año alcanza. Va en una columna nueva, `birthDate` (AAAA, AAAA-MM o AAAA-MM-DD); `birthYear` queda sin uso. La edad se ve en el modal y en la tarjeta, como el número de camiseta; si falta el día, es aproximada. Privacy mode la oculta. Por ahora no se usa para nada más.
+- [ ] **Grupos** (F2-05.3): fichas en el modal, como los equipos, sin uno principal. Como los grupos se arman por cancha, por equipo, por amistad o por día, el nombre lo dice todo: «Segurola 20hs Jueves». Se leen de la pestaña `Groups`. Los días que puede cada unx quedan para más adelante (backlog).
+- [ ] **Crear equipos y grupos desde el modal:** una ficha «+ Nuevo» al final de cada fila. Se escribe el nombre (y, si es un equipo, se eligen sus dos colores), se guarda en la planilla y queda marcado. Cambiar nombres o colores y borrar sigue en la planilla; un modal propio queda en el backlog.
 - [x] Mostrar el equipo en la tarjeta (F2-05.6): alcanza con los dos colores del equipo principal, en la esquina (25/11).
-- [ ] Varios roles por jugadorx, en lugar de la segunda posición (F2-05.9): cada unx tiene la lista de roles que juega y FLEX pasa a ser «todos». Las filas con FLEX siguen valiendo. Antes, decidir qué cuentan las reglas del generador (ver «Cosas por cerrar»). Va después del rediseño, para diseñar el modal una sola vez.
-- [ ] `active`: ocultar jugadorxs inactivxs sin borrarlxs (F2-05.10).
-- [ ] Notas internas, opcionales (F2-05.11).
-- [ ] Fecha de nacimiento, opcional: se guarda la fecha y se muestra la edad (F2-05.8). **Propuesta:** guardarla en una columna nueva `birthDate` (AAAA-MM-DD) y dejar sin uso `birthYear`. Va después de la clave (Sprint 4) por ser un dato personal.
 - [ ] Al cerrar: los campos nuevos leen y escriben sin romper a lxs jugadorxs existentes (criterio de cierre de la Fase 2).
 
 ## Sprint 7 - Filtros y orden
@@ -207,8 +211,8 @@ Objetivo: cargar desde el modal los datos que la planilla ya tiene (resto de la 
 Objetivo: encontrar rápido a quién elegir. Usa la búsqueda unificada del Sprint 3.
 
 - [ ] Filtro por equipo (F2-06.1, F2-06.3).
-- [ ] Filtro por grupo o cancha y por día/lugar (F2-06.2, F2-06.4).
-- [ ] Orden por camiseta, equipo, grupo o día/lugar donde sume (F2-06.5).
+- [ ] Filtro por grupo (F2-06.2). El de día/lugar (F2-06.4) espera a los días (backlog).
+- [ ] Orden por camiseta, equipo o grupo donde sume (F2-06.5).
 
 ## Sprint 8 - Wants y avoids con historial
 
@@ -245,7 +249,7 @@ Objetivo: que lxs que juegan juntxs en un equipo real tiendan a caer juntxs, sin
 
 - [x] **Prioridad del fallback del generador.** Queda como está: avoids > wants > owner bias > spread ATT/DEF > límites GK/DEF (19/11). Cuando los wants de un solo lado pasen a preferencia, en el segundo lugar quedan solo los mutuos.
 - [ ] **Rating y atributos.** **Propuesta:** no tocarlos por ahora. El rating y los atributos miden casi lo mismo, así que el nivel cuenta dos veces. Con resultados de partidos (Sprint 9), probar que los atributos midan solo el estilo (que la velocidad o la defensa no queden todas del mismo lado) y no el nivel. El Power del owner bias no cambia. Decide: Ángela. Default: no tocarlos hasta tener resultados.
-- [x] **Formación ideal.** No se agrega: con los roles de hoy no sería un buen criterio (19/11). Se puede repensar con los varios roles del Sprint 6.
+- [x] **Formación ideal.** No se agrega: con los roles de hoy no sería un buen criterio (19/11). Se puede repensar con el segundo puesto del Sprint 6.
 - [ ] **Cuánto cuesta romper un want de un solo lado.** Hoy, 15 puntos de score, lo mismo que 1,5 puntos de diferencia de rating (`ONE_WAY_WANT_PENALTY`). Más alto respeta más wants y empareja un poco menos; más bajo, al revés. Decide: Ángela. Default: 15.
 - [x] **Varios roles: qué cuentan las reglas.** El puesto principal, por ahora (25/11): el máximo de GK y de DEF y los repartos de DEF y de ATT siguen mirando solo ese. El segundo puesto se ve, pero no cambia las reglas.
 - [ ] **El puesto que le toca en cada equipo.** Que el generador decida quién juega de qué usando el segundo puesto. Por ejemplo, con 3 GK elegidxs, unx que también juega de DEF jugaría de DEF y no haría falta el fallback. Para revisar más adelante, con resultados de partidos (Sprint 9). Decide: Ángela. Default: no, por ahora.
@@ -275,6 +279,9 @@ Objetivo: que lxs que juegan juntxs en un equipo real tiendan a caer juntxs, sin
 - [ ] Mostrar los escudos (`crest`) de los equipos. **Propuesta.**
 - [ ] Accesibilidad de diálogos y menús: el foco queda dentro del diálogo y los menús usan los roles correctos. **Propuesta.**
 - [ ] Que el fallback encuentre la causa en más casos. Hoy detecta de antemano algunas (GK o DEF de más, faltan arquerxs de emergencia, cadenas de wants, un avoid dentro de una cadena); si no encuentra ninguna, dice que las reglas chocan cuando se combinan. Encontrar más cambia el generador y lleva tests, así que va aparte del rediseño. **Propuesta.**
+- [ ] Los días que puede cada unx (`availability`, F2-05.3) y su filtro (F2-06.4). Por ahora el nombre del grupo dice el día (25/11).
+- [ ] Un modal propio para equipos y grupos: crear, cambiar nombre y colores, sumar el escudo y borrar. Por ahora se crean desde el modal de jugadorx y se editan en la planilla (25/11).
+- [ ] Algo con las edades, como la edad promedio de cada equipo. Por ahora solo se guardan y se ven en la tarjeta (25/11). **Propuesta.**
 
 ## Para otra versión
 
