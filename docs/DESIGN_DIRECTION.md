@@ -59,7 +59,7 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 
 Debajo de la lista, como hoy, en tres partes:
 
-1. **Los equipos.** El Rojo y el Negro lado a lado, también en el teléfono, cada uno con su color: el Rojo con una línea roja arriba y el fondo apenas teñido de rojo; el Negro, con fondo negro. Los nombres van en una etiqueta gris clara, ROJO en rojo y NEGRO en negro (sobre el fondo oscuro el negro no se leería). Cada jugadora con su foto chica (en el teléfono, sin foto, para que entre un apodo largo), el apodo y el rol, ordenadas por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
+1. **Los equipos.** El Rojo y el Negro lado a lado, también en el teléfono, cada uno con su color: el Rojo con una línea roja arriba y el fondo apenas teñido de rojo; el Negro, con fondo negro y una línea gris arriba (negra no se vería). La tarjeta del resultado es un toque más clara que el resto, para que NEGRO en negro se lea en las frases. Los nombres van en una etiqueta gris clara, ROJO en rojo y NEGRO en negro (sobre el fondo oscuro el negro no se leería). Cada jugadora con su foto chica (en el teléfono, sin foto, para que entre un apodo largo), el apodo y el rol, ordenadas por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
 2. **El resumen.** Tres datos en una fila:
    - **Parejo:** la etiqueta del score (highly balanced, balanced…) y, sin privacy mode, la diferencia de rating y a qué equipo favorece.
    - **Social:** el porcentaje y los wants cumplidos.

@@ -91,8 +91,15 @@
   --team-red-ink: #c81e1e;
   --team-black: #000000;
   --team-tag: #e7e5e4;
-  /* The thin light edge that lets black letters show on the dark background. */
-  --team-black-edge: #a8a7ad;
+  /* NEGRO's line on top of its box: black would not show on black, so grey (25/11). */
+  --team-black-line: #6b6b73;
+
+  /* The result card, a touch lighter than the rest so NEGRO in black reads on it (25/11), with
+     the lines, the raised fallback block and the bars' track that go with it. */
+  --result-bg: #26262b;
+  --result-raised: #2e2e34;
+  --result-line: #4d4d51;
+  --result-track: #151518;
 
   --font-body: 'Barlow', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
   --font-display: 'Barlow Condensed', 'Arial Narrow', 'Segoe UI', system-ui, sans-serif;

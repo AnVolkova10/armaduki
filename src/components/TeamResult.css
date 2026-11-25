@@ -1,13 +1,16 @@
 /* The result, read from top to bottom: why (only on a fallback), the teams, three numbers,
    and the full analysis folded. Red is only for what broke. */
 
+/* The result card is a touch lighter than the rest of the app, so NEGRO in black can be read on
+   it (25/11). The lines and the bars' track inside follow, so they still show. */
 .team-result {
+  --line: var(--result-line);
   display: grid;
   gap: 16px;
   padding: 20px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: var(--surface-1);
+  background: var(--result-bg);
 }
 
 .result-header {
@@ -62,7 +65,7 @@
   border: 1px solid var(--line-strong);
   border-left: 3px solid var(--red);
   border-radius: var(--radius);
-  background: var(--surface-2);
+  background: var(--result-raised);
 }
 
 .fallback-title {
@@ -198,7 +201,7 @@
 }
 
 .team-box--black {
-  border-top: 3px solid var(--team-black);
+  border-top: 3px solid var(--team-black-line);
   background: var(--team-black);
 }
 
@@ -253,8 +256,6 @@
 
 .team-word--black {
   color: var(--team-black);
-  -webkit-text-stroke: 1.5px var(--team-black-edge);
-  paint-order: stroke fill;
 }
 
 .team-tag--small {
@@ -640,7 +641,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   height: 6px;
-  background: var(--surface-3);
+  background: var(--result-track);
   border-radius: 1px;
 }
 

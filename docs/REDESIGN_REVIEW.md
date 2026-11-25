@@ -27,7 +27,7 @@ Fecha: 24/11/2026, con los ajustes del 25/11 después de la primera prueba de Á
 
 Después, en una segunda vuelta, le gustaron estos cambios y pidió uno de concepto:
 
-6. **Rojo y Negro en vez de Team 1 y Team 2.** Los nombres van en una etiqueta gris clara, ROJO en rojo y NEGRO en negro: NEGRO en negro sobre el fondo oscuro no se leía. El Rojo lleva una línea roja arriba y un fondo apenas rojo; el Negro, fondo negro. En el análisis, las barras hacia el Rojo son rojas y hacia el Negro, negras con un borde claro. En las frases, ROJO y NEGRO van en mayúscula, en su color y sin artículo («ROJO suma 2 puntos más de rating»), sin pill: ROJO en rojo y NEGRO en negro con un borde finito gris, que si no no se ve sobre el fondo oscuro (en inglés, RED y BLACK). «Copiar equipos» sigue copiando solo los apodos, como pidió Ángela.
+6. **Rojo y Negro en vez de Team 1 y Team 2.** Los nombres van en una etiqueta gris clara, ROJO en rojo y NEGRO en negro: NEGRO en negro sobre el fondo oscuro no se leía. El Rojo lleva una línea roja arriba y un fondo apenas rojo; el Negro, fondo negro. En el análisis, las barras hacia el Rojo son rojas y hacia el Negro, negras con un borde claro. En las frases, ROJO y NEGRO van en mayúscula, en su color y sin artículo («ROJO suma 2 puntos más de rating»), sin pill: ROJO en rojo y NEGRO en negro puro. Para que NEGRO se lea, la tarjeta del resultado pasó a un gris un toque más claro (#26262b); el borde gris que tuvo primero no le gustó. El Negro lleva arriba una línea gris, como la roja del Rojo (en inglés, RED y BLACK). «Copiar equipos» sigue copiando solo los apodos, como pidió Ángela.
 
 ## Un arreglo que apareció al probar
 
