@@ -1,7 +1,11 @@
 import { useLangStore, useT } from '../i18n';
+import { BallMark } from './BallMark';
 import './LangSwitch.css';
 
-/** EN on one side, ES on the other, and the logo ball rolls to the chosen one. */
+/**
+ * EN on one side, ES on the other, and the logo ball rolls to the chosen one. In English it is
+ * the logo as it is (red with black marks); in Spanish its colours swap, with a fade.
+ */
 export function LangSwitch({ className = '' }: { className?: string }) {
     const lang = useLangStore((state) => state.lang);
     const setLang = useLangStore((state) => state.setLang);
@@ -18,7 +22,7 @@ export function LangSwitch({ className = '' }: { className?: string }) {
         >
             <span className="lang-switch-code" data-active={!spanish || undefined}>EN</span>
             <span className="lang-switch-track">
-                <img className="lang-switch-ball" src="/ball.svg" alt="" aria-hidden="true" />
+                <BallMark className="lang-switch-ball" />
             </span>
             <span className="lang-switch-code" data-active={spanish || undefined}>ES</span>
         </button>

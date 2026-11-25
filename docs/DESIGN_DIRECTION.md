@@ -1,6 +1,6 @@
 # armaduki — Camiseta nueva
 
-Dirección vigente desde el 24/11/2026: Ángela la aprobó ese día y se implementó en la rama `sprint-5`, que pasa a `main` cuando ella la prueba. Cómo quedó y cómo se verificó: [REDESIGN_REVIEW.md](REDESIGN_REVIEW.md). Parte de lo que eligió el 24/11: un cambio moderado y no radical, la identidad de armaduki, la app más linda, profesional y animada, y que no parezca hecha por IA.
+Dirección vigente desde el 24/11/2026: Ángela la aprobó ese día y se implementó en la rama `sprint-5`, que pasa a `main` cuando ella la prueba. Ajustada el 25/11, después de la primera prueba de Ángela. Cómo quedó y cómo se verificó: [REDESIGN_REVIEW.md](REDESIGN_REVIEW.md). Parte de lo que eligió el 24/11: un cambio moderado y no radical, la identidad de armaduki, la app más linda, profesional y animada, y que no parezca hecha por IA.
 
 ## Idea
 
@@ -14,7 +14,6 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 
 - **Evolución, no revolución.** Cada cosa queda donde está: el header, los controles, la lista, el lápiz y el tacho en la tarjeta, y el resultado debajo. No hay que volver a aprender la app.
 - **Que no parezca hecha por IA.** La calidad sale del detalle (la letra, la alineación, el espaciado parejo y los estados claros), no de los efectos. Se van las marcas de plantilla que tiene hoy:
-  - los colores de fábrica de Tailwind en los roles, con un violeta saturado para FLEX;
   - los emojis 🔴🟡🟢 como botones de los atributos;
   - las etiquetas «Filter: all roles» y «Sort: none»;
   - los colores escritos a mano en el modal;
@@ -28,12 +27,12 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 - **El resultado se lee de arriba hacia abajo:** los equipos, un resumen de tres datos y el análisis completo plegado.
 - **El fallback dice primero por qué.** Después, qué se rompió y con quién, y qué se mantuvo. Rojo solo en lo roto.
 - **Inglés, con un switch al castellano.** Inglés por defecto; la pelota del logo hace de perilla para pasar a castellano rioplatense.
-- **El modal de jugadora, en tres columnas** (identidad, juego y relaciones), con lugar para los campos del Sprint 6, así se diseña una sola vez.
+- **El modal de jugadora, compacto:** tan alto como su contenido, sin lugares vacíos reservados. Arriba, quién es; abajo, cómo juega y con quién (25/11).
 - **Movimiento al nivel del penal:** fluido, corto y sin rebotes. Cada animación cuenta algo que pasó.
 
 ## Lenguaje visual
 
-- **Color.** Fondo negro casi puro, con dos o tres escalones de gris apenas más claros para tarjetas, menús y el modal, y bordes finos. Texto en un blanco un poco cálido, con dos grises para lo secundario. El rojo es el de la pelota del logo (`#dc2626`) y no cambia. Verde apagado para lo cumplido y para los wants; ámbar para los avisos. Los roles conservan su color de hoy (GK gris, DEF verde, MID ámbar, ATT rojo, FLEX violeta), en tonos propios y más apagados; ATT se corre hacia el coral para no confundirse con el rojo de la marca. Todo el texto con contraste AA. Los colores viven como variables en `index.css`; ningún componente escribe un color a mano, salvo los de los equipos, que vienen de la planilla, y la escena del penal.
+- **Color.** Fondo negro casi puro, con dos o tres escalones de gris apenas más claros para tarjetas, menús y el modal, y bordes finos. Texto en un blanco un poco cálido, con dos grises para lo secundario. El rojo es el de la pelota del logo (`#dc2626`) y no cambia. Verde apagado para lo cumplido y para los wants; ámbar para los avisos. Los roles conservan los colores de siempre (GK gris, DEF verde, MID ámbar, ATT rojo, FLEX violeta), como pills sólidas con la forma nueva: así lo eligió Ángela el 25/11. Todo el texto con contraste AA. Los colores viven como variables en `index.css`; ningún componente escribe un color a mano, salvo los de los equipos, que vienen de la planilla, y la escena del penal.
 - **Letra.** Barlow Condensed (semibold y bold) para el logo, los títulos, el contador y los números; Barlow (regular, medium y semibold) para todo lo demás. Números tabulares, para que no bailen al cambiar. Las etiquetas chicas, en mayúsculas y con un poco de aire entre letras, como en la espalda de una camiseta. Las dos se sirven desde la app, como en VolkosFood (solo latín y solo los pesos que se usan), sin depender de Google.
 - **Formas.** Radios chicos y parejos: 6 px en tarjetas, botones y campos; 12 px en el modal. Bordes de 1 px. Sombra solo en lo que flota (menús y modal). Espaciado en múltiplos de 4.
 - **Íconos.** Una sola familia de trazo, la de hoy (lápiz, tacho, ojo, lupa), con el mismo grosor y tamaño. Ningún emoji.
@@ -42,7 +41,7 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
   - La décima: las tarjetas viajan a su lugar nuevo (300 ms) mientras la pantalla sube.
   - Generar: los equipos aparecen y las jugadoras se reparten de a una, alternando Team 1 y Team 2, como cartas (menos de un segundo en total).
   - El modal entra con un fundido y una subida corta (200 ms); en el teléfono, la hoja sube desde abajo.
-  - El switch: la pelota rueda hasta el otro idioma (300 ms).
+  - El switch: la pelota rueda hasta el otro idioma (300 ms) y, al pasar al castellano, sus colores se intercambian con un fundido.
   - «Copy Teams» confirma con un ✓ por un momento.
 
   Con «reducir movimiento» nada se desplaza: los cambios son instantáneos o con un fundido corto. Sin librerías nuevas: CSS y la Web Animations API del navegador.
@@ -52,7 +51,7 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 - **Header.** El logo a la izquierda (`armaduki`, en minúscula y rojo, ahora en Barlow Condensed, con la pelota) y el switch de idioma a la derecha.
 - **Arriba de la lista.** «Players», «+ Add Player», el contador, «Clear» y «Generate Teams», en los mismos lugares. El contador va en números grandes («7/10») con diez puntitos que se llenan de a uno; con 10, «Generate Teams» se enciende con un destello, una sola vez. En el teléfono, el número va sobre sus puntitos, sin la palabra, para que entren «Clear» y «Generate Teams» en la misma fila.
 - **Controles.** Búsqueda, rol, score y orden, como hoy. Los menús muestran un nombre chico arriba y el valor abajo («Role» / «All», «Sort» / «Selected»); el orden de siempre se llama «Default».
-- **Tarjeta.** La misma información en el mismo orden: foto y número, apodo, nombre, rol y rating (oculto con privacy mode), y el marcador del equipo en la esquina. Elegida: borde rojo, fondo apenas teñido y una marca chica sobre la foto. Con 10 elegidas, las demás se apagan, pero el lápiz y el tacho siguen andando; en la computadora aparecen al pasar el mouse, como hoy.
+- **Tarjeta.** La misma información en el mismo orden: foto y número, apodo, nombre, rol y rating (oculto con privacy mode), y el marcador del equipo en la esquina. Elegida: borde rojo, fondo apenas teñido y una marca chica sobre la foto. Con 10 elegidas, las demás se apagan, pero el lápiz y el tacho siguen andando. Los dos van arriba a la derecha, uno sobre el otro: el lápiz arriba y el tacho abajo (25/11). En la computadora aparecen al pasar el mouse, como hoy.
 - **Estados.** La pelota que se llena sigue siendo la carga. «Updating from Google Sheets...» y «Saved copy · Refresh» pasan a una línea de estado discreta. Los errores van en una franja con el estilo del resto, con «Retry» y «×».
 
 ## El resultado
@@ -64,7 +63,10 @@ Debajo de la lista, como hoy, en tres partes:
    - **Parejo:** la etiqueta del score (highly balanced, balanced…) y, sin privacy mode, la diferencia de rating y a qué equipo favorece.
    - **Social:** el porcentaje y los wants cumplidos.
    - **Reglas:** «todas se cumplen» o «fallback: se rompió 1».
-3. **El análisis completo**, plegado: la comparación de atributos como en una placa de TV, con la barra de cada uno inclinada hacia el equipo que favorece; las arqueras de emergencia y los ATT; los links cumplidos y rotos; y la fórmula del score, chica, al final.
+3. **El análisis completo**, plegado, con más palabras que números (25/11):
+   - **En palabras:** una frase por tema, con su palabra al frente: parejo (y el score), rating (cuánto más suma un equipo), atributos (quién es mejor en qué), arqueras (quién ataja si un equipo no tiene GK), ATT y links (cuántos se cumplieron, con las parejas).
+   - **Equipo 1 vs Equipo 2:** las barras, sin números, con una línea que explica cómo leerlas.
+   - **Cómo se calcula el score:** arranca en 100 y cada línea dice qué resta o suma y por qué. Solo aparece lo que movió el score; lo demás se nombra en una frase.
 
 «Show Second Option» sigue plegada, con la misma estética, y marca quién cambia de equipo.
 
@@ -87,20 +89,20 @@ Para esto, el generador entrega, además del texto de hoy, los datos de cada reg
 
 ## El modal de jugadora
 
-Uno solo para sumar y para editar.
+Uno solo para sumar y para editar. Rehecho el 25/11: el primero, ancho y con columnas estiradas, dejaba mucho espacio vacío.
 
-- **En la computadora**, ancho y en tres columnas. Entra sin scroll en una ventana de 1280 × 680 o más grande, medido con los lugares del Sprint 6 ocupados; si la ventana es más chica, scrollea cada columna por dentro, nunca la página.
-  - **Identidad:** la foto más grande (tocarla la cambia), apodo, nombre o descripción, número de camiseta y equipos como fichas, con la pelota para marcar el principal. Lugar reservado para el Sprint 6: la fecha de nacimiento (con la edad) al lado del número de camiseta, «activa» a la derecha del título de la columna, y las notas abajo.
-  - **Juego:** el rol, ¿ataja? (good, low, no), el rating del 1 al 10 con la sugerencia marcada con un punto (oculto con privacy mode) y los 8 atributos, cada uno con un control de tres rayitas, como la señal del teléfono, en lugar de los emojis. Lugar reservado para el Sprint 6: «también juega», para los varios roles (el rol de hoy pasa a ser el principal, que es el que cuentan las reglas mientras no se decida otra cosa), y grupos y día o lugar.
-  - **Relaciones:** «Wants to play with» y «Avoids», con las marcadas primero y las pistas de relación inversa de hoy. La lista scrollea por dentro; arriba queda el lugar del buscador del Sprint 8.
+- **En la computadora**, de 880 px de ancho y tan alto como su contenido (unos 630 px con dos equipos cargados):
+  - **Arriba, quién es:** la foto (tocarla la cambia) y, en una fila, apodo, nombre o descripción y camiseta; debajo, los equipos como fichas, con la pelota para marcar el principal.
+  - **Abajo a la izquierda, cómo juega:** el puesto (el elegido, como su pill), ¿ataja? (good, low, no), el rating del 1 al 10 con la sugerencia marcada con un punto (oculto con privacy mode) y los 8 atributos con sus tres rayitas.
+  - **Abajo a la derecha, con quién:** «Wants to play with» y «Avoids» lado a lado, con las marcadas primero y las pistas de relación inversa. Ocupan el mismo alto que la columna de juego y scrollean por dentro, así nunca estiran el modal.
   - Abajo, siempre a la vista: «Cancel» y «Save». Enter guarda y Escape cierra, como hoy.
-- **En el teléfono**, una hoja de pantalla completa: las tres partes una debajo de la otra, el apodo y la × arriba, y «Cancel» y «Save» fijos abajo. Cada lista de relaciones va en su caja y scrollea por dentro, para que la hoja no se haga eterna.
-- «Extra info» deja de hacer falta en la computadora, porque todo tiene su lugar; en el teléfono puede seguir plegado.
+- **En el teléfono**, una hoja de pantalla completa: las partes una debajo de la otra, el apodo y la × arriba, y «Cancel» y «Save» fijos abajo. El número y los equipos siguen plegados en «Más datos». Cada lista de relaciones va en su caja y scrollea por dentro.
+- **Cuando lleguen los campos del Sprint 6** no hay lugar vacío esperándolos: entran donde corresponden y el modal crece lo justo. La fecha de nacimiento, en la fila de arriba o al lado de los equipos; «activa», junto al título; las notas, como una fila más arriba; «también juega» (los varios roles), debajo del puesto; grupos y día o lugar, al final de la columna de juego. Las listas de relaciones crecen solas con esa columna.
 
 ## El idioma
 
 - Inglés por defecto. El switch lo pasa a castellano rioplatense y cada dispositivo recuerda lo que eligió. No se adivina por el idioma del navegador.
-- El switch: «EN» de un lado, «ES» del otro y la pelota del logo como perilla, que rueda (gira mientras se desplaza) hacia el idioma elegido. El activo en blanco y el otro en gris. Está a la derecha del header y en una esquina del penal, porque el penal tapa el header y sus textos también se traducen.
+- El switch: «EN» de un lado, «ES» del otro y la pelota del logo como perilla, que rueda (gira mientras se desplaza) hacia el idioma elegido. En inglés es el logo tal cual, roja con negro; en castellano los colores se intercambian con un fundido: lo rojo pasa a negro y lo negro a rojo (25/11). El activo en blanco y el otro en gris. Está a la derecha del header y en una esquina del penal, porque el penal tapa el header y sus textos también se traducen.
 - Castellano con voseo y en femenino: «Sumar jugadora», «7/10 elegidas», «Armar equipos», «Equipo 1», «Copiar equipos», «Otra opción». En el penal: «Hacé el gol para entrar», «Gol», «Atajada. Esa no es la clave.», «Palo. No hubo respuesta, probá de nuevo.».
 - Los atributos, como se dicen en la cancha: remate, control, pase, marca, velocidad, visión, garra y aire.
 - Los roles quedan con sus códigos (GK, DEF, MID, ATT, FLEX) en los dos idiomas: son los de la planilla y los que ya se usan.

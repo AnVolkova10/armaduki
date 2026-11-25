@@ -205,13 +205,15 @@
   color: var(--text);
 }
 
+/* Edit above, delete below, at the top right. */
 .actions {
   position: absolute;
   top: 6px;
   right: 6px;
   z-index: 2; /* above the card's select button */
   display: flex;
-  gap: 2px;
+  flex-direction: column;
+  gap: 4px;
   opacity: 0;
   transition: opacity var(--t-press) ease;
 }
@@ -327,9 +329,7 @@
 
   .actions {
     opacity: 1;
-    flex-direction: column-reverse; /* trash on top */
-    top: 50%;
-    transform: translateY(-50%);
+    top: 6px;
     right: 4px;
     gap: 4px;
   }

@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from 'react';
 import type {
     AnalysisReport,
+    Attributes,
     FallbackReport,
     Favors,
     GeneratedTeams,
@@ -236,27 +237,12 @@ function Summary({ report, privacyMode, t }: { report: AnalysisReport; privacyMo
 }
 
 /** One line of the comparison: the bar leans to the side it favours, as far as the gap is wide. */
-function TapeRow({
-    name,
-    team1,
-    team2,
-    diff,
-    favors,
-    scale,
-}: {
-    name: string;
-    team1: string;
-    team2: string;
-    diff: number;
-    favors: Favors;
-    scale: number;
-}) {
+function TapeRow({ name, diff, favors, scale, t }: { name: string; diff: number; favors: Favors; scale: number; t: Dict }) {
     const width = `${Math.min(100, (diff / scale) * 100)}%`;
 
     return (
         <div className="tape-row" data-favors={favors}>
             <span className="tape-name">{name}</span>
-            <span className="tape-value tape-value--t1">{team1}</span>
             <span className="tape-bar" aria-hidden="true">
                 <span className="tape-half tape-half--t1">
                     {favors === 'T1' && <span className="tape-fill" style={{ width }} />}
@@ -265,14 +251,12 @@ function TapeRow({
                     {favors === 'T2' && <span className="tape-fill" style={{ width }} />}
                 </span>
             </span>
-            <span className="tape-value tape-value--t2">{team2}</span>
+            <span className="visually-hidden">{favors === 'Even' ? t.result.even : t.common.team(favors)}</span>
         </div>
     );
 }
 
-function LinkList({ links, kind, t }: { links: LinkRef[]; kind: 'want' | 'avoid'; t: Dict }) {
-    if (links.length === 0) return <span className="link-none">{t.result.none}</span>;
-
+function LinkList({ links, kind }: { links: LinkRef[]; kind: 'want' | 'avoid' }) {
     return (
         <ul className="link-list">
             {links.map((link) => (
@@ -286,129 +270,174 @@ function LinkList({ links, kind, t }: { links: LinkRef[]; kind: 'want' | 'avoid'
     );
 }
 
-function Analysis({ report, privacyMode, t }: { report: AnalysisReport; privacyMode: boolean; t: Dict }) {
+/** Who can keep goal in a team without a GK: the good ones first. */
+function emergencyKeepers(players: Person[]): string[] {
+    return players
+        .filter((player) => player.role !== 'GK' && player.gkWillingness !== 'no')
+        .sort((a, b) => Number(b.gkWillingness === 'good') - Number(a.gkWillingness === 'good'))
+        .map((player) => player.nickname);
+}
+
+type ScoreTerm = { short: keyof Dict['result']['scoreShort']; name: string; detail: string; value: number };
+
+/**
+ * The full analysis: first in words, then the comparison as bars and the score explained line
+ * by line. Numbers only where they say something on their own.
+ */
+function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; privacyMode: boolean; t: Dict }) {
+    const { report } = option;
     const { formula, keepers, att, social } = report;
+    const attributeName = (key: keyof Attributes) => t.common.attributes[key].toLocaleLowerCase();
+    const leaders = (side: Favors) =>
+        report.attributes.filter((attribute) => attribute.favors === side).map((attribute) => attributeName(attribute.key));
     const attributeScale = Math.max(3, ...report.attributes.map((attribute) => attribute.diff));
-    // Privacy mode hides each team's rating total; the gap stays, because the score needs it to make sense.
-    const ratingSide = (side: TeamLabel) =>
-        privacyMode
-            ? report.rating.favors === side
-                ? `+${report.rating.diff}`
-                : ''
-            : String(side === 'T1' ? report.rating.team1 : report.rating.team2);
+    // Privacy mode hides each team's rating total; the gap stays (Sprint 4).
+    const ratingTotals = privacyMode ? null : ([report.rating.team1, report.rating.team2] as const);
 
-    const keeperLine = (label: TeamLabel) => {
-        const team = label === 'T1' ? keepers.team1 : keepers.team2;
-        return team.gkCount > 0
-            ? t.result.hasGK(label)
-            : t.result.emergency(label, team.capable, keepers.neededWithoutGK, team.good, team.low);
-    };
+    const keeperSentence =
+        keepers.team1.gkCount === 1 && keepers.team2.gkCount === 1
+            ? t.result.keepersEach
+            : [
+                  t.result.keepersTeam('T1', keepers.team1.gkCount, emergencyKeepers(option.team1.players), keepers.neededWithoutGK),
+                  t.result.keepersTeam('T2', keepers.team2.gkCount, emergencyKeepers(option.team2.players), keepers.neededWithoutGK),
+              ].join(' ');
 
-    const terms: { name: string; detail?: string; value: number }[] = [
-        { name: t.result.formulaBase, value: formula.base },
-        { name: t.result.formulaRating, detail: `${formatValue(formula.ratingDiff)} × 10`, value: -formula.ratingPenalty },
-        { name: t.result.formulaAttributes, detail: `${formatValue(formula.attrDiff)} × 5`, value: -formula.attrPenalty },
-        { name: t.result.formulaPace, detail: `${formatValue(formula.paceDiff)} × 10`, value: -formula.pacePenalty },
-        { name: t.result.formulaStamina, detail: `${formatValue(formula.staminaDiff)} × 8`, value: -formula.staminaPenalty },
-        { name: t.result.formulaDefense, detail: `${formatValue(formula.defenseDiff)} × 5`, value: -formula.defensePenalty },
-        ...(formula.gkPref !== null ? [{ name: t.result.formulaKeepers, value: formula.gkPref }] : []),
-        { name: t.result.formulaAtt, value: formula.attPref },
+    const times = (value: number, weight: number) => t.result.scoreTimes(formatValue(value), weight);
+    const terms: ScoreTerm[] = [
+        { short: 'rating', name: t.result.scoreRating, detail: times(formula.ratingDiff, 10), value: -formula.ratingPenalty },
+        { short: 'attributes', name: t.result.scoreAttributes, detail: times(formula.attrDiff, 5), value: -formula.attrPenalty },
+        { short: 'pace', name: t.result.scorePace, detail: times(formula.paceDiff, 10), value: -formula.pacePenalty },
+        { short: 'stamina', name: t.result.scoreStamina, detail: times(formula.staminaDiff, 8), value: -formula.staminaPenalty },
+        { short: 'defense', name: t.result.scoreDefense, detail: times(formula.defenseDiff, 5), value: -formula.defensePenalty },
+        ...(formula.gkPref !== null
+            ? [{ short: 'keepers' as const, name: t.result.scoreKeepers, detail: t.result.scoreKeepersHelp, value: formula.gkPref }]
+            : []),
+        { short: 'att', name: t.result.scoreAtt, detail: t.result.scoreAttHelp, value: formula.attPref },
         ...(formula.wantsPref !== null && social.oneWay
             ? [{
-                  name: t.result.formulaWants,
-                  detail: `${social.oneWay.broken} × ${social.oneWay.penaltyEach}`,
+                  short: 'wants' as const,
+                  name: t.result.scoreWants,
+                  detail: times(social.oneWay.broken, social.oneWay.penaltyEach),
                   value: formula.wantsPref,
               }]
             : []),
     ];
+    // Only what moved the score gets a line; the rest is named in one sentence.
+    const counted = terms.filter((term) => term.value !== 0);
+    const noEffect = terms.filter((term) => term.value === 0).map((term) => t.result.scoreShort[term.short]);
+    const brokenOneWay = social.oneWay?.brokenLinks ?? [];
 
     return (
         <div className="analysis">
-            <section className="analysis-section">
+            <section className="analysis-section analysis-words">
+                <h4 className="analysis-title">{t.result.inWords}</h4>
+                <ul className="analysis-points">
+                    <li>
+                        <strong>{t.result.lead.balance}.</strong>{' '}
+                        {t.result.balanceSentence(report.balanceLabel, Math.round(report.score))}
+                    </li>
+                    <li>
+                        <strong>{t.result.lead.rating}.</strong>{' '}
+                        {t.result.ratingSentence(report.rating.diff, report.rating.favors, ratingTotals)}
+                    </li>
+                    <li>
+                        <strong>{t.result.lead.attributes}.</strong>{' '}
+                        {t.result.attributesSentence(leaders('T1'), leaders('T2'), leaders('Even'))}
+                    </li>
+                    <li>
+                        <strong>{t.result.lead.keepers}.</strong> {keeperSentence}
+                    </li>
+                    {att.total > 0 && (
+                        <li>
+                            <strong>{t.result.lead.att}.</strong> {t.result.attSentence(att.team1, att.team2)}
+                        </li>
+                    )}
+                    <li>
+                        <strong>{t.result.lead.links}.</strong>{' '}
+                        {t.result.linksSentence(social.wantsMet, social.wantsTotal, social.avoidsMet, social.avoidsTotal)}
+                        {(social.metWants.length > 0 || social.metAvoids.length > 0) && (
+                            <div className="link-groups">
+                                {social.metWants.length > 0 && (
+                                    <div className="link-group">
+                                        <span className="link-group-name">{t.result.wantsTogether}</span>
+                                        <LinkList links={social.metWants} kind="want" />
+                                    </div>
+                                )}
+                                {social.metAvoids.length > 0 && (
+                                    <div className="link-group">
+                                        <span className="link-group-name">{t.result.avoidsApart}</span>
+                                        <LinkList links={social.metAvoids} kind="avoid" />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {social.oneWay && brokenOneWay.length > 0 && (
+                            <div className="link-groups">
+                                <p className="link-note">{t.result.oneWaySplit(social.oneWay.penaltyEach)}</p>
+                                <LinkList links={brokenOneWay} kind="want" />
+                            </div>
+                        )}
+                    </li>
+                </ul>
+            </section>
+
+            <section className="analysis-section analysis-tape">
                 <h4 className="analysis-title">{t.result.comparison}</h4>
+                <p className="analysis-caption">{t.result.comparisonHelp}</p>
                 <div className="tape">
+                    <div className="tape-head" aria-hidden="true">
+                        <span />
+                        <span className="tape-sides">
+                            <span>{t.common.team('T1')}</span>
+                            <span>{t.common.team('T2')}</span>
+                        </span>
+                    </div>
                     <TapeRow
                         name={t.result.rating}
-                        team1={ratingSide('T1')}
-                        team2={ratingSide('T2')}
                         diff={report.rating.diff}
                         favors={report.rating.favors}
                         scale={Math.max(4, report.rating.diff)}
+                        t={t}
                     />
                     {report.attributes.map((attribute) => (
                         <TapeRow
                             key={attribute.key}
                             name={t.common.attributes[attribute.key]}
-                            team1={attribute.team1.toFixed(1)}
-                            team2={attribute.team2.toFixed(1)}
                             diff={attribute.diff}
                             favors={attribute.favors}
                             scale={attributeScale}
+                            t={t}
                         />
                     ))}
                 </div>
             </section>
 
-            <section className="analysis-section">
-                <h4 className="analysis-title">{t.result.keepers}</h4>
-                <ul className="analysis-lines">
-                    <li className={keepers.team1.missing > 0 ? 'is-short' : undefined}>{keeperLine('T1')}</li>
-                    <li className={keepers.team2.missing > 0 ? 'is-short' : undefined}>{keeperLine('T2')}</li>
-                    <li className={att.spreadKept ? undefined : 'is-short'}>{t.result.attSplit(att.team1, att.team2)}</li>
+            <section className="analysis-section analysis-score">
+                <h4 className="analysis-title">{t.result.scoreTitle}</h4>
+                <p className="analysis-caption">{t.result.scoreHelp}</p>
+                <ul className="score-rows">
+                    <li className="score-row">
+                        <span className="score-name">{t.result.scoreStart}</span>
+                        <span className="score-value">{formatValue(formula.base)}</span>
+                    </li>
+                    {counted.map((term) => (
+                        <li key={term.short} className="score-row">
+                            <span className="score-name">
+                                {term.name}
+                                <small>{term.detail}</small>
+                            </span>
+                            <span className="score-value">{formatSigned(term.value)}</span>
+                        </li>
+                    ))}
+                    <li className="score-row score-row--total">
+                        <span className="score-name">
+                            {t.result.scoreTotal}
+                            <small>{t.result.balanceLabel[report.balanceLabel]}</small>
+                        </span>
+                        <span className="score-value">{formula.total < 0 ? formatSigned(formula.total) : formatValue(formula.total)}</span>
+                    </li>
                 </ul>
-            </section>
-
-            <section className="analysis-section">
-                <h4 className="analysis-title">{t.result.links}</h4>
-                <div className="link-group">
-                    <span className="link-group-name">{t.result.wantsTogether}</span>
-                    <LinkList links={social.metWants} kind="want" t={t} />
-                </div>
-                <div className="link-group">
-                    <span className="link-group-name">{t.result.avoidsApart}</span>
-                    <LinkList links={social.metAvoids} kind="avoid" t={t} />
-                </div>
-                {social.oneWay && (
-                    <>
-                        <p className="link-note">
-                            {t.result.oneWayKept(
-                                social.oneWay.total - social.oneWay.broken,
-                                social.oneWay.total,
-                                social.oneWay.penaltyEach,
-                            )}
-                        </p>
-                        {social.oneWay.brokenLinks.length > 0 && (
-                            <div className="link-group">
-                                <span className="link-group-name">{t.result.oneWayBroken}</span>
-                                <LinkList links={social.oneWay.brokenLinks} kind="want" t={t} />
-                            </div>
-                        )}
-                    </>
-                )}
-            </section>
-
-            <section className="analysis-section">
-                <h4 className="analysis-title">{t.result.formula}</h4>
-                <table className="formula">
-                    <tbody>
-                        {terms.map((term) => (
-                            <tr key={term.name}>
-                                <th scope="row">{term.name}</th>
-                                <td className="formula-detail">{term.detail ?? ''}</td>
-                                <td className="formula-value">
-                                    {term.name === t.result.formulaBase ? formatValue(term.value) : formatSigned(term.value)}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                    <tfoot>
-                        <tr>
-                            <th scope="row">{t.result.formulaTotal}</th>
-                            <td />
-                            <td className="formula-value">{formatValue(formula.total)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
+                {noEffect.length > 0 && <p className="score-none">{t.result.scoreNoEffect(noEffect)}</p>}
             </section>
         </div>
     );
@@ -489,7 +518,7 @@ export function TeamResult({ result }: TeamResultProps) {
 
             {showAnalysis && (
                 <div id="analysis-panel" className="result-panel">
-                    <Analysis report={report} privacyMode={privacyMode} t={t} />
+                    <Analysis option={primary} privacyMode={privacyMode} t={t} />
                 </div>
             )}
 

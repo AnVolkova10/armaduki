@@ -68,12 +68,18 @@
   --warn: #d9a84a;
   --warn-soft: rgba(217, 168, 74, 0.12);
 
-  /* Roles keep the hue they always had, muted. ATT leans to coral, away from the brand red. */
-  --role-gk: #9499a3;
-  --role-def: #5fae81;
-  --role-mid: #d2a244;
-  --role-att: #e37a66;
-  --role-flex: #a295d6;
+  /* The role colours armaduki always had (Ángela kept them on 25/11), with the text that reads on each. */
+  --role-gk: #4b4d50;
+  --role-def: #22c55e;
+  --role-mid: #f59e0b;
+  --role-att: #ef4444;
+  --role-flex: #8b5cf6;
+  --role-ink: #ffffff;
+  --role-ink-dark: #000000;
+
+  /* The logo ball: the language switch swaps them in Spanish. */
+  --ball-red: #dc2626;
+  --ball-black: #000000;
 
   /* A team from the sheet with no colours of its own. */
   --team-default-1: #3a3a3a;
@@ -176,9 +182,10 @@ input, select, textarea {
   color: var(--text-3);
 }
 
-/* Role codes, on cards and in the result: the colour of the role as ink on a tint of itself. */
+/* Role codes, on cards and in the result: a solid pill in the role's colour. */
 .role {
   --role-color: var(--role-gk);
+  --role-text: var(--role-ink);
   display: inline-flex;
   align-items: center;
   min-height: 18px;
@@ -190,13 +197,13 @@ input, select, textarea {
   line-height: 1;
   letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: var(--role-color);
-  background: color-mix(in srgb, var(--role-color) 16%, transparent);
+  color: var(--role-text);
+  background: var(--role-color);
 }
 
 .role.gk { --role-color: var(--role-gk); }
 .role.def { --role-color: var(--role-def); }
-.role.mid { --role-color: var(--role-mid); }
+.role.mid { --role-color: var(--role-mid); --role-text: var(--role-ink-dark); }
 .role.att { --role-color: var(--role-att); }
 .role.flex { --role-color: var(--role-flex); }
 

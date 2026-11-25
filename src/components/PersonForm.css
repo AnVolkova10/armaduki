@@ -1,6 +1,6 @@
-/* The player form. On a computer: three columns (identity, game, links) that fit a 1280 x 680
-   window without scrolling, with room for the Sprint 6 fields; a smaller window scrolls inside
-   each column, never the page. On the phone: a full-screen sheet, with Cancel and Save fixed. */
+/* The player form, as tall as its content. On a computer: who she is across the top; how she
+   plays on the left; who she plays with on the right, as tall as the left side, with the two
+   lists scrolling inside. On the phone: a full-screen sheet, one part under the other. */
 
 .modal-overlay {
   position: fixed;
@@ -15,7 +15,7 @@
 }
 
 .modal {
-  width: min(1060px, 100%);
+  width: min(880px, 100%);
   max-height: calc(100vh - 32px);
   max-height: calc(100dvh - 32px);
   display: flex;
@@ -95,34 +95,21 @@
 .modal-body {
   flex: 1 1 auto;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 300px;
-}
-
-.form-col {
-  min-width: 0;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 16px 20px 18px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-areas:
+    'identity identity'
+    'game links';
 }
 
-.form-col + .form-col {
-  border-left: 1px solid var(--line);
-}
-
-.form-col-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 0.8rem;
-  font-weight: 600;
-  line-height: 1;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-3);
+/* The first player has nobody to link to. */
+.modal-body--solo {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'identity'
+    'game';
 }
 
 .form-actions {
@@ -139,25 +126,29 @@
 
 .form-group {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
+  align-content: start;
 }
 
-.form-group label,
 .form-label {
-  font-size: 0.78rem;
-  font-weight: 500;
-  line-height: 1.1;
-  color: var(--text-2);
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-3);
 }
 
 .form-group input[type='text'] {
   width: 100%;
-  min-height: 38px;
-  padding: 0 10px;
+  min-height: 40px;
+  padding: 0 12px;
   border-radius: var(--radius);
   border: 1px solid var(--line-strong);
-  background: var(--bg);
+  background: var(--surface-2);
   color: var(--text);
   font-size: 0.95rem;
   transition: border-color var(--t-press) ease;
@@ -172,31 +163,63 @@
   border-color: var(--text);
 }
 
-/* ---------- Identity ---------- */
+/* ---------- Who she is ---------- */
 
-.identity-top {
+.form-identity {
+  grid-area: identity;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 20px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
 }
 
-.identity-fields {
+/* Nickname, name and number in one row; the teams under them. */
+.identity-grid {
   display: grid;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 104px;
+  gap: 14px;
+  align-content: start;
+}
+
+.extra-info-toggle {
+  display: none;
+}
+
+.extra-info-content {
+  display: contents;
+}
+
+.field-shirt {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.teams-field {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 7px;
+}
+
+.avatar-error {
+  grid-column: 1 / -1;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--red-text);
 }
 
 .avatar-section {
   display: grid;
   justify-items: center;
+  align-content: start;
   gap: 6px;
-  width: 88px;
+  width: 76px;
 }
 
 .avatar-frame {
   position: relative;
-  width: 88px;
-  height: 88px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   overflow: hidden;
   cursor: pointer;
@@ -229,7 +252,7 @@
   justify-content: center;
   background: var(--surface-3);
   font-family: var(--font-display);
-  font-size: 2.1rem;
+  font-size: 1.9rem;
   font-weight: 700;
   color: var(--text-3);
 }
@@ -239,10 +262,10 @@
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 5px 0 7px;
+  padding: 4px 0 6px;
   background: var(--scrim);
   font-family: var(--font-display);
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   font-weight: 600;
   line-height: 1;
   letter-spacing: 0.1em;
@@ -250,12 +273,6 @@
   text-align: center;
   color: var(--text);
   pointer-events: none;
-}
-
-.avatar-error {
-  font-size: 0.8rem;
-  line-height: 1.3;
-  color: var(--red-text);
 }
 
 .modal-shirt-number,
@@ -287,55 +304,15 @@
   background: linear-gradient(135deg, var(--team-color-1) 0 50%, var(--team-color-2) 50% 100%);
 }
 
-.extra-info-toggle {
-  display: none;
-}
-
-.extra-info-content {
-  display: grid;
-  gap: 14px;
-}
-
-.identity-row {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.form-col-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-height: 20px;
-}
-
-.teams-field {
-  display: grid;
-  gap: 6px;
-}
-
-.teams-field-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.teams-field-count {
-  font-size: 0.74rem;
-  color: var(--text-3);
-}
-
-/* Chips that wrap, so a longer catalog takes rows, not the whole column. */
+/* Teams as chips that wrap; the ball marks the main one. */
 .team-options-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 6px;
 }
 
 .teams-empty-state {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: var(--text-3);
 }
 
@@ -360,7 +337,7 @@
   border: 1px solid var(--line-strong);
   background: transparent;
   color: var(--text-2);
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   text-align: left;
   cursor: pointer;
   transition: border-color var(--t-press) ease, color var(--t-press) ease, background var(--t-press) ease;
@@ -402,7 +379,6 @@
   display: none;
 }
 
-/* The ball marks the main team. */
 .team-main-ball {
   width: 34px;
   height: 34px;
@@ -433,12 +409,21 @@
   opacity: 1;
 }
 
-/* ---------- Game ---------- */
+/* ---------- How she plays ---------- */
 
-.form-row-compact {
+.form-game {
+  grid-area: game;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px 20px 20px;
+}
+
+.game-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px 20px;
+  gap: 18px 28px;
 }
 
 .selector-group,
@@ -449,7 +434,7 @@
 
 .role-btn,
 .gk-btn {
-  min-width: 46px;
+  min-width: 48px;
   min-height: 36px;
   padding: 0 10px;
   border-radius: var(--radius);
@@ -472,22 +457,26 @@
   color: var(--text);
 }
 
+/* The chosen role looks like its pill on the cards. */
 .role-btn {
   --role-color: var(--role-gk);
+  --role-text: var(--role-ink);
 }
 
 .role-btn.def { --role-color: var(--role-def); }
-.role-btn.mid { --role-color: var(--role-mid); }
+.role-btn.mid { --role-color: var(--role-mid); --role-text: var(--role-ink-dark); }
 .role-btn.att { --role-color: var(--role-att); }
 .role-btn.flex { --role-color: var(--role-flex); }
 
-.role-btn.active {
+.role-btn.active,
+.role-btn.active:hover {
   border-color: var(--role-color);
-  color: var(--role-color);
-  background: color-mix(in srgb, var(--role-color) 16%, transparent);
+  background: var(--role-color);
+  color: var(--role-text);
 }
 
-.gk-btn.active {
+.gk-btn.active,
+.gk-btn.active:hover {
   border-color: var(--text);
   color: var(--text);
   background: var(--surface-3);
@@ -504,7 +493,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   color: var(--text-3);
 }
 
@@ -572,7 +561,7 @@
 .attributes-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 2px 24px;
+  gap: 2px 32px;
 }
 
 .attribute-row {
@@ -581,10 +570,11 @@
   justify-content: space-between;
   gap: 8px;
   min-height: 34px;
+  border-bottom: 1px solid var(--line);
 }
 
 .attr-label {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--text);
 }
 
@@ -626,31 +616,47 @@
   background: var(--text);
 }
 
-/* ---------- Links ---------- */
+/* ---------- Who she plays with ---------- */
 
-.relationships-container {
-  flex: 1 1 auto;
-  min-height: 0;
+/* As tall as the game column: its content is out of the flow, so only the left side sets the
+   height, and the lists scroll inside. */
+.form-links {
+  grid-area: links;
+  position: relative;
+  min-width: 0;
+  min-height: 240px;
+  border-left: 1px solid var(--line);
+}
+
+.form-links-inner {
+  position: absolute;
+  inset: 0;
   display: grid;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 18px 16px 20px;
 }
 
 .relationship-column {
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .relationship-title {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  font-size: 0.78rem;
-  font-weight: 500;
-  color: var(--text-2);
+  gap: 6px;
+  min-height: 14px;
+}
+
+.relationship-title .form-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .relationship-count {
@@ -674,23 +680,23 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 4px;
   padding: 1px 4px 1px 1px;
 }
 
 .relationship-btn {
   position: relative;
+  flex: 0 0 auto;
   min-width: 0;
-  min-height: 30px;
-  padding: 0 8px;
+  min-height: 32px;
+  padding: 0 10px;
   border-radius: 4px;
   border: 1px solid var(--line);
   background: transparent;
   color: var(--text-2);
-  font-size: 0.82rem;
+  font-size: 0.86rem;
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
@@ -721,14 +727,14 @@
 /* A dot: she marked this player from her side (wants in green, avoids in red). */
 .relationship-btn.inverse-hint-wants,
 .relationship-btn.inverse-hint-avoids {
-  padding-left: 18px;
+  padding-left: 20px;
 }
 
 .relationship-btn.inverse-hint-wants::before,
 .relationship-btn.inverse-hint-avoids::before {
   content: '';
   position: absolute;
-  left: 7px;
+  left: 8px;
   top: 50%;
   width: 5px;
   height: 5px;
@@ -741,49 +747,62 @@
   background: var(--red-text);
 }
 
-/* ---------- Narrower windows: one column, the body scrolls ---------- */
+/* ---------- Narrower windows: one part under the other, the body scrolls ---------- */
 
-@media (max-width: 1000px) {
+@media (max-width: 919px) {
   .modal {
     width: min(640px, 100%);
   }
 
   .modal-body {
     display: block;
-    overflow-y: auto;
-    overscroll-behavior: contain;
   }
 
-  .form-col {
-    overflow: visible;
+  .form-identity {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 16px;
   }
 
-  .form-col + .form-col {
+  .avatar-section,
+  .avatar-frame {
+    width: 72px;
+  }
+
+  .avatar-frame {
+    height: 72px;
+  }
+
+  .identity-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field-shirt {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .field-shirt input[type='text'] {
+    max-width: 120px;
+  }
+
+  .form-links {
+    min-height: 0;
     border-left: 0;
     border-top: 1px solid var(--line);
   }
 
-  /* One list under the other, each in its own box that scrolls inside: with sixty players
-     the sheet stays short. */
-  .relationships-container {
-    grid-template-rows: none;
+  .form-links-inner {
+    position: static;
   }
 
+  /* Each list in its own box, scrolling inside, so sixty players do not make the form endless. */
   .relationship-grid {
     flex: 0 1 auto;
-    max-height: 208px;
-    display: flex;
-    flex-wrap: wrap;
-    align-content: flex-start;
+    max-height: 232px;
     padding: 6px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--bg);
-  }
-
-  .relationship-btn {
-    flex: 0 1 auto;
-    max-width: 100%;
   }
 }
 
@@ -813,8 +832,18 @@
     padding: 0 8px 0 16px;
   }
 
-  .form-col {
+  .form-identity,
+  .form-game {
     padding: 16px;
+  }
+
+  .form-links-inner {
+    padding: 16px;
+  }
+
+  .identity-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
   }
 
   .form-actions {
@@ -847,7 +876,7 @@
     border: 1px solid var(--line-strong);
     background: transparent;
     color: var(--text-2);
-    font-size: 0.88rem;
+    font-size: 0.9rem;
     cursor: pointer;
   }
 
@@ -860,8 +889,17 @@
     transform: rotate(180deg);
   }
 
-  .extra-info-content:not([data-open]) {
+  .extra-info-content {
     display: none;
+  }
+
+  .extra-info-content[data-open] {
+    display: grid;
+    gap: 12px;
+  }
+
+  .game-row {
+    gap: 16px 20px;
   }
 
   .attributes-grid {

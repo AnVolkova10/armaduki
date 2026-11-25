@@ -6,6 +6,20 @@ import type { Dict } from './en.ts';
 const team = (label: TeamLabel): string => (label === 'T1' ? 'Equipo 1' : 'Equipo 2');
 const theTeam = (label: TeamLabel) => `El ${team(label)}`;
 
+/** "a", "a y b", "a, b y c". */
+const list = (items: string[]): string =>
+    items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} y ${items[items.length - 1]}`;
+
+/** A whole number with a real minus sign when negative. */
+const signed = (n: number): string => (n < 0 ? `\u2212${-n}` : String(n));
+
+const BALANCE_SENTENCE: Record<BalanceLabel, string> = {
+    highlyBalanced: 'Los equipos están muy parejos.',
+    balanced: 'Los equipos están parejos.',
+    playable: 'Se puede jugar, pero un equipo es algo más fuerte.',
+    imbalanced: 'Los equipos están desparejos: uno es claramente más fuerte.',
+};
+
 const attributes: Record<keyof Attributes, string> = {
     shooting: 'Remate',
     control: 'Control',
@@ -143,9 +157,6 @@ export const es: Dict = {
 
     form: {
         newPlayer: 'Jugadora nueva',
-        identity: 'Identidad',
-        game: 'Juego',
-        links: 'Relaciones',
         nickname: 'Apodo',
         nicknameBlank: 'El apodo no puede quedar vacío',
         name: 'Nombre o descripción',
@@ -154,7 +165,7 @@ export const es: Dict = {
         photoAlt: 'Vista previa',
         photoTooHeavy: 'La foto pesa demasiado para Sheets. Probá con otra.',
         photoUnreadable: 'No se puede leer esta imagen. Usá un JPG o un PNG.',
-        shirtNumber: 'Número de camiseta',
+        shirtNumber: 'Camiseta',
         teams: 'Equipos',
         teamsSelected: (count) => (count === 1 ? '1 elegido' : `${count} elegidos`),
         teamsLoading: 'Cargando equipos...',
@@ -190,7 +201,7 @@ export const es: Dict = {
         copied: 'Copiado',
         balance: 'Parejo',
         balanceLabel: balance,
-        score: (score) => `Score ${score}`,
+        score: (score) => `Score ${signed(score)}`,
         ratingDiff: (diff, favors) => `rating +${diff} ${team(favors)}`,
         ratingEven: 'rating igual',
         social: 'Social',
@@ -249,31 +260,84 @@ export const es: Dict = {
 
         showAnalysis: 'Análisis completo',
         hideAnalysis: 'Ocultar análisis',
+
+        inWords: 'En palabras',
+        lead: {
+            balance: 'Parejo',
+            rating: 'Rating',
+            attributes: 'Atributos',
+            keepers: 'Arqueras',
+            att: 'ATT',
+            links: 'Links',
+        },
+        balanceSentence: (label, score) => `${BALANCE_SENTENCE[label]} Score ${signed(score)}: cuanto más alto, más parejo.`,
+        ratingSentence: (diff, favors, totals) => {
+            const detail = totals ? ` (${totals[0]} a ${totals[1]})` : '';
+            if (favors === 'Even') return `Los dos equipos suman el mismo rating${detail}.`;
+            return `${theTeam(favors)} suma ${diff} ${diff === 1 ? 'punto' : 'puntos'} más de rating${detail}.`;
+        },
+        attributesSentence: (team1, team2, even) => {
+            const parts: string[] = [];
+            if (team1.length > 0) parts.push(`El Equipo 1 es mejor en ${list(team1)}`);
+            if (team2.length > 0) parts.push(team1.length > 0 ? `el Equipo 2, en ${list(team2)}` : `El Equipo 2 es mejor en ${list(team2)}`);
+            if (parts.length === 0) return 'Iguales en todos los atributos.';
+            return `${parts.join('; ')}.${even.length > 0 ? ` Iguales en ${list(even)}.` : ''}`;
+        },
+        keepersEach: 'Cada equipo tiene su GK.',
+        keepersTeam: (label, gkCount, keepers, needed) => {
+            if (gkCount === 1) return `${theTeam(label)} tiene su GK.`;
+            if (gkCount > 1) return `${theTeam(label)} tiene ${gkCount} GK.`;
+            if (keepers.length === 0) return `${theTeam(label)} no tiene GK ni quien ataje (necesita ${needed}).`;
+            const can = keepers.length === 1 ? 'puede' : 'pueden';
+            if (keepers.length < needed) {
+                return `${theTeam(label)} no tiene GK y solo ${can} atajar ${list(keepers)} (necesita ${needed}).`;
+            }
+            return `${theTeam(label)} no tiene GK: ${can} atajar ${list(keepers)}.`;
+        },
+        attSentence: (team1, team2) => `El Equipo 1 tiene ${team1} y el Equipo 2, ${team2}.`,
+        linksSentence: (wantsMet, wantsTotal, avoidsMet, avoidsTotal) => {
+            const parts: string[] = [];
+            if (wantsTotal > 0) parts.push(`Wants cumplidos: ${wantsMet} de ${wantsTotal}, juegan juntas.`);
+            if (avoidsTotal > 0) parts.push(`Avoids cumplidos: ${avoidsMet} de ${avoidsTotal}, juegan separadas.`);
+            return parts.length > 0 ? parts.join(' ') : 'No hay wants ni avoids entre estas diez.';
+        },
+        oneWaySplit: (penalty) =>
+            `Para emparejar, se separaron estos wants de un solo lado (${penalty} puntos menos cada uno):`,
+        wantsTogether: 'Juntas',
+        avoidsApart: 'Separadas',
+
         comparison: 'Equipo 1 vs Equipo 2',
+        comparisonHelp: 'Cada barra se inclina hacia el equipo más fuerte en eso; cuanto más larga, más diferencia.',
         rating: 'Rating',
-        keepers: 'Arqueras y ATT',
-        hasGK: (label) => `${theTeam(label)} tiene GK.`,
-        emergency: (label, capable, needed, good, low) =>
-            `${theTeam(label)} no tiene GK: ${capable} de ${needed} arqueras de emergencia (${good} bien, ${low} poco).`,
-        attSplit: (team1, team2) => `ATT: el Equipo 1 tiene ${team1} y el Equipo 2, ${team2}.`,
-        links: 'Links',
-        wantsTogether: 'Wants, juntas',
-        avoidsApart: 'Avoids, separadas',
-        oneWayKept: (kept, total, penalty) =>
-            `Wants de un solo lado cumplidos: ${kept}/${total} (uno roto cuesta ${penalty} puntos).`,
-        oneWayBroken: 'Wants de un solo lado, separadas',
-        none: 'Ninguno',
-        formula: 'Score',
-        formulaBase: 'Base',
-        formulaRating: 'Rating',
-        formulaAttributes: 'Atributos',
-        formulaPace: 'Velocidad',
-        formulaStamina: 'Aire',
-        formulaDefense: 'Marca',
-        formulaKeepers: 'Arqueras de emergencia',
-        formulaAtt: 'Reparto de ATT',
-        formulaWants: 'Wants de un solo lado',
-        formulaTotal: 'Score',
+        even: 'Iguales',
+
+        scoreTitle: 'Cómo se calcula el score',
+        scoreHelp:
+            'Arranca en 100 y pierde puntos por cada diferencia entre los equipos; algunas reglas suman o restan un poco. Cuanto más alto, más parejo: 70 o más es muy parejo, 40 o más es parejo y 0 o más, jugable.',
+        scoreStart: 'Arranca en',
+        scoreRating: 'Diferencia de rating',
+        scoreAttributes: 'Diferencias en los atributos, todas juntas',
+        scorePace: 'La velocidad, que cuenta extra',
+        scoreStamina: 'El aire, que cuenta extra',
+        scoreDefense: 'La marca, que cuenta extra',
+        scoreKeepers: 'Arqueras de emergencia',
+        scoreKeepersHelp: '+4 por cada una buena, −12 por cada una que falta',
+        scoreAtt: 'Reparto de ATT',
+        scoreAttHelp: 'qué tan parejas quedan las ATT',
+        scoreWants: 'Wants de un solo lado separados',
+        scoreTimes: (value, weight) => `${value} × ${weight}`,
+        scoreShort: {
+            rating: 'la diferencia de rating',
+            attributes: 'las diferencias de atributos',
+            pace: 'la velocidad',
+            stamina: 'el aire',
+            defense: 'la marca',
+            keepers: 'las arqueras de emergencia',
+            att: 'el reparto de ATT',
+            wants: 'los wants de un solo lado',
+        },
+        scoreNoEffect: (items) => `Esta vez no suman ni restan: ${list(items)}.`,
+        scoreTotal: 'Score',
 
         showSecond: 'Ver otra opción',
         hideSecond: 'Ocultar otra opción',

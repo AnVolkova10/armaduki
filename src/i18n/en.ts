@@ -1,8 +1,22 @@
 // English, the app's default language. `es.ts` has the same shape (the type checks it).
 // Plain TypeScript with no imports from the UI, so `npm test` can load it in Node.
-import type { Attributes, BalanceLabel, FallbackCause, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
+import type { Attributes, BalanceLabel, FallbackCause, Favors, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
 
 const team = (label: TeamLabel): string => (label === 'T1' ? 'Team 1' : 'Team 2');
+
+/** "a", "a and b", "a, b and c". */
+const list = (items: string[]): string =>
+    items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+
+/** A whole number with a real minus sign when negative. */
+const signed = (n: number): string => (n < 0 ? `\u2212${-n}` : String(n));
+
+const BALANCE_SENTENCE: Record<BalanceLabel, string> = {
+    highlyBalanced: 'The teams are very even.',
+    balanced: 'The teams are even.',
+    playable: "It's playable, but one team is somewhat stronger.",
+    imbalanced: 'The teams are uneven: one is clearly stronger.',
+};
 
 const attributes: Record<keyof Attributes, string> = {
     shooting: 'Shooting',
@@ -141,9 +155,6 @@ export const en = {
 
     form: {
         newPlayer: 'New player',
-        identity: 'Identity',
-        game: 'Game',
-        links: 'Links',
         nickname: 'Nickname',
         nicknameBlank: "Nickname can't be blank",
         name: 'Name or description',
@@ -152,7 +163,7 @@ export const en = {
         photoAlt: 'Preview',
         photoTooHeavy: 'Photo too heavy for Sheets. Try another one.',
         photoUnreadable: "Can't read this image. Use a JPG or PNG.",
-        shirtNumber: 'Shirt number',
+        shirtNumber: 'Shirt #',
         teams: 'Teams',
         teamsSelected: (count: number) => `${count} selected`,
         teamsLoading: 'Loading teams...',
@@ -188,7 +199,7 @@ export const en = {
         copied: 'Copied',
         balance: 'Balance',
         balanceLabel: balance,
-        score: (score: number) => `Score ${score}`,
+        score: (score: number) => `Score ${signed(score)}`,
         ratingDiff: (diff: number, favors: TeamLabel) => `rating +${diff} ${team(favors)}`,
         ratingEven: 'rating even',
         social: 'Social',
@@ -247,31 +258,85 @@ export const en = {
 
         showAnalysis: 'Full Analysis',
         hideAnalysis: 'Hide Analysis',
+
+        // The analysis in words first; the bars and the score, explained, below.
+        inWords: 'In words',
+        lead: {
+            balance: 'Balance',
+            rating: 'Rating',
+            attributes: 'Attributes',
+            keepers: 'Keepers',
+            att: 'ATT',
+            links: 'Links',
+        },
+        balanceSentence: (label: BalanceLabel, score: number): string =>
+            `${BALANCE_SENTENCE[label]} Score ${signed(score)}: the higher, the more even.`,
+        ratingSentence: (diff: number, favors: Favors, totals: readonly [number, number] | null): string => {
+            const detail = totals ? ` (${totals[0]} to ${totals[1]})` : '';
+            if (favors === 'Even') return `Both teams add up to the same rating${detail}.`;
+            return `${team(favors)} adds up to ${diff} more rating ${diff === 1 ? 'point' : 'points'}${detail}.`;
+        },
+        attributesSentence: (team1: string[], team2: string[], even: string[]): string => {
+            const parts: string[] = [];
+            if (team1.length > 0) parts.push(`Team 1 is better at ${list(team1)}`);
+            if (team2.length > 0) parts.push(team1.length > 0 ? `Team 2 at ${list(team2)}` : `Team 2 is better at ${list(team2)}`);
+            if (parts.length === 0) return 'Even in every attribute.';
+            return `${parts.join('; ')}.${even.length > 0 ? ` Even in ${list(even)}.` : ''}`;
+        },
+        keepersEach: 'Each team has its GK.',
+        keepersTeam: (label: TeamLabel, gkCount: number, keepers: string[], needed: number): string => {
+            if (gkCount === 1) return `${team(label)} has its GK.`;
+            if (gkCount > 1) return `${team(label)} has ${gkCount} GK.`;
+            if (keepers.length === 0) return `${team(label)} has no GK and nobody who can keep goal (it needs ${needed}).`;
+            if (keepers.length < needed) {
+                return `${team(label)} has no GK, and only ${list(keepers)} can keep goal (it needs ${needed}).`;
+            }
+            return `${team(label)} has no GK: ${list(keepers)} can keep goal.`;
+        },
+        attSentence: (team1: number, team2: number): string => `Team 1 has ${team1} and Team 2 has ${team2}.`,
+        linksSentence: (wantsMet: number, wantsTotal: number, avoidsMet: number, avoidsTotal: number): string => {
+            const parts: string[] = [];
+            if (wantsTotal > 0) parts.push(`Wants kept: ${wantsMet} of ${wantsTotal}, playing together.`);
+            if (avoidsTotal > 0) parts.push(`Avoids kept: ${avoidsMet} of ${avoidsTotal}, playing apart.`);
+            return parts.length > 0 ? parts.join(' ') : 'No wants or avoids between these ten.';
+        },
+        oneWaySplit: (penalty: number): string =>
+            `To even the teams, these one-way wants were split (${penalty} points off each):`,
+        wantsTogether: 'Together',
+        avoidsApart: 'Apart',
+
         comparison: 'Team 1 vs Team 2',
+        comparisonHelp: 'Each bar leans toward the team that is stronger in it; the longer the bar, the bigger the gap.',
         rating: 'Rating',
-        keepers: 'Keepers and ATT',
-        hasGK: (label: TeamLabel) => `${team(label)} has a GK.`,
-        emergency: (label: TeamLabel, capable: number, needed: number, good: number, low: number) =>
-            `${team(label)} has no GK: ${capable} of ${needed} emergency keepers (${good} good, ${low} low).`,
-        attSplit: (team1: number, team2: number) => `ATT: Team 1 has ${team1} and Team 2 has ${team2}.`,
-        links: 'Links',
-        wantsTogether: 'Wants, together',
-        avoidsApart: 'Avoids, apart',
-        oneWayKept: (kept: number, total: number, penalty: number) =>
-            `One-way wants kept: ${kept}/${total} (a broken one costs ${penalty} points).`,
-        oneWayBroken: 'One-way wants, split',
-        none: 'None',
-        formula: 'Score',
-        formulaBase: 'Base',
-        formulaRating: 'Rating',
-        formulaAttributes: 'Attributes',
-        formulaPace: 'Pace',
-        formulaStamina: 'Stamina',
-        formulaDefense: 'Defense',
-        formulaKeepers: 'Emergency keepers',
-        formulaAtt: 'ATT spread',
-        formulaWants: 'One-way wants',
-        formulaTotal: 'Score',
+        even: 'Even',
+
+        scoreTitle: 'How the score is computed',
+        scoreHelp:
+            'It starts at 100 and loses points for every gap between the teams; a few rules add or take a little. The higher, the more even: 70 or more is very even, 40 or more even, 0 or more playable.',
+        scoreStart: 'Starts at',
+        scoreRating: 'Rating gap',
+        scoreAttributes: 'Gaps in the attributes, all together',
+        scorePace: 'Pace, which counts extra',
+        scoreStamina: 'Stamina, which counts extra',
+        scoreDefense: 'Defense, which counts extra',
+        scoreKeepers: 'Emergency keepers',
+        scoreKeepersHelp: '+4 for each good one, −12 for each one missing',
+        scoreAtt: 'ATT spread',
+        scoreAttHelp: 'how evenly the ATT are shared',
+        scoreWants: 'One-way wants split',
+        scoreTimes: (value: string, weight: number): string => `${value} × ${weight}`,
+        scoreShort: {
+            rating: 'rating gap',
+            attributes: 'attribute gaps',
+            pace: 'pace',
+            stamina: 'stamina',
+            defense: 'defense',
+            keepers: 'emergency keepers',
+            att: 'ATT spread',
+            wants: 'one-way wants',
+        },
+        scoreNoEffect: (items: string[]): string => `No effect this time: ${list(items)}.`,
+        scoreTotal: 'Score',
 
         showSecond: 'Show Second Option',
         hideSecond: 'Hide Second Option',

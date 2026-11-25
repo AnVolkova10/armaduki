@@ -322,7 +322,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     ) => (
         <div className={`relationship-column relationship-column--${kind}`}>
             <div className="relationship-title">
-                {kind === 'wants' ? t.form.wants : t.form.avoids}
+                <span className="form-label">{kind === 'wants' ? t.form.wants : t.form.avoids}</span>
                 <span className="relationship-count">{marked.length}</span>
             </div>
             <div className="relationship-grid">
@@ -357,6 +357,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     };
 
     const title = nickname.trim() || t.form.newPlayer;
+    const hasLinks = otherPeople.length > 0;
 
     return (
         <div className="modal-overlay" onPointerDown={handleOverlayPointerDown} onClick={handleOverlayClick}>
@@ -369,92 +370,80 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                         </button>
                     </header>
 
-                    {/* Three columns on a computer, one under the other on the phone. Each column has
-                        room for the Sprint 6 fields (see docs/DESIGN_DIRECTION.md). */}
-                    <div className="modal-body">
-                        <section className="form-col form-col--identity">
-                            {/* The "active" switch of Sprint 6 goes at the right of this title. */}
-                            <div className="form-col-head">
-                                <h4 className="form-col-title">{t.form.identity}</h4>
-                            </div>
-
-                            <div className="identity-top">
-                                <div className="avatar-section">
-                                    <label className="avatar-frame">
-                                        {avatar ? (
-                                            <img src={avatar} alt={t.form.photoAlt} className="avatar-preview" />
-                                        ) : (
-                                            <span className="avatar-preview avatar-preview--empty">
-                                                {(Array.from(nickname.trim())[0] ?? '?').toUpperCase()}
-                                            </span>
-                                        )}
-                                        <span className="avatar-upload-overlay">
-                                            {avatar ? t.form.photoChange : t.form.photoUpload}
-                                        </span>
-                                        <input type="file" accept="image/*" onChange={handleAvatarChange} />
-                                    </label>
-                                    {shirtNumber.trim() && !avatarTeam && (
-                                        <span className="modal-shirt-number">#{shirtNumber.trim()}</span>
-                                    )}
-                                    {avatarTeam && (
-                                        <span
-                                            className="modal-team-pill"
-                                            style={getTeamColors(avatarTeam)}
-                                            title={avatarTeam.name}
-                                            aria-label={avatarTeam.name}
-                                        >
-                                            {shirtNumber.trim() ? `#${shirtNumber.trim()}` : avatarTeam.name}
+                    {/* On a computer: who she is across the top; how she plays on the left; who she
+                        plays with on the right, as tall as the left side, scrolling inside. The modal is
+                        as tall as its content. On the phone, one under the other. */}
+                    <div className={`modal-body ${hasLinks ? '' : 'modal-body--solo'}`}>
+                        <section className="form-identity">
+                            <div className="avatar-section">
+                                <label className="avatar-frame">
+                                    {avatar ? (
+                                        <img src={avatar} alt={t.form.photoAlt} className="avatar-preview" />
+                                    ) : (
+                                        <span className="avatar-preview avatar-preview--empty">
+                                            {(Array.from(nickname.trim())[0] ?? '?').toUpperCase()}
                                         </span>
                                     )}
-                                </div>
-
-                                <div className="identity-fields">
-                                    <div className="form-group">
-                                        <label htmlFor="player-nickname">{t.form.nickname} *</label>
-                                        <input
-                                            id="player-nickname"
-                                            type="text"
-                                            value={nickname}
-                                            onChange={e => setNickname(e.target.value)}
-                                            required
-                                            pattern=".*\S.*"
-                                            title={t.form.nicknameBlank}
-                                            autoFocus
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label htmlFor="player-name">{t.form.name}</label>
-                                        <input
-                                            id="player-name"
-                                            type="text"
-                                            value={name}
-                                            onChange={e => setName(e.target.value)}
-                                        />
-                                    </div>
-                                </div>
+                                    <span className="avatar-upload-overlay">
+                                        {avatar ? t.form.photoChange : t.form.photoUpload}
+                                    </span>
+                                    <input type="file" accept="image/*" onChange={handleAvatarChange} />
+                                </label>
+                                {shirtNumber.trim() && !avatarTeam && (
+                                    <span className="modal-shirt-number">#{shirtNumber.trim()}</span>
+                                )}
+                                {avatarTeam && (
+                                    <span
+                                        className="modal-team-pill"
+                                        style={getTeamColors(avatarTeam)}
+                                        title={avatarTeam.name}
+                                        aria-label={avatarTeam.name}
+                                    >
+                                        {shirtNumber.trim() ? `#${shirtNumber.trim()}` : avatarTeam.name}
+                                    </span>
+                                )}
                             </div>
-                            {avatarError && (
-                                <span className="avatar-error" role="alert">{avatarError}</span>
-                            )}
 
-                            {/* On the phone these two stay folded, as before. */}
-                            <button
-                                type="button"
-                                className="extra-info-toggle"
-                                aria-expanded={isExtraInfoOpen}
-                                onClick={() => setIsExtraInfoOpen((open) => !open)}
-                            >
-                                <span>{t.form.extraInfo}</span>
-                                <span className={`extra-info-caret ${isExtraInfoOpen ? 'is-open' : ''}`} aria-hidden="true">
-                                    <Icon name="chevronDown" size={14} />
-                                </span>
-                            </button>
+                            <div className="identity-grid">
+                                <div className="form-group field-nickname">
+                                    <label className="form-label" htmlFor="player-nickname">{t.form.nickname} *</label>
+                                    <input
+                                        id="player-nickname"
+                                        type="text"
+                                        value={nickname}
+                                        onChange={e => setNickname(e.target.value)}
+                                        required
+                                        pattern=".*\S.*"
+                                        title={t.form.nicknameBlank}
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="form-group field-name">
+                                    <label className="form-label" htmlFor="player-name">{t.form.name}</label>
+                                    <input
+                                        id="player-name"
+                                        type="text"
+                                        value={name}
+                                        onChange={e => setName(e.target.value)}
+                                    />
+                                </div>
 
-                            <div className="extra-info-content" data-open={isExtraInfoOpen || undefined}>
-                                {/* Two short fields per row: the birth date of Sprint 6 goes next to the number. */}
-                                <div className="identity-row">
-                                    <div className="form-group extra-info-field">
-                                        <label htmlFor="player-shirt">{t.form.shirtNumber}</label>
+                                {/* On the phone the number and the teams stay folded, as before. */}
+                                <button
+                                    type="button"
+                                    className="extra-info-toggle"
+                                    aria-expanded={isExtraInfoOpen}
+                                    onClick={() => setIsExtraInfoOpen((open) => !open)}
+                                >
+                                    <span>{t.form.extraInfo}</span>
+                                    <span className={`extra-info-caret ${isExtraInfoOpen ? 'is-open' : ''}`} aria-hidden="true">
+                                        <Icon name="chevronDown" size={14} />
+                                    </span>
+                                </button>
+
+                                <div className="extra-info-content" data-open={isExtraInfoOpen || undefined}>
+                                    <div className="form-group field-shirt">
+                                        <label className="form-label" htmlFor="player-shirt">{t.form.shirtNumber}</label>
                                         <input
                                             id="player-shirt"
                                             type="text"
@@ -464,76 +453,72 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                             onChange={e => setShirtNumber(e.target.value)}
                                         />
                                     </div>
-                                </div>
 
-                                <div className="teams-field">
-                                    <div className="teams-field-header">
+                                    <div className="teams-field">
                                         <span className="form-label">{t.form.teams}</span>
-                                        {selectedTeamIds.length > 0 && (
-                                            <span className="teams-field-count">{t.form.teamsSelected(selectedTeamIds.length)}</span>
-                                        )}
-                                    </div>
+                                        <div className="team-options-list">
+                                            {isTeamsCatalogLoading && (
+                                                <div className="teams-empty-state">{t.form.teamsLoading}</div>
+                                            )}
 
-                                    <div className="team-options-list">
-                                        {isTeamsCatalogLoading && (
-                                            <div className="teams-empty-state">{t.form.teamsLoading}</div>
-                                        )}
+                                            {!isTeamsCatalogLoading && teamsCatalogError && (
+                                                <div className="teams-empty-state is-error">{teamsCatalogError}</div>
+                                            )}
 
-                                        {!isTeamsCatalogLoading && teamsCatalogError && (
-                                            <div className="teams-empty-state is-error">{teamsCatalogError}</div>
-                                        )}
+                                            {!isTeamsCatalogLoading && !teamsCatalogError && teamsCatalog.length === 0 && (
+                                                <div className="teams-empty-state">{t.form.teamsEmpty}</div>
+                                            )}
 
-                                        {!isTeamsCatalogLoading && !teamsCatalogError && teamsCatalog.length === 0 && (
-                                            <div className="teams-empty-state">{t.form.teamsEmpty}</div>
-                                        )}
+                                            {!isTeamsCatalogLoading && !teamsCatalogError && sortedTeams.map((team) => {
+                                                const isSelected = selectedTeamIdSet.has(team.teamId);
+                                                const isPrimary = effectivePrimaryTeamId === team.teamId;
 
-                                        {!isTeamsCatalogLoading && !teamsCatalogError && sortedTeams.map((team) => {
-                                            const isSelected = selectedTeamIdSet.has(team.teamId);
-                                            const isPrimary = effectivePrimaryTeamId === team.teamId;
-
-                                            return (
-                                                <div key={team.teamId} className="team-option-stack">
-                                                    <button
-                                                        type="button"
-                                                        className={`team-option ${isSelected ? 'is-selected' : ''}`}
-                                                        style={getTeamColors(team)}
-                                                        aria-pressed={isSelected}
-                                                        onClick={() => toggleTeam(team.teamId)}
-                                                        title={team.name}
-                                                    >
-                                                        <span className="team-option-swatch" aria-hidden="true" />
-                                                        <span className="team-option-name">{team.name}</span>
-                                                        <span className="team-option-status">
-                                                            {isSelected ? <Icon name="check" size={13} /> : null}
-                                                            <span className="visually-hidden">
-                                                                {isSelected ? t.form.teamSelected : t.form.teamAdd}
-                                                            </span>
-                                                        </span>
-                                                    </button>
-
-                                                    {selectedTeamIds.length > 1 && isSelected && (
+                                                return (
+                                                    <div key={team.teamId} className="team-option-stack">
                                                         <button
                                                             type="button"
-                                                            className={`team-main-ball ${isPrimary ? 'is-primary' : ''}`}
-                                                            onClick={() => setPrimaryTeam(team.teamId)}
-                                                            title={isPrimary ? t.form.teamIsMain(team.name) : t.form.teamSetMain(team.name)}
-                                                            aria-label={isPrimary ? t.form.teamIsMain(team.name) : t.form.teamSetMain(team.name)}
+                                                            className={`team-option ${isSelected ? 'is-selected' : ''}`}
+                                                            style={getTeamColors(team)}
+                                                            aria-pressed={isSelected}
+                                                            onClick={() => toggleTeam(team.teamId)}
+                                                            title={team.name}
                                                         >
-                                                            <img src="/ball.svg" alt="" aria-hidden="true" />
+                                                            <span className="team-option-swatch" aria-hidden="true" />
+                                                            <span className="team-option-name">{team.name}</span>
+                                                            <span className="team-option-status">
+                                                                {isSelected ? <Icon name="check" size={13} /> : null}
+                                                                <span className="visually-hidden">
+                                                                    {isSelected ? t.form.teamSelected : t.form.teamAdd}
+                                                                </span>
+                                                            </span>
                                                         </button>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
+
+                                                        {selectedTeamIds.length > 1 && isSelected && (
+                                                            <button
+                                                                type="button"
+                                                                className={`team-main-ball ${isPrimary ? 'is-primary' : ''}`}
+                                                                onClick={() => setPrimaryTeam(team.teamId)}
+                                                                title={isPrimary ? t.form.teamIsMain(team.name) : t.form.teamSetMain(team.name)}
+                                                                aria-label={isPrimary ? t.form.teamIsMain(team.name) : t.form.teamSetMain(team.name)}
+                                                            >
+                                                                <img src="/ball.svg" alt="" aria-hidden="true" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </div>
+
+                                {avatarError && (
+                                    <span className="avatar-error" role="alert">{avatarError}</span>
+                                )}
                             </div>
                         </section>
 
-                        <section className="form-col form-col--game">
-                            <h4 className="form-col-title">{t.form.game}</h4>
-
-                            <div className="form-row-compact">
+                        <section className="form-game">
+                            <div className="game-row">
                                 <div className="form-group">
                                     <span className="form-label">{t.form.position}</span>
                                     <div className="selector-group">
@@ -606,10 +591,9 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                             </div>
                         </section>
 
-                        {otherPeople.length > 0 && (
-                            <section className="form-col form-col--links">
-                                <h4 className="form-col-title">{t.form.links}</h4>
-                                <div className="relationships-container">
+                        {hasLinks && (
+                            <section className="form-links">
+                                <div className="form-links-inner">
                                     {renderLinks('wants', wantsOrder, wantsWith, inverseWants, toggleWantsWith)}
                                     {renderLinks('avoids', avoidsOrder, avoidsWith, inverseAvoids, toggleAvoidsWith)}
                                 </div>

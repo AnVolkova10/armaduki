@@ -63,8 +63,29 @@
   transform: translateX(18px) rotate(115deg);
 }
 
+/* English: the logo as it is. Spanish: its two colours swap, fading while the ball rolls. */
+.lang-switch-ball .ball-mark-base {
+  fill: var(--ball-red);
+  transition: fill var(--t-move) ease-in-out;
+}
+
+.lang-switch-ball .ball-mark-marks {
+  fill: var(--ball-black);
+  transition: fill var(--t-move) ease-in-out;
+}
+
+.lang-switch[data-lang='es'] .lang-switch-ball .ball-mark-base {
+  fill: var(--ball-black);
+}
+
+.lang-switch[data-lang='es'] .lang-switch-ball .ball-mark-marks {
+  fill: var(--ball-red);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .lang-switch-ball,
+  .lang-switch-ball .ball-mark-base,
+  .lang-switch-ball .ball-mark-marks,
   .lang-switch-code {
     transition: none;
   }
