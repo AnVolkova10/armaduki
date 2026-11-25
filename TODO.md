@@ -195,7 +195,7 @@ Prueba (desde el 25/11, en https://armaduki.vercel.app; antes, en local con la r
 Objetivo: cargar desde el modal los datos que la planilla ya tiene (resto de la Fase 2). Las columnas ya existen; los esquemas están en `apps-script/README.md`.
 
 - [ ] Grupo o cancha habitual y día/lugar, con varios valores (F2-05.3). Los grupos se cargan en la pestaña `Groups`.
-- [ ] Mostrar el equipo en la tarjeta (F2-05.6).
+- [x] Mostrar el equipo en la tarjeta (F2-05.6): alcanza con los dos colores del equipo principal, en la esquina (25/11).
 - [ ] Varios roles por jugadorx, en lugar de la segunda posición (F2-05.9): cada unx tiene la lista de roles que juega y FLEX pasa a ser «todos». Las filas con FLEX siguen valiendo. Antes, decidir qué cuentan las reglas del generador (ver «Cosas por cerrar»). Va después del rediseño, para diseñar el modal una sola vez.
 - [ ] `active`: ocultar jugadorxs inactivxs sin borrarlxs (F2-05.10).
 - [ ] Notas internas, opcionales (F2-05.11).
@@ -247,10 +247,12 @@ Objetivo: que lxs que juegan juntxs en un equipo real tiendan a caer juntxs, sin
 - [ ] **Rating y atributos.** **Propuesta:** no tocarlos por ahora. El rating y los atributos miden casi lo mismo, así que el nivel cuenta dos veces. Con resultados de partidos (Sprint 9), probar que los atributos midan solo el estilo (que la velocidad o la defensa no queden todas del mismo lado) y no el nivel. El Power del owner bias no cambia. Decide: Ángela. Default: no tocarlos hasta tener resultados.
 - [x] **Formación ideal.** No se agrega: con los roles de hoy no sería un buen criterio (19/11). Se puede repensar con los varios roles del Sprint 6.
 - [ ] **Cuánto cuesta romper un want de un solo lado.** Hoy, 15 puntos de score, lo mismo que 1,5 puntos de diferencia de rating (`ONE_WAY_WANT_PENALTY`). Más alto respeta más wants y empareja un poco menos; más bajo, al revés. Decide: Ángela. Default: 15.
-- [ ] **Varios roles: qué cuentan las reglas.** Con varios roles por jugadorx, el máximo de GK y de DEF y los repartos de DEF y de ATT tienen que contar el rol principal o el puesto que le toca en el equipo. Decide: Ángela, antes del Sprint 6. Default: el rol principal.
+- [x] **Varios roles: qué cuentan las reglas.** El puesto principal, por ahora (25/11): el máximo de GK y de DEF y los repartos de DEF y de ATT siguen mirando solo ese. El segundo puesto se ve, pero no cambia las reglas.
+- [ ] **El puesto que le toca en cada equipo.** Que el generador decida quién juega de qué usando el segundo puesto. Por ejemplo, con 3 GK elegidxs, unx que también juega de DEF jugaría de DEF y no haría falta el fallback. Para revisar más adelante, con resultados de partidos (Sprint 9). Decide: Ángela. Default: no, por ahora.
+- [ ] **Qué hacer con FLEX.** Ángela lo creó para quienes juegan de dos cosas (casi nunca de tres), así que con el segundo puesto puede sobrar. Más adelante: mantenerlo, o pasar esas filas a puesto principal más segundo puesto. Decide: Ángela. Default: queda como está.
 - [x] **Qué es «sort selected».** «Sort: selected» en Match y en Players: deja arriba a lxs elegidxs (19/11).
 - [x] **«Fable 2.5».** Era Claude Fable 5.2, el modelo del rediseño de VolkosFood (24/11).
-- [ ] **Default de arquerx (`gkWillingness`).** El modal crea jugadorxs con `low`, pero una fila de la planilla sin el dato se lee como `no` (RV-14). Decide: Ángela. Default: `no` en los dos, para que lo desconocido no cuente como arquerx de emergencia.
+- [x] **Default de arquerx (`gkWillingness`).** `no` en los dos (25/11): el modal crea jugadorxs con `no`, igual que una fila de la planilla sin el dato (RV-14), así lo desconocido no cuenta como arquerx de emergencia. Se hace en el Sprint 6.
 - [x] **Qué oculta privacy mode** (RV-12). Se aplicó el default (20/11): oculta también el total de rating de cada equipo en el análisis. La diferencia entre equipos se sigue viendo, porque el score la necesita para entenderse.
 - [ ] **Guardar partidos: automático o con botón** (F2-11.4). Decide: Ángela. Default: botón explícito, con «prueba» o «partido real».
 - [ ] **Alcance** (F2-12.6): uso personal o abrir a más grupos. Cambia cuánto pesan la clave, los roles y el multi-grupo. Decide: Ángela. Default: uso personal.
