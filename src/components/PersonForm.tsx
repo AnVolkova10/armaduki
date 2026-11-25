@@ -370,8 +370,8 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                         </button>
                     </header>
 
-                    {/* On a computer: who she is across the top; how she plays on the left; who she
-                        plays with on the right, as tall as the left side, scrolling inside. The modal is
+                    {/* On a computer: who they are across the top; how they play on the left; who they
+                        play with on the right, as tall as the left side, scrolling inside. The modal is
                         as tall as its content. On the phone, one under the other. */}
                     <div className={`modal-body ${hasLinks ? '' : 'modal-body--solo'}`}>
                         <section className="form-identity">

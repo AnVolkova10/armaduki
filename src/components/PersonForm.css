@@ -1,5 +1,5 @@
-/* The player form, as tall as its content. On a computer: who she is across the top; how she
-   plays on the left; who she plays with on the right, as tall as the left side, with the two
+/* The player form, as tall as its content. On a computer: who they are across the top; how they
+   play on the left; who they play with on the right, as tall as the left side, with the two
    lists scrolling inside. On the phone: a full-screen sheet, one part under the other. */
 
 .modal-overlay {
@@ -163,7 +163,7 @@
   border-color: var(--text);
 }
 
-/* ---------- Who she is ---------- */
+/* ---------- Who they are ---------- */
 
 .form-identity {
   grid-area: identity;
@@ -409,7 +409,7 @@
   opacity: 1;
 }
 
-/* ---------- How she plays ---------- */
+/* ---------- How they play ---------- */
 
 .form-game {
   grid-area: game;
@@ -616,7 +616,7 @@
   background: var(--text);
 }
 
-/* ---------- Who she plays with ---------- */
+/* ---------- Who they play with ---------- */
 
 /* As tall as the game column: its content is out of the flow, so only the left side sets the
    height, and the lists scroll inside. */
@@ -729,7 +729,7 @@
   font-weight: 600;
 }
 
-/* A dot: she marked this player from her side (wants in green, avoids in red). */
+/* A dot: the other player marked this one from their side (wants in green, avoids in red). */
 .relationship-btn.inverse-hint-wants,
 .relationship-btn.inverse-hint-avoids {
   padding-left: 20px;

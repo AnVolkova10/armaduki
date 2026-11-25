@@ -2,7 +2,7 @@
    idle (keeper waits), aiming (run-up, loops until the backend answers), goal, saved, post.
    Scene units are the SVG's: transform origins below are points of its viewBox.
    --gk-x is where the keeper's shuffle stood when the answer arrived (set in Gate.tsx),
-   so nothing jumps when the shot starts and the ball meets her gloves wherever she was. */
+   so nothing jumps when the shot starts and the ball meets their gloves wherever they were. */
 
 .gate {
   position: fixed;
@@ -204,7 +204,7 @@
   animation: ball-spin 0.55s linear;
 }
 
-/* Goal: top corner, she goes the other way a moment late. */
+/* Goal: top corner, the keeper goes the other way a moment late. */
 .gate[data-shot='goal'] {
   animation: gate-leave 0.6s ease-in 1.7s forwards;
 }
@@ -229,7 +229,7 @@
   animation: net-give 0.6s ease-out 0.46s;
 }
 
-/* Saved: she flies to the corner, holds it, gets up and sends it back. */
+/* Saved: the keeper flies to the corner, holds it, gets up and sends it back. */
 .gate[data-shot='saved'] .gate-ball {
   animation: ball-saved 2.8s forwards;
 }
@@ -286,7 +286,7 @@
   to { transform: translateX(5px); }
 }
 
-/* Holds her place through the shot, then walks back to where the shuffle starts. */
+/* Holds their place through the shot, then walks back to where the shuffle starts. */
 @keyframes gk-walk-home {
   0%, 60% { transform: translateX(var(--gk-x)); }
   100% { transform: translateX(-5px); }
@@ -335,7 +335,7 @@
   100% { transform: translate(0, 0) rotate(-84deg); }
 }
 
-/* The ball's stops are where her gloves meet in each pose of gk-save. */
+/* The ball's stops are where the keeper's gloves meet in each pose of gk-save. */
 @keyframes ball-saved {
   0% { transform: translate(0, 0) scale(1); animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
   20% { transform: translate(calc(-68.4px + var(--gk-x)), -97px) scale(0.6); animation-timing-function: ease-in; }

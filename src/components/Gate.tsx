@@ -10,7 +10,7 @@ type Shot = 'idle' | 'aiming' | 'goal' | 'saved' | 'post';
 
 // The run-up lasts as long as the backend takes to answer, and at least this, so it always reads.
 const MIN_RUN_UP_MS = 800;
-// The save and the post end with the ball back on the spot and the keeper on her line:
+// The save and the post end with the ball back on the spot and the keeper on their line:
 // these match the length of their animations in Gate.css.
 const REPLAY_MS: Record<'saved' | 'post', number> = { saved: 2800, post: 2200 };
 
@@ -54,7 +54,7 @@ export function Gate({ onGone }: { onGone: () => void }) {
         setShot('aiming');
         const [result] = await Promise.all([unlock(typed), wait(MIN_RUN_UP_MS)]);
 
-        // Where her shuffle stands right now: the shot starts from there (see --gk-x in Gate.css).
+        // Where the keeper's shuffle stands right now: the shot starts from there (see --gk-x in Gate.css).
         const step = scene.current?.querySelector('.gate-gk-step');
         const offset = step ? new DOMMatrixReadOnly(getComputedStyle(step).transform).m41 : 0;
         scene.current?.style.setProperty('--gk-x', `${offset}px`);
@@ -151,7 +151,7 @@ export function Gate({ onGone }: { onGone: () => void }) {
                                 <path d="M152.6 128.6L153 121H167L167.4 128.6Z" fill="#000" opacity="0.14" />
                                 <path d="M163.2 110.6Q165.8 111.6 165.4 114.8Q163.2 115.2 162.2 113.4Q162 111.6 163.2 110.6Z" fill="#fff" />
 
-                                {/* Arms before the head: raised, they frame her face instead of covering it */}
+                                {/* Arms before the head: raised, they frame the keeper's face instead of covering it */}
                                 <g className="gate-gk-arm gate-gk-arm-l">
                                     <path d="M153 109V118" stroke="#3a3b42" strokeWidth="5.2" strokeLinecap="round" />
                                     <path d="M153 109V118" stroke="#08080a" strokeWidth="4" strokeLinecap="round" />
