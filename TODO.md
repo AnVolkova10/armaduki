@@ -21,7 +21,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 
 ## Decisiones cerradas
 
-- [x] Backend: Google Sheets + Apps Script, publicado con `clasp` (`npm run backend:release`). Producción usa la versión 21 (20/11/2026); la 20 queda para volver atrás.
+- [x] Backend: Google Sheets + Apps Script, publicado con `clasp` (`npm run backend:release`). Producción usa la versión 22 (25/11/2026); la 21 queda para volver atrás.
 - [x] El ID de la planilla vive en las propiedades del script, no en el código; el Script ID, en `apps-script/.clasp.json`, que git ignora.
 - [x] Una sola implementación del backend en producción, más `@HEAD`; las viejas se borraron (18/11). Las versiones quedan en el historial del script.
 - [x] `main` publica en Vercel. El repo es público: ningún ID, clave ni dato de la planilla entra al repo.
@@ -206,7 +206,7 @@ Objetivo: cargar desde el modal los datos que la planilla ya tiene lugar para gu
 - [x] Mostrar el equipo en la tarjeta (F2-05.6): alcanza con los dos colores del equipo principal, en la esquina (25/11).
 - [x] Al cerrar: los campos nuevos leen y escriben sin romper a lxs jugadorxs existentes (criterio de cierre de la Fase 2). Una fila sin las columnas nuevas, o editada a mano (un segundo puesto igual al principal, FLEX como segundo puesto, una fecha escrita como fecha), se lee sin problemas.
 - [x] Arreglo que apareció al probar: al guardar un cambio, el backend volvía a escribir la fila entera, y la planilla volvía a leer su texto: «1994-03» pasaba a ser el 1/3/1994 y una camiseta «007», un 7. Ahora escribe solo las celdas que cambian, y la fecha, las notas y la camiseta se guardan como texto.
-- [ ] Publicar el backend nuevo (versión 22). Hasta que esté, la app no ofrece fecha, grupos ni «+ New» (ese backend los perdería); el segundo puesto, activx y las notas ya andan con el de hoy.
+- [x] Backend publicado con `npm run backend:release` (25/11): producción pasó de la versión 21 a la 22, y las pruebas del pase dieron bien antes y después. Su primera lectura sumó la columna `birthDate` al final de la pestaña Players. Con un backend anterior, la app no ofrece fecha, grupos ni «+ New» (los perdería). El publicador se corre desde PowerShell: desde Bash, clasp lee la unidad `c:` en minúscula y frena con un falso «symlink».
 - [ ] **Ángela:** probar el sprint (abajo).
 - [x] Verificado: lint, tipos, 135 tests, build y pruebas en Edge contra una API local que corre `Code.gs` sobre planillas en memoria que, como Google Sheets, convierten en fecha el texto que parece una fecha. Nada tocó la planilla real. En tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado:
   - El Sprint 6: unos 35 chequeos en cada tamaño.
@@ -214,7 +214,7 @@ Objetivo: cargar desde el modal los datos que la planilla ya tiene lugar para gu
   - Escala real, con 61 jugadorxs inventadxs con segundo puesto, notas, fechas, 7 equipos y 5 grupos: a 360 px nada se sale de las tarjetas ni de los equipos. En la ventana de Ángela (unos 1100 × 920), con dos equipos y cinco grupos, el modal mide 960 × 740 y no scrollea; a 1280 × 680 su cuerpo scrollea unos 90 px.
   - Las suites de los sprints 3b, 4 y 5 siguen pasando.
 
-Prueba (en https://armaduki.vercel.app, cuando el backend esté publicado):
+Prueba (en https://armaduki.vercel.app):
 
 1. Apagá privacy mode (tres toques en el ojo del pie): las notas, la fecha y la edad solo se ven así.
 2. Tocá el lápiz de alguien. Arriba a la derecha, el switch «Active»; en la primera fila, «Born»; debajo de los equipos, los grupos y, al lado, las notas; al lado del puesto, «Second position».
