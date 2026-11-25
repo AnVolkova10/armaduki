@@ -5,6 +5,8 @@ import type {
   AttributeLevel,
   Attributes,
   BalanceLabel,
+  CoverReport,
+  CoverRole,
   FallbackCause,
   FallbackReport,
   Favors,
@@ -12,6 +14,7 @@ import type {
   GenerationStage,
   HardRule,
   LinkRef,
+  Role,
   RuleIssue,
   RuleStatus,
   TeamKeeperReport,
@@ -41,6 +44,14 @@ const ATT_OVERLOAD_WITHOUT_DEF_PENALTY = 8;
 // preference: each one left across teams costs this many score points.
 // 10 score points = 1 point of rating difference between the teams.
 export const ONE_WAY_WANT_PENALTY = 15;
+
+// Ángela's hybrid (Sprint 6): the rules keep looking at the main position only, and the score
+// prefers that a team left without a DEF (or an ATT) gets someone who plays it as a second
+// position. Each team left uncovered when another split covers it costs as much as a broken
+// one-way want. It only counts when someone among the ten has that second position, so a
+// selection without second positions ranks exactly as before.
+export const COVER_PENALTY = ONE_WAY_WANT_PENALTY;
+const COVER_ROLES: CoverRole[] = ['DEF', 'ATT'];
 
 // Not "lower score": the runner-up can tie on score and lose on social satisfaction or rating gap.
 const SECONDARY_OPTION_REASON =
@@ -102,6 +113,24 @@ interface WantsPreferenceBreakdown {
   adjustment: number;
 }
 
+interface CoverRoleBreakdown {
+  role: CoverRole;
+  team1Covered: boolean;
+  team2Covered: boolean;
+  /** Teams left uncovered that another split could have covered. */
+  avoidable: number;
+  adjustment: number;
+}
+
+interface CoverPreferenceBreakdown {
+  /** The roles someone among the ten plays as second position. Empty: the preference is off. */
+  roles: CoverRoleBreakdown[];
+  adjustment: number;
+}
+
+/** Per role, worked out once per selection: second positions, and everyone who can play it. */
+type CoverContext = Record<CoverRole, { secondary: number; capable: number }>;
+
 /** Want links between selected players, worked out once per selection. */
 interface WantLinks {
   mutualPairs: [string, string][];
@@ -138,6 +167,7 @@ interface SplitContext {
   owner: Person | undefined;
   totalDefCount: number;
   wantLinks: WantLinks;
+  cover: CoverContext;
 }
 
 /** What the ranking looks at, in order: score, then social satisfaction, then rating gap. */
@@ -158,6 +188,7 @@ interface SplitEvaluation extends RankableSplit {
   gkPreference: GKPreferenceBreakdown;
   attPreference: AttPreferenceBreakdown;
   wantsPreference: WantsPreferenceBreakdown;
+  coverPreference: CoverPreferenceBreakdown;
   social: SocialSatisfaction;
   violations: RuleViolations;
 }
@@ -400,6 +431,48 @@ function getWantsPreference(links: WantLinks, team1Ids: ReadonlySet<string>): Wa
   };
 }
 
+/** The second position the generator listens to: never FLEX and never the main one (hand-edited rows). */
+export function getSecondPosition(player: Person): Role | undefined {
+  const second = player.secondaryRole;
+  return second && second !== 'FLEX' && second !== player.role ? second : undefined;
+}
+
+/** Plays this role on the team: as main position, or as second one unless they are in goal. */
+function coversRole(player: Person, role: CoverRole): boolean {
+  return player.role === role || (player.role !== 'GK' && getSecondPosition(player) === role);
+}
+
+function playsAsSecond(player: Person, role: CoverRole): boolean {
+  return player.role !== role && coversRole(player, role);
+}
+
+function getCoverContext(players: Person[]): CoverContext {
+  const context = {} as CoverContext;
+  for (const role of COVER_ROLES) {
+    const secondary = players.filter((player) => playsAsSecond(player, role)).length;
+    context[role] = { secondary, capable: countRole(players, role) + secondary };
+  }
+  return context;
+}
+
+function getCoverPreference(team1: Person[], team2: Person[], context: CoverContext): CoverPreferenceBreakdown {
+  const roles: CoverRoleBreakdown[] = [];
+
+  for (const role of COVER_ROLES) {
+    const { secondary, capable } = context[role];
+    if (secondary === 0) continue;
+
+    const team1Covered = team1.some((player) => coversRole(player, role));
+    const team2Covered = team2.some((player) => coversRole(player, role));
+    const uncovered = Number(!team1Covered) + Number(!team2Covered);
+    // With fewer than two players who can play it, some team goes without whatever the split.
+    const avoidable = Math.max(0, uncovered - Math.max(0, 2 - capable));
+    roles.push({ role, team1Covered, team2Covered, avoidable, adjustment: avoidable === 0 ? 0 : -avoidable * COVER_PENALTY });
+  }
+
+  return { roles, adjustment: roles.reduce((sum, role) => sum + role.adjustment, 0) };
+}
+
 function countRoleSpreadViolations(team1: Person[], team2: Person[], totalDefCount: number): number {
   let violations = 0;
 
@@ -556,11 +629,13 @@ function evaluateSplit(teamAPlayers: Person[], teamBPlayers: Person[], context: 
   const gkPreference = getGKPreferenceBreakdown(team1GKProfile, team2GKProfile);
   const attPreference = getAttPreferenceBreakdown(canonical.team1Players, canonical.team2Players);
   const wantsPreference = getWantsPreference(context.wantLinks, team1Ids);
+  const coverPreference = getCoverPreference(canonical.team1Players, canonical.team2Players, context.cover);
   const score =
     calculateBalanceScore(canonical.stats1, canonical.stats2) +
     gkPreference.adjustment +
     attPreference.adjustment +
-    wantsPreference.adjustment;
+    wantsPreference.adjustment +
+    coverPreference.adjustment;
   const social = calculateSocialSatisfaction(canonical.team1Players, canonical.team2Players);
 
   return {
@@ -573,6 +648,7 @@ function evaluateSplit(teamAPlayers: Person[], teamBPlayers: Person[], context: 
     gkPreference,
     attPreference,
     wantsPreference,
+    coverPreference,
     social,
     score,
     socialPct: social.percentage,
@@ -597,6 +673,7 @@ function evaluateAllSplits(players: Person[]): SplitEvaluation[] {
     owner: players.find((player) => player.id === OWNER_ID),
     totalDefCount: countRole(players, 'DEF'),
     wantLinks: classifyWantLinks(players),
+    cover: getCoverContext(players),
   };
 
   return getCombinations(rest, TEAM_SIZE - 1).map((partners) => {
@@ -838,6 +915,7 @@ function createAnalysisExplanation(evaluation: SplitEvaluation, fallbackSection?
     gkPreference,
     attPreference,
     wantsPreference,
+    coverPreference,
     social: socialSat,
   } = evaluation;
 
@@ -897,14 +975,15 @@ function createAnalysisExplanation(evaluation: SplitEvaluation, fallbackSection?
     defensePenalty +
     gkPreference.adjustment +
     attPreference.adjustment +
-    wantsPreference.adjustment;
+    wantsPreference.adjustment +
+    coverPreference.adjustment;
 
   const fmt = (value: number): string => {
     return Number.isInteger(value) ? value.toString() : value.toFixed(1);
   };
 
-  // The label describes how even the teams are, so it leaves out the one-way wants penalty.
-  const balanceScore = score - wantsPreference.adjustment;
+  // The label describes how even the teams are, so it leaves out the wants and cover preferences.
+  const balanceScore = score - wantsPreference.adjustment - coverPreference.adjustment;
   const scoreLabel =
     balanceScore >= 70
       ? 'highly balanced'
@@ -935,12 +1014,19 @@ function createAnalysisExplanation(evaluation: SplitEvaluation, fallbackSection?
       ? `- ATT score preference: hard spread ${attSpreadStatus}, total ATT ${attPreference.totalAtt}, split T1 ${attPreference.team1Att} / T2 ${attPreference.team2Att}; overloaded side ${attPreference.overloadedTeam} has DEF=${attPreference.overloadedDefCount ?? 0}, adjustment ${formatScoreAdjustment(attPreference.adjustment)}.`
       : `- ATT score preference: hard spread ${attSpreadStatus}, total ATT ${attPreference.totalAtt}, split T1 ${attPreference.team1Att} / T2 ${attPreference.team2Att}, adjustment ${formatScoreAdjustment(attPreference.adjustment)}.`;
 
+  const coverLines = coverPreference.roles
+    .map(
+      (cover) =>
+        `\n- ${cover.role} cover (second positions, ${formatScoreAdjustment(-COVER_PENALTY)} per team left without one): T1 ${cover.team1Covered ? 'covered' : 'not covered'}, T2 ${cover.team2Covered ? 'covered' : 'not covered'}, adjustment ${formatScoreAdjustment(cover.adjustment)}.`,
+    )
+    .join('');
+
   const fallbackBlock = fallbackSection ? `\n\n[Fallback]\n${fallbackSection}` : '';
 
   return `Analysis (Score: ${Math.round(score)})${fallbackBlock}
 
 [Details]
-- Score formula: ${POINTS.RATING_BALANCE_BASE} - rating(${fmt(ratingDiff)}x10=${fmt(ratingPenalty)}) - attrs(${fmt(totalAttrDiff)}x5=${fmt(totalAttrPenalty)}) - pace(${fmt(paceDiff)}x10=${fmt(pacePenalty)}) - stamina(${fmt(staminaDiff)}x8=${fmt(staminaPenalty)}) - defense(${fmt(defDiff)}x5=${fmt(defensePenalty)})${gkPreference.applies ? ` + gkPref(${formatScoreAdjustment(gkPreference.adjustment)})` : ''} + attPref(${formatScoreAdjustment(attPreference.adjustment)})${wantsPreference.applies ? ` + wantsPref(${formatScoreAdjustment(wantsPreference.adjustment)})` : ''} = ${fmt(scoreRebuilt)}.
+- Score formula: ${POINTS.RATING_BALANCE_BASE} - rating(${fmt(ratingDiff)}x10=${fmt(ratingPenalty)}) - attrs(${fmt(totalAttrDiff)}x5=${fmt(totalAttrPenalty)}) - pace(${fmt(paceDiff)}x10=${fmt(pacePenalty)}) - stamina(${fmt(staminaDiff)}x8=${fmt(staminaPenalty)}) - defense(${fmt(defDiff)}x5=${fmt(defensePenalty)})${gkPreference.applies ? ` + gkPref(${formatScoreAdjustment(gkPreference.adjustment)})` : ''} + attPref(${formatScoreAdjustment(attPreference.adjustment)})${wantsPreference.applies ? ` + wantsPref(${formatScoreAdjustment(wantsPreference.adjustment)})` : ''}${coverPreference.roles.length > 0 ? ` + coverPref(${formatScoreAdjustment(coverPreference.adjustment)})` : ''} = ${fmt(scoreRebuilt)}.
 - Current score status: ${Math.round(score)} (${scoreStatus}).
 - Favors marker: each balance line shows Favors: T1, T2, or Even.
 
@@ -957,7 +1043,7 @@ function createAnalysisExplanation(evaluation: SplitEvaluation, fallbackSection?
 
 [Emergency + ATT]
 ${gkAnalysisBlock}
-${attPreferenceLine}
+${attPreferenceLine}${coverLines}
 
 [Lineups]
 - T1: ${formatLineup(team1Players)}
@@ -1219,8 +1305,20 @@ function buildAnalysisReport(evaluation: SplitEvaluation, fallback: FallbackRepo
     gkPreference,
     attPreference,
     wantsPreference,
+    coverPreference,
     social,
   } = evaluation;
+
+  const teamCover = (players: Person[], role: CoverRole) => ({
+    main: countRole(players, role),
+    second: players.filter((player) => playsAsSecond(player, role)).map((player) => player.nickname),
+  });
+  const cover: CoverReport[] = coverPreference.roles.map(({ role, avoidable }) => ({
+    role,
+    team1: teamCover(team1Players, role),
+    team2: teamCover(team2Players, role),
+    avoidable,
+  }));
 
   const attributes = ATTRIBUTE_ORDER.map((key) => ({
     key,
@@ -1244,8 +1342,8 @@ function buildAnalysisReport(evaluation: SplitEvaluation, fallback: FallbackRepo
 
   return {
     score,
-    // The label describes how even the teams are, so it leaves out the one-way wants penalty.
-    balanceLabel: getBalanceLabel(score - wantsPreference.adjustment),
+    // The label describes how even the teams are, so it leaves out the wants and cover preferences.
+    balanceLabel: getBalanceLabel(score - wantsPreference.adjustment - coverPreference.adjustment),
     formula: {
       base: POINTS.RATING_BALANCE_BASE,
       ratingDiff,
@@ -1261,6 +1359,7 @@ function buildAnalysisReport(evaluation: SplitEvaluation, fallback: FallbackRepo
       gkPref: gkPreference.applies ? gkPreference.adjustment : null,
       attPref: attPreference.adjustment,
       wantsPref: wantsPreference.applies ? wantsPreference.adjustment : null,
+      coverPref: cover.length > 0 ? coverPreference.adjustment : null,
       total:
         POINTS.RATING_BALANCE_BASE -
         ratingPenalty -
@@ -1270,7 +1369,8 @@ function buildAnalysisReport(evaluation: SplitEvaluation, fallback: FallbackRepo
         defensePenalty +
         gkPreference.adjustment +
         attPreference.adjustment +
-        wantsPreference.adjustment,
+        wantsPreference.adjustment +
+        coverPreference.adjustment,
     },
     rating: {
       team1: stats1.rating,
@@ -1312,6 +1412,7 @@ function buildAnalysisReport(evaluation: SplitEvaluation, fallback: FallbackRepo
           }
         : null,
     },
+    cover: cover.length > 0 ? { penaltyEach: COVER_PENALTY, adjustment: coverPreference.adjustment, roles: cover } : null,
     fallback,
   };
 }

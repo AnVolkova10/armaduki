@@ -3,7 +3,8 @@ import type { Person, Role } from '../types';
 import { matchesWordPrefix, normalizeSearch } from './search.ts';
 import { sortSelectedFirst } from './selection.ts';
 
-export type RoleFilter = 'all' | Role;
+/** A role, or 'inactive': the only way to see the players switched off (Sprint 6). */
+export type RoleFilter = 'all' | Role | 'inactive';
 export type ScoreFilter = 'all' | `${number}`;
 export type SortMode = 'none' | 'selected' | 'score' | 'position';
 export type SortDirection = 'desc' | 'asc';
@@ -61,13 +62,16 @@ export function filterAndSortPeople<T extends Person>(
 ): T[] {
     const query = normalizeSearch(controls.query);
     const targetScore = controls.score === 'all' ? null : Number(controls.score);
+    // Inactive players only show under their own filter, and then only them.
+    const showInactive = controls.role === 'inactive';
 
     const filtered = people.filter(
         (person) =>
+            (person.active === false) === showInactive &&
             (!query ||
                 matchesWordPrefix(person.nickname || '', query) ||
                 matchesWordPrefix(person.name || '', query)) &&
-            (controls.role === 'all' || person.role === controls.role) &&
+            (controls.role === 'all' || showInactive || person.role === controls.role) &&
             (targetScore === null || person.rating === targetScore),
     );
 

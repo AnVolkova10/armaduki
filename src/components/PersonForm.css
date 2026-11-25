@@ -73,6 +73,78 @@
   text-overflow: ellipsis;
 }
 
+.modal-top-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Active, by the close button: off, the player leaves the list and the picks (Sprint 6). */
+.active-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 4px;
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  cursor: pointer;
+}
+
+.active-switch input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.active-switch-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-3);
+  transition: background var(--t-press) ease, border-color var(--t-press) ease;
+}
+
+.active-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition: transform 0.18s var(--ease-out), background var(--t-press) ease;
+}
+
+.active-switch.is-on {
+  color: var(--text-2);
+}
+
+.active-switch.is-on .active-switch-track {
+  border-color: var(--ok-line);
+  background: var(--ok-soft);
+}
+
+.active-switch.is-on .active-switch-knob {
+  transform: translateX(14px);
+  background: var(--ok);
+}
+
+.active-switch input:focus-visible + .active-switch-track {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
 .modal-close {
   flex: 0 0 auto;
   width: 36px;
@@ -195,10 +267,103 @@
   grid-row: 1;
 }
 
-.teams-field {
+.teams-field,
+.groups-field {
   grid-column: 1 / -1;
   display: grid;
   gap: 7px;
+}
+
+/* With the birth date: nickname, name, number and date in the first row. */
+.identity-grid.has-born {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) 88px 176px;
+}
+
+.field-born {
+  grid-column: 4;
+  grid-row: 1;
+}
+
+.field-notes {
+  grid-column: 1 / -1;
+}
+
+/* Groups and notes share the last row: groups under the names, notes under number and date. */
+.identity-grid.has-born.has-groups.has-notes .groups-field {
+  grid-column: 1 / 3;
+}
+
+.identity-grid.has-born.has-groups.has-notes .field-notes {
+  grid-column: 3 / -1;
+}
+
+.born-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+}
+
+.born-age {
+  font-size: 0.76rem;
+  line-height: 1;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+/* Day, month and year; the year alone is enough. */
+.born-inputs {
+  display: grid;
+  grid-template-columns: 40px 40px minmax(0, 1fr);
+  gap: 4px;
+}
+
+.form-group .born-inputs input[type='text'] {
+  padding: 0 4px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.form-group .born-inputs.is-invalid input[type='text'] {
+  border-color: var(--red-line);
+}
+
+.field-error {
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: var(--red-text);
+}
+
+/* One line that grows with the text, where the browser can. */
+.field-notes textarea {
+  width: 100%;
+  min-height: 40px;
+  max-height: 104px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.3;
+  resize: none;
+  field-sizing: content;
+  transition: border-color var(--t-press) ease;
+}
+
+.field-notes textarea:hover {
+  border-color: var(--text-3);
+}
+
+.field-notes textarea:focus-visible {
+  outline: none;
+  border-color: var(--text);
+}
+
+.field-notes textarea::placeholder {
+  color: var(--text-3);
 }
 
 .avatar-error {
@@ -409,6 +574,123 @@
   opacity: 1;
 }
 
+/* "+ New": a dashed chip at the end of the teams and of the groups. */
+.catalog-new {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: var(--text-3);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color var(--t-press) ease, color var(--t-press) ease;
+}
+
+.catalog-new:hover {
+  border-color: var(--text-3);
+  color: var(--text);
+}
+
+/* The chip opened: name (and the team's two colours), create or cancel. */
+.catalog-new-form {
+  max-width: 100%;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius);
+  border: 1px solid var(--text-3);
+  background: var(--surface-2);
+  animation: chip-open 0.16s var(--ease-out);
+}
+
+@keyframes chip-open {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.catalog-new-colors {
+  display: inline-flex;
+  gap: 2px;
+  padding-left: 2px;
+}
+
+.catalog-new-colors input[type='color'] {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.catalog-new-colors input[type='color']::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+.catalog-new-colors input[type='color']::-webkit-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+
+.catalog-new-colors input[type='color']::-moz-color-swatch {
+  border: 0;
+  border-radius: 2px;
+}
+
+.catalog-new-name {
+  width: 190px;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.catalog-new-name:focus-visible {
+  outline: none;
+}
+
+.catalog-new-name::placeholder {
+  color: var(--text-3);
+}
+
+.catalog-new-btn {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.catalog-new-btn:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.catalog-new-btn--ok:not(:disabled) {
+  color: var(--ok);
+}
+
+.catalog-new-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 /* ---------- How they play ---------- */
 
 .form-game {
@@ -473,6 +755,15 @@
   border-color: var(--role-color);
   background: var(--role-color);
   color: var(--role-text);
+}
+
+/* The second position: the same colour, lighter, so the main one still leads. The border mixes
+   in some white, so even the dark grey of GK reads as chosen. */
+.role-btn.is-second.active,
+.role-btn.is-second.active:hover {
+  border-color: color-mix(in srgb, var(--role-color) 60%, var(--text) 40%);
+  background: color-mix(in srgb, var(--role-color) 30%, transparent);
+  color: var(--text);
 }
 
 .gk-btn.active,
@@ -781,13 +1072,27 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .field-shirt {
+  .identity-grid.has-born {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .field-shirt,
+  .field-born {
     grid-column: auto;
     grid-row: auto;
   }
 
   .field-shirt input[type='text'] {
     max-width: 120px;
+  }
+
+  .born-inputs {
+    max-width: 200px;
+  }
+
+  .identity-grid.has-born.has-groups.has-notes .groups-field,
+  .identity-grid.has-born.has-groups.has-notes .field-notes {
+    grid-column: 1 / -1;
   }
 
   .form-links {
@@ -846,7 +1151,8 @@
     padding: 16px;
   }
 
-  .identity-grid {
+  .identity-grid,
+  .identity-grid.has-born {
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
   }
@@ -866,9 +1172,21 @@
   }
 
   /* iOS Safari zooms the page when an input under 16px gets focus. */
-  .form-group input[type='text'] {
+  .form-group input[type='text'],
+  .field-notes textarea,
+  .catalog-new-name {
     min-height: 42px;
     font-size: 16px;
+  }
+
+  .catalog-new-form {
+    width: 100%;
+  }
+
+  .catalog-new-name {
+    flex: 1;
+    min-height: 32px;
+    height: 32px;
   }
 
   .extra-info-toggle {

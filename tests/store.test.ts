@@ -56,6 +56,8 @@ let networkDown = false;
 const posts: Record<string, unknown>[] = [];
 let failNextPosts: ('network' | 'error-text')[] = [];
 let answerReadAllLikeOldBackend = false;
+/** Answers readAll without groups, like a backend from before Sprint 6. */
+let answerReadAllWithoutGroups = false;
 
 globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}) => {
   const url = new URL(input instanceof Request ? input.url : String(input));
@@ -70,6 +72,12 @@ globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}
     getKeys.push(url.searchParams.get('key') ?? '');
     if (answerReadAllLikeOldBackend && action === 'readAll') {
       return new Response(JSON.stringify({ error: 'Action unknown' }));
+    }
+    if (answerReadAllWithoutGroups && action === 'readAll') {
+      const all = JSON.parse(backend.doGet({ parameter: Object.fromEntries(url.searchParams) }).content);
+      delete all.groups;
+      delete all.groupsError;
+      return new Response(JSON.stringify(all));
     }
     return new Response(backend.doGet({ parameter: Object.fromEntries(url.searchParams) }).content);
   }
@@ -284,6 +292,115 @@ test('changing the selection clears generated teams', () => {
   store.setState({ generatedTeams: { primary: {}, secondary: null, secondaryReason: null, comparison: null } as never });
   S().toggleSelection('1');
   assert.equal(S().generatedTeams, null);
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 6: groups, teams and groups made from the form, birth dates, second positions, active
+// ---------------------------------------------------------------------------
+// These tests put the sheet back as they found it: the Sprint 4 tests below count on it.
+const sprint6Snapshot: Record<string, Cell[][]> = {};
+const sheetsTouched = () => ({ Players: players, Teams: teams, Groups: backend.sheet('Groups') });
+
+test('readAll brings the groups from Sprint 6 on; with an older backend they stay null (hidden)', async () => {
+  resetStore();
+  await S().fetchPeople();
+  for (const [name, sheet] of Object.entries(sheetsTouched())) sprint6Snapshot[name] = (sheet?.data() ?? []).map((r) => [...r]);
+  assert.deepEqual(S().groupsCatalog, [], 'no Groups tab yet: an empty list, and groups can be made');
+  assert.ok(players.data()[0].includes('birthDate'), 'the first read added the birthDate column');
+
+  resetStore();
+  answerReadAllWithoutGroups = true;
+  try {
+    await S().fetchPeople();
+  } finally {
+    answerReadAllWithoutGroups = false;
+  }
+  assert.equal(S().groupsCatalog, null);
+
+  resetStore();
+  await S().fetchPeople();
+});
+
+test('a new team and a new group show at once, save behind, and keep their ids after a fresh read', async () => {
+  const teamId = S().createTeam(' Las Pibas ', '#7c3aed', '#facc15');
+  const groupId = S().createGroup('Segurola 20hs Jueves');
+  const otherId = S().createGroup('Segurola 20hs Jueves');
+
+  assert.equal(teamId, 'las-pibas');
+  assert.equal(groupId, 'segurola-20hs-jueves');
+  assert.equal(otherId, 'segurola-20hs-jueves-2', 'the store never reuses an id');
+  assert.ok(S().teamsCatalog.some((team) => team.teamId === 'las-pibas' && team.name === 'Las Pibas'));
+  await settle();
+  assert.equal(S().syncErrors.length, 0);
+
+  resetStore();
+  await S().fetchPeople();
+  assert.deepEqual(S().teamsCatalog.map((team) => team.teamId), ['armaduki', 'las-pibas']);
+  assert.deepEqual(S().groupsCatalog?.map((group) => [group.groupId, group.name]), [
+    ['segurola-20hs-jueves', 'Segurola 20hs Jueves'],
+    ['segurola-20hs-jueves-2', 'Segurola 20hs Jueves'],
+  ]);
+});
+
+test('a birth date with only the year and month survives a save and a fresh read', async () => {
+  await S().updatePerson({ ...findPerson('Bea'), birthDate: '1994-03', groups: ['segurola-20hs-jueves'], notes: 'juega de todo' });
+  await settle();
+  assert.deepEqual(Object.keys(posts.at(-1) ?? {}).sort(), ['action', 'birthDate', 'groups', 'id', 'notes']);
+
+  resetStore();
+  await S().fetchPeople();
+  assert.equal(findPerson('Bea').birthDate, '1994-03');
+  assert.deepEqual(findPerson('Bea').groups, ['segurola-20hs-jueves']);
+  assert.equal(findPerson('Bea').notes, 'juega de todo');
+});
+
+test('a second position equal to the main one or FLEX is dropped, and GK there means they keep goal', async () => {
+  const beaRow = players.records().findIndex((r) => r.nickname === 'Bea') + 2;
+  const caroRow = players.records().findIndex((r) => r.nickname === 'Caro') + 2;
+  const column = (name: string) => players.data()[0].indexOf(name) + 1;
+  players.getRange(beaRow, column('secondaryRole'), 1, 1).setValues([['MID']]);
+  players.getRange(caroRow, column('secondaryRole'), 1, 1).setValues([['gk']]);
+  players.getRange(caroRow, column('gkWillingness'), 1, 1).setValues([['no']]);
+
+  resetStore();
+  await S().fetchPeople();
+  assert.equal(findPerson('Bea').secondaryRole, undefined, 'MID twice');
+  assert.equal(findPerson('Caro').secondaryRole, 'GK');
+  assert.equal(findPerson('Caro').gkWillingness, 'good');
+
+  players.getRange(beaRow, column('secondaryRole'), 1, 1).setValues([['FLEX']]);
+  resetStore();
+  await S().fetchPeople();
+  assert.equal(findPerson('Bea').secondaryRole, undefined, 'FLEX is never a second position');
+});
+
+test('making a picked player inactive takes them out of the picks, and inactive players cannot be picked', async () => {
+  S().clearSelection();
+  S().toggleSelection(findPerson('Ana').id);
+  await S().updatePerson({ ...findPerson('Ana'), active: false });
+  await settle();
+
+  assert.equal(S().selectedIds.has(findPerson('Ana').id), false);
+  assert.equal(String(sheetRow(1)?.active), 'false');
+  S().toggleSelection(findPerson('Ana').id);
+  assert.equal(S().selectedIds.size, 0);
+
+  await S().updatePerson({ ...findPerson('Ana'), active: true });
+  await settle();
+  S().toggleSelection(findPerson('Ana').id);
+  assert.equal(S().selectedIds.has(findPerson('Ana').id), true);
+  S().clearSelection();
+});
+
+test('the Sprint 6 tests leave the sheet as they found it', async () => {
+  for (const [name, sheet] of Object.entries(sheetsTouched())) {
+    if (sheet) sheet.data().splice(0, Infinity, ...sprint6Snapshot[name].map((r) => [...r]));
+  }
+  resetStore();
+  await S().fetchPeople();
+  assert.deepEqual(S().teamsCatalog.map((team) => team.teamId), ['armaduki']);
+  assert.deepEqual(S().groupsCatalog, []);
+  assert.equal(findPerson('Bea').birthDate, undefined);
 });
 
 // ---------------------------------------------------------------------------

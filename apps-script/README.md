@@ -56,11 +56,13 @@ Current migration status:
 - `action=migratePlayersSheet` remains available as a focused legacy rename action.
 - `action=readTeams` returns the `Teams` catalog for the frontend with safe defaults.
 - Every action checks `ACCESS_KEY` first (see above): reads, saves and migrations.
-- `action=readAll` returns `{ players, teams }` in one execution; the app uses it on open. A `Teams` failure comes back as `teamsError` and does not block the players. An unknown action answers `{ error: 'Action unknown' }`, which the app uses to fall back to `read` + `readTeams` on older versions.
-- `update` preserves existing cell values for columns missing from the incoming payload.
+- `action=readAll` returns `{ players, teams, groups }` in one execution; the app uses it on open. A `Teams` or `Groups` failure comes back as `teamsError` or `groupsError` and does not block the players. The `groups` key is always there from Sprint 6 on: the app reads it as the sign that the backend saves groups, birth dates and new teams and groups, and hides them with an older backend. An unknown action answers `{ error: 'Action unknown' }`, which the app uses to fall back to `read` + `readTeams` on older versions.
+- `update` writes only the cells it receives. Writing the rest of the row back would make Sheets parse its text again (a birth date kept as `1994-03` would become 1 March 1994, a shirt number `007` would become `7`).
+- `birthDate`, `notes` and `shirtNumber` are written with a leading apostrophe, which keeps the cell as text and is not part of its value; so are the ids and names of new teams and groups. A date typed by hand in `birthDate` is read back as `yyyy-MM-dd` in the spreadsheet's time zone.
+- `addTeam` (`teamId`, `name`, `color1`, `color2`) and `addGroup` (`groupId`, `name`) append a row to `Teams` or `Groups`; the app picks the id from the name. The same id with the same name again (a retry) answers `Added` without a second row; the same id with another name is an error. Renaming and deleting stay in the sheet.
 - `delete` and `update` resolve the `id` column by header name instead of assuming it is the first column.
 - `id` matching trims spaces and compares as text, so `12`, `"12"` and `" 12 "` match.
-- `add`, `update` and `delete` run under a `LockService` script lock, so two writes never interleave (for example a delete shifting rows while an update writes).
+- `add`, `update`, `delete`, `addTeam` and `addGroup` run under a `LockService` script lock, so two writes never interleave (for example a delete shifting rows while an update writes).
 - `add` answers `Error: id X already exists` when the id is taken and `Error: missing id` without id, instead of appending a duplicate row.
 - Normal requests run `ensureSchema()` at most once every 6 hours (`CacheService` key `SCHEMA_CACHE_KEY`), which saves a dozen Spreadsheet calls per request. `action=migrateSchema` always runs it. Change `SCHEMA_CACHE_KEY` when headers change.
 
@@ -97,12 +99,13 @@ Optional Phase 2 fields:
 - `teams`: pipe-separated `Teams.teamId` values, for example `armaduki|femix`.
 - `groups`: pipe-separated `Groups.groupId` values, for example `segurola|palermo`.
 - `availability`: pipe-separated free labels for day/time/place availability, for example `martes|jueves-noche`.
-- `birthYear`: four-digit year as text.
-- `secondaryRole`: optional second role, same enum as `role`.
-- `active`: empty means active; `false`, `no`, `0`, `inactive`, and `off` are read as inactive by the frontend parser.
-- `notes`: internal free text.
+- `birthYear`: four-digit year as text. Unused since Sprint 6: read only when `birthDate` is empty.
+- `secondaryRole`: second position, `GK`, `DEF`, `MID` or `ATT`, never the same as `role` (FLEX is never a second position). With `GK` there, the app reads `gkWillingness` as `good`. The generator's rules ignore it; the score uses it for the DEF/ATT cover (see `docs/GENERADOR.md`).
+- `active`: empty means active; `false`, `no`, `0`, `inactive`, and `off` are read as inactive by the frontend parser. Inactive players are hidden from the list and cannot be picked.
+- `notes`: internal free text, kept as typed.
+- `birthDate`: `yyyy`, `yyyy-MM` or `yyyy-MM-dd`, kept as text (Sprint 6). Added by the first read of a backend from Sprint 6 on (`SCHEMA_CACHE_KEY` is `armaduki-schema-v2`).
 
-Safety note: `update` payloads only contain the fields that changed in the app (base and Phase 2 fields alike), so manual Sheet edits to other columns are never overwritten by stale in-memory values. Phase 2 fields without modal controls (`groups`, `availability`, `birthYear`, `secondaryRole`, `active`, `notes`) are therefore never written by `update`.
+Safety note: `update` payloads only contain the fields that changed in the app (base and Phase 2 fields alike), and the backend writes only those cells, so manual Sheet edits to other columns are never overwritten by stale in-memory values. `availability` has no control yet, so `update` never writes it.
 
 ### Teams
 
@@ -117,9 +120,11 @@ Safety note: `update` payloads only contain the fields that changed in the app (
 ### Groups
 
 - `groupId`: required stable id used by `Players.groups`.
-- `name`: required visible group name.
+- `name`: required visible group name. The name says what the group is: a court, a team's friends, a day ("Segurola 20hs Jueves").
 - `place`: optional usual place/court.
 - `notes`: optional internal notes.
+
+`readAll` returns `groups` as `{ groupId, name, place }`, skipping rows without `groupId` and defaulting a missing `name` to the id.
 
 ### RelationshipHistory
 

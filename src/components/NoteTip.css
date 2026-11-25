@@ -1,0 +1,56 @@
+/* The note under its card or row. It waits a moment, so moving the mouse across the list does
+   not flash every note on the way. The parent is positioned and marked .has-note. */
+.note-tip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 8px;
+  z-index: 10;
+  width: max-content;
+  max-width: calc(100% - 16px);
+  padding: 8px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-3);
+  box-shadow: var(--shadow-float);
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 400;
+  line-height: 1.35;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-3px);
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s var(--ease-out),
+    visibility 0s linear 0.14s;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Over the cards and rows that come after it. */
+  .has-note:hover {
+    z-index: 5;
+  }
+
+  .has-note:hover > .note-tip {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    transition-delay: 0.35s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .note-tip {
+    transform: none;
+    transition: none;
+  }
+}

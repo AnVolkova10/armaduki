@@ -1,6 +1,6 @@
 // English, the app's default language. `es.ts` has the same shape (the type checks it).
 // Plain TypeScript with no imports from the UI, so `npm test` can load it in Node.
-import type { Attributes, BalanceLabel, FallbackCause, Favors, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
+import type { Attributes, BalanceLabel, CoverRole, FallbackCause, Favors, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
 
 // The two sides are named by the colour of their bibs (25/11): T1 is RED, T2 is BLACK.
 const team = (label: TeamLabel): string => (label === 'T1' ? 'RED' : 'BLACK');
@@ -94,6 +94,7 @@ export const en = {
         savedCopyRefresh: 'Saved copy · Refresh',
         showing: (shown: number, total: number) => `Showing ${shown} of ${total} players`,
         total: (total: number) => `Total: ${total} players`,
+        inactiveTotal: (total: number) => `Inactive: ${total} players`,
         selectExactly: (selected: number) => `Select exactly 10 players. Selected: ${selected}`,
         couldNotGenerate: 'Could not generate valid teams. Check roles and goalkeeper availability.',
     },
@@ -123,6 +124,7 @@ export const en = {
         sortSelected: 'Selected',
         sortScore: 'Score',
         sortPosition: 'Position',
+        inactive: 'Inactive',
         filterByRole: 'Filter by role',
         filterByScore: 'Filter by score',
         sortPlayers: 'Sort players',
@@ -136,6 +138,8 @@ export const en = {
         editPlayer: (nickname: string) => `Edit ${nickname}`,
         delete: 'Delete',
         deletePlayer: (nickname: string) => `Delete ${nickname}`,
+        secondRole: (role: string) => `Second position: ${role}`,
+        age: (years: number, exact: boolean) => (exact ? `${years} yrs` : `~${years} yrs`),
     },
 
     notices: {
@@ -178,6 +182,7 @@ export const en = {
         teamIsMain: (name: string) => `${name} is main team`,
         teamSetMain: (name: string) => `Set ${name} as main team`,
         position: 'Position',
+        secondPosition: 'Second position',
         goalkeeper: 'Goalkeeper?',
         gkGood: 'Good',
         gkLow: 'Low',
@@ -193,6 +198,27 @@ export const en = {
         extraInfo: 'Extra info',
         save: 'Save Changes',
         add: 'Add Player',
+        active: 'Active',
+        activeHint: 'Off: hidden from the list and from the picks. Nothing is deleted.',
+        notes: 'Notes',
+        notesHint: 'Only for you. Hidden with privacy mode.',
+        birthDate: 'Born',
+        birthDay: 'Day',
+        birthMonth: 'Month',
+        birthYear: 'Year',
+        birthPlaceholder: { day: 'DD', month: 'MM', year: 'YYYY' },
+        birthDateInvalid: 'Check the date. The year alone is enough.',
+        age: (years: number, exact: boolean) => (exact ? `${years} years old` : `about ${years}`),
+        groups: 'Groups',
+        groupsEmpty: 'No groups yet',
+        newItem: '+ New',
+        newTeam: 'New team',
+        newGroup: 'New group',
+        newTeamName: 'Team name',
+        newGroupName: 'Group name',
+        create: 'Create',
+        teamColor1: 'Main colour',
+        teamColor2: 'Second colour',
     },
 
     result: {
@@ -272,6 +298,7 @@ export const en = {
             attributes: 'Attributes',
             keepers: 'Keepers',
             att: 'ATT',
+            cover: 'Positions',
             links: 'Links',
         },
         balanceSentence: (label: BalanceLabel, score: number): string =>
@@ -307,6 +334,11 @@ export const en = {
                 : `${tok(label)} has no GK: ${capable} can keep goal, none of them well.`;
         },
         attSentence: (team1: number, team2: number): string => `${tok('T1')} has ${team1} and ${tok('T2')} has ${team2}.`,
+        /** A team without a DEF or an ATT as main position: who covers it, if anyone. */
+        coverSentence: (label: TeamLabel, role: CoverRole, second: string[]): string =>
+            second.length > 0
+                ? `${tok(label)} has no ${role}: ${list(second)} also ${second.length === 1 ? 'plays' : 'play'} ${role}.`
+                : `${tok(label)} has no ${role}, and nobody there plays it as second position.`,
         linksSentence: (wantsMet: number, wantsTotal: number, avoidsMet: number, avoidsTotal: number): string => {
             const parts: string[] = [];
             if (wantsTotal > 0) parts.push(`Wants kept: ${wantsMet} of ${wantsTotal}, playing together.`);
@@ -337,6 +369,7 @@ export const en = {
         scoreAtt: 'ATT spread',
         scoreAttHelp: 'how evenly the ATT are shared',
         scoreWants: 'One-way wants split',
+        scoreCover: 'Teams without DEF or ATT cover',
         scoreTimes: (value: string, weight: number): string => `${value} × ${weight}`,
         scoreShort: {
             rating: 'rating gap',
@@ -347,6 +380,7 @@ export const en = {
             keepers: 'emergency keepers',
             att: 'ATT spread',
             wants: 'one-way wants',
+            cover: 'DEF/ATT cover',
         },
         scoreNoEffect: (items: string[]): string => `No effect this time: ${list(items)}.`,
         scoreTotal: 'Score',
@@ -386,6 +420,9 @@ export const en = {
         couldntUpdate: (nickname: string) => `Couldn't save changes to "${nickname}" in Google Sheets.`,
         couldntDelete: (label: string) => `Couldn't delete "${label}" in Google Sheets.`,
         rowWithoutId: 'This row has no id in Google Sheets. Delete it there, or add an id first.',
+        groupsError: 'Error loading groups from Google Sheets',
+        couldntAddTeam: (name: string) => `Couldn't save the new team "${name}" to Google Sheets.`,
+        couldntAddGroup: (name: string) => `Couldn't save the new group "${name}" to Google Sheets.`,
     },
 };
 

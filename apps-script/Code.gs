@@ -16,7 +16,8 @@ const MATCH_HISTORY_SHEET_NAME = 'MatchHistory';
 
 // ensureSchema() costs many Spreadsheet calls, so normal requests run it at most once per
 // cache window. Bump the version when headers change; `action=migrateSchema` always runs it.
-const SCHEMA_CACHE_KEY = 'armaduki-schema-v1';
+// v2 (Sprint 6): adds the birthDate column on the first read after the release.
+const SCHEMA_CACHE_KEY = 'armaduki-schema-v2';
 const SCHEMA_CACHE_SECONDS = 6 * 60 * 60;
 
 // Writes wait up to this long for other writes to finish (prevents interleaved row edits).
@@ -42,6 +43,8 @@ const PLAYERS_HEADERS = [
   'secondaryRole',
   'active',
   'notes',
+  // yyyy, yyyy-MM or yyyy-MM-dd, kept as text. birthYear stays, unused (Sprint 6).
+  'birthDate',
 ];
 
 const TEAMS_HEADERS = [
@@ -206,7 +209,27 @@ function readSheetObjects(sheet) {
 function getRowString(rowObject, key) {
   const value = rowObject[normalizeKey(key)];
   if (value === undefined || value === null) return '';
+  if (isDateValue(value)) return formatDateCell(value);
   return String(value).trim();
+}
+
+// Sheets turns text that looks like a date into one ("1994-03" becomes 1 March 1994, "20/11"
+// a day of this year) and text that starts with "=" into a formula. A leading apostrophe keeps
+// the cell exactly as typed, and is not part of its value.
+function asText(value) {
+  const text = normalizeId(value);
+  return text ? "'" + text : '';
+}
+
+// Checked by tag, not instanceof, so it also holds for dates made outside this script.
+function isDateValue(value) {
+  return Object.prototype.toString.call(value) === '[object Date]';
+}
+
+// A date typed by hand in the sheet comes back as a Date. It is read as yyyy-MM-dd in the
+// spreadsheet's own time zone: in UTC, midnight east of Greenwich is still the day before.
+function formatDateCell(value) {
+  return Utilities.formatDate(value, getSpreadsheet().getSpreadsheetTimeZone(), 'yyyy-MM-dd');
 }
 
 function buildRowFromPayload(headers, lowerBody, existingRow) {
@@ -291,7 +314,10 @@ function ensureSchemaForRead() {
 function readPlayers() {
   ensureSchemaForRead();
   const sheet = getPlayersSheet();
-  return readSheetObjects(sheet);
+  return readSheetObjects(sheet).map(row => {
+    if (isDateValue(row.birthdate)) row.birthdate = formatDateCell(row.birthdate);
+    return row;
+  });
 }
 
 function readTeams() {
@@ -319,14 +345,41 @@ function readTeams() {
   return teams;
 }
 
+function readGroups() {
+  ensureSchemaForRead();
+  const spreadsheet = getSpreadsheet();
+  const sheet = getOrCreateSheet(spreadsheet, GROUPS_SHEET_NAME, GROUPS_HEADERS);
+  const groups = [];
+
+  readSheetObjects(sheet).forEach(row => {
+    const groupId = getRowString(row, 'groupId');
+    if (!groupId) return;
+
+    groups.push({
+      groupId: groupId,
+      name: getRowString(row, 'name') || groupId,
+      place: getRowString(row, 'place'),
+    });
+  });
+
+  return groups;
+}
+
 // Everything the app needs when it opens, in one request (one Apps Script execution).
-// A Teams problem does not block the players: it comes back as `teamsError`.
+// A Teams or Groups problem does not block the players: it comes back as `teamsError` or
+// `groupsError`. The `groups` key is always there from Sprint 6 on: the app reads it as the
+// sign that this backend saves groups, birth dates and new teams and groups.
 function readAll() {
-  const result = { players: readPlayers(), teams: [] };
+  const result = { players: readPlayers(), teams: [], groups: [] };
   try {
     result.teams = readTeams();
   } catch (err) {
     result.teamsError = err.toString();
+  }
+  try {
+    result.groups = readGroups();
+  } catch (err) {
+    result.groupsError = err.toString();
   }
   return result;
 }
@@ -364,6 +417,10 @@ function handlePlayerWrite(body) {
   if (id) {
     lowerBody.id = id;
   }
+  // Free text, partial dates and shirt numbers ("007") stay exactly as typed (see asText).
+  ['birthdate', 'notes', 'shirtnumber'].forEach(key => {
+    if (typeof lowerBody[key] === 'string') lowerBody[key] = asText(lowerBody[key]);
+  });
 
   const data = sheet.getDataRange().getValues();
   const headers = data.length > 0 ? data[0] : getHeaders(sheet);
@@ -384,12 +441,58 @@ function handlePlayerWrite(body) {
 
   if (action === 'update') {
     if (rowIndex === -1) return 'ID not found for update';
+    // Only the cells it receives. Writing the rest of the row back would make Sheets read their
+    // text again: a birth date kept as "1994-03" would turn into 1 March 1994.
     const newRow = buildRowFromPayload(headers, lowerBody, data[rowIndex]);
-    sheet.getRange(rowIndex + 1, 1, 1, newRow.length).setValues([newRow]);
+    headers.forEach((header, index) => {
+      const key = normalizeKey(header);
+      if (key === 'id' || lowerBody[key] === undefined) return;
+      sheet.getRange(rowIndex + 1, index + 1, 1, 1).setValues([[newRow[index]]]);
+    });
     return 'Updated';
   }
 
   return 'Action unknown';
+}
+
+// Teams and groups made from the player form (Sprint 6). Renaming and deleting stay in the sheet.
+const CATALOGS = {
+  addTeam: { sheetName: TEAMS_SHEET_NAME, headers: TEAMS_HEADERS, idKey: 'teamId', extra: ['color1', 'color2'] },
+  addGroup: { sheetName: GROUPS_SHEET_NAME, headers: GROUPS_HEADERS, idKey: 'groupId', extra: [] },
+};
+
+// The app picks the id. The same id with the same name again (a retry) answers 'Added' without
+// a second row; the same id with another name is an error.
+function handleCatalogAdd(body) {
+  ensureSchemaIfStale();
+  const catalog = CATALOGS[body.action];
+  const id = normalizeId(body[catalog.idKey]);
+  const name = normalizeId(body.name);
+  if (!id || !name) return 'Error: missing ' + catalog.idKey + ' or name';
+
+  const sheet = getOrCreateSheet(getSpreadsheet(), catalog.sheetName, catalog.headers);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idColumn = getColumnIndex(headers, catalog.idKey);
+  const nameColumn = getColumnIndex(headers, 'name');
+  const existing = data.find((row, index) => index > 0 && normalizeId(row[idColumn]) === id);
+
+  if (existing) {
+    return normalizeId(existing[nameColumn]) === name
+      ? 'Added'
+      : 'Error: ' + catalog.idKey + ' ' + id + ' already exists';
+  }
+
+  const values = { name: asText(name) };
+  values[normalizeKey(catalog.idKey)] = asText(id);
+  catalog.extra.forEach(field => {
+    values[normalizeKey(field)] = normalizeId(body[field]);
+  });
+  sheet.appendRow(headers.map(header => {
+    const value = values[normalizeKey(header)];
+    return value === undefined ? '' : value;
+  }));
+  return 'Added';
 }
 
 function doGet(e) {
@@ -447,6 +550,10 @@ function doPost(e) {
 
     if (action === 'readTeams') {
       return jsonOutput(readTeams());
+    }
+
+    if (action === 'addTeam' || action === 'addGroup') {
+      return textOutput(withScriptLock(() => handleCatalogAdd(body)));
     }
 
     return textOutput(withScriptLock(() => handlePlayerWrite(body)));

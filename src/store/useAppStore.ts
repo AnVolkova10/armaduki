@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { tr } from '../i18n/index.ts';
 import { clearSavedRead, readAccessKey, readSavedRead, saveAccessKey, saveRead } from '../services/deviceStorage';
-import type { Attributes, AttributeLevel, GeneratedTeams, GKWillingness, Person, Role, TeamCatalog } from '../types';
+import type { Attributes, AttributeLevel, GeneratedTeams, GKWillingness, GroupCatalog, Person, Role, TeamCatalog } from '../types';
+import { normalizeBirthDate } from '../utils/birthDate';
+import { uniqueCatalogId } from '../utils/catalogIds';
 
 // Google Apps Script Web App URL
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
@@ -188,7 +190,10 @@ function parsePersonRow(row: unknown, index: number): Person | null {
   const role = validateRole(getValue('role'));
   const rating = validateRating(getValue('rating'));
   const avatar = getOptionalString(getValue('avatar'));
-  const gkWillingness = validateGKWillingness(getValue('gkwillingness'));
+  // A second position is GK, DEF, MID or ATT, never the main one (rows edited by hand can say
+  // anything). With GK there, they keep goal well: the form does the same.
+  const secondaryRole = validateSecondaryRole(getValue('secondaryrole'), role);
+  const gkWillingness = secondaryRole === 'GK' ? 'good' : validateGKWillingness(getValue('gkwillingness'));
   const wantsWith = parseRelationshipIds(getValue('wantswith'), id);
   const avoidsWith = parseRelationshipIds(getValue('avoidswith'), id);
   const attributes = parseAttributes(getValue('attributes'));
@@ -197,10 +202,10 @@ function parsePersonRow(row: unknown, index: number): Person | null {
   const teams = parseArrayField(getValue('teams'));
   const groups = parseArrayField(getValue('groups'));
   const availability = parseArrayField(getValue('availability'));
-  const birthYear = getOptionalField(getValue('birthyear'));
-  const secondaryRole = validateOptionalRole(getValue('secondaryrole'));
   const active = validateActive(getValue('active'));
   const notes = getOptionalField(getValue('notes'));
+  // birthYear is the old column: read when birthDate is empty, never written again.
+  const birthDate = normalizeBirthDate(getValue('birthdate')) ?? normalizeBirthDate(getValue('birthyear'));
 
   return {
     id,
@@ -218,10 +223,10 @@ function parsePersonRow(row: unknown, index: number): Person | null {
     teams,
     groups,
     availability,
-    birthYear,
     secondaryRole,
     active,
     notes,
+    birthDate,
   };
 }
 
@@ -250,12 +255,24 @@ function validateRole(value: unknown): Role {
   return validRoles.includes(normalized) ? normalized : DEFAULT_ROLE;
 }
 
-function validateOptionalRole(value: unknown): Role | undefined {
-  const normalized = getOptionalString(value);
-  if (!normalized) return undefined;
+function validateSecondaryRole(value: unknown, mainRole: Role): Role | undefined {
+  const normalized = getOptionalString(value).toUpperCase();
+  const secondary: Role[] = ['GK', 'DEF', 'MID', 'ATT'];
+  return secondary.includes(normalized as Role) && normalized !== mainRole ? (normalized as Role) : undefined;
+}
 
-  const role = validateRole(normalized);
-  return role === normalized.toUpperCase() ? role : undefined;
+function parseGroupCatalogRow(row: unknown): GroupCatalog | null {
+  const getValue = createRowGetter(row);
+  if (!getValue) return null;
+
+  const groupId = getOptionalString(getValue('groupId'));
+  if (!groupId) return null;
+
+  return {
+    groupId,
+    name: getOptionalString(getValue('name')) || groupId,
+    place: getOptionalString(getValue('place')),
+  };
 }
 
 function validateGKWillingness(value: unknown): GKWillingness {
@@ -349,10 +366,10 @@ const FIELD_SERIALIZERS = {
   teams: (person: Person) => serializeArrayField(person.teams),
   groups: (person: Person) => serializeArrayField(person.groups),
   availability: (person: Person) => serializeArrayField(person.availability),
-  birthYear: (person: Person) => getOptionalString(person.birthYear),
   secondaryRole: (person: Person) => getOptionalString(person.secondaryRole),
   active: (person: Person) => person.active ?? true,
   notes: (person: Person) => getOptionalString(person.notes),
+  birthDate: (person: Person) => getOptionalString(person.birthDate),
 } satisfies Record<string, (person: Person) => string | number | boolean>;
 
 type SyncedField = keyof typeof FIELD_SERIALIZERS;
@@ -371,7 +388,8 @@ const BASE_FIELDS: SyncedField[] = [
 const SYNCED_FIELDS = Object.keys(FIELD_SERIALIZERS) as SyncedField[];
 const OPTIONAL_FIELDS = SYNCED_FIELDS.filter((field) => !BASE_FIELDS.includes(field));
 
-type SheetsPayload = { action: 'add' | 'update' | 'delete'; id: string } & Record<string, unknown>;
+type SheetsAction = 'add' | 'update' | 'delete' | 'addTeam' | 'addGroup';
+type SheetsPayload = { action: SheetsAction } & Record<string, unknown>;
 
 function getChangedFields(previous: Person | undefined, next: Person): SyncedField[] {
   if (!previous) return BASE_FIELDS;
@@ -410,6 +428,9 @@ const SUCCESS_RESPONSES: Record<SheetsPayload['action'], string[]> = {
   update: ['Updated'],
   // A row that is already gone counts as deleted.
   delete: ['Deleted', 'ID not found'],
+  // The backend answers Added again for a team or group it already has (a retry).
+  addTeam: ['Added'],
+  addGroup: ['Added'],
 };
 
 async function postAppsScriptPayload(payload: SheetsPayload): Promise<void> {
@@ -481,11 +502,13 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** Answer of `action=readAll`: players and teams in one request. */
+/** Answer of `action=readAll`: players, teams and (from Sprint 6) groups in one request. */
 interface ReadAllPayload {
   players: unknown[];
   teams?: unknown;
   teamsError?: unknown;
+  groups?: unknown;
+  groupsError?: unknown;
 }
 
 function isReadAllPayload(value: unknown): value is ReadAllPayload {
@@ -530,6 +553,27 @@ function parseTeamsCatalog(rawData: unknown): TeamCatalog[] {
   return teamsCatalog;
 }
 
+function parseGroupsCatalog(rawData: unknown): GroupCatalog[] {
+  if (!Array.isArray(rawData)) throw new Error('Incorrect groups format: not an array');
+  return rawData.map(parseGroupCatalogRow).filter((group): group is GroupCatalog => group !== null);
+}
+
+/**
+ * The groups of a readAll answer. A backend from Sprint 6 on always sends the key; an older one
+ * does not, and then the app hides groups, the birth date and making teams and groups, which
+ * that backend would lose (null). A failure on the Groups tab is an empty list with an error.
+ */
+function readGroupsAnswer(payload: ReadAllPayload): { groups: GroupCatalog[] | null; error: string | null } {
+  if (!('groups' in payload)) return { groups: null, error: null };
+  if (payload.groupsError) return { groups: [], error: tr().store.groupsError };
+  try {
+    return { groups: parseGroupsCatalog(payload.groups), error: null };
+  } catch (groupsError) {
+    console.error('Error reading the groups:', groupsError);
+    return { groups: [], error: tr().store.groupsError };
+  }
+}
+
 /** The selected players as text, to tell whether a fresh read changed any of them. */
 function describeSelection(state: { people: Person[]; selectedIds: Set<string> }): string {
   return JSON.stringify(state.people.filter((person) => state.selectedIds.has(person.id)));
@@ -541,6 +585,12 @@ interface AppStore {
   // Data
   people: Person[];
   teamsCatalog: TeamCatalog[];
+  /**
+   * The Groups tab. Null while the backend is older than Sprint 6: it cannot save groups, birth
+   * dates or new teams and groups, so the form does not offer them.
+   */
+  groupsCatalog: GroupCatalog[] | null;
+  groupsCatalogError: string | null;
   selectedIds: Set<string>;
   generatedTeams: GeneratedTeams | null;
 
@@ -576,6 +626,11 @@ interface AppStore {
   clearAllRelationships: () => Promise<void>;
   clearWantsRelationships: () => Promise<void>;
   clearAvoidsRelationships: () => Promise<void>;
+
+  // Actions - Teams and groups made from the player form. They show at once and save behind;
+  // each returns the new id, so the form can mark it.
+  createTeam: (name: string, color1: string, color2: string) => string;
+  createGroup: (name: string) => string;
 
   // Actions - Selection
   toggleSelection: (id: string) => void;
@@ -617,6 +672,8 @@ const useAppStore = create<AppStore>()((set, get) => {
       teamsCatalogLoaded: false,
       isTeamsCatalogLoading: false,
       teamsCatalogError: null,
+      groupsCatalog: null,
+      groupsCatalogError: null,
       selectedIds: new Set(),
       generatedTeams: null,
       peopleStatus: 'idle',
@@ -788,7 +845,13 @@ const useAppStore = create<AppStore>()((set, get) => {
               failTeamsCatalog(teamsError);
             }
           }
-          saveRead({ players: rawData.players, teams: Array.isArray(rawData.teams) ? rawData.teams : [] });
+          const groupsAnswer = readGroupsAnswer(rawData);
+          set({ groupsCatalog: groupsAnswer.groups, groupsCatalogError: groupsAnswer.error });
+          saveRead({
+            players: rawData.players,
+            teams: Array.isArray(rawData.teams) ? rawData.teams : [],
+            ...(Array.isArray(rawData.groups) ? { groups: rawData.groups } : {}),
+          });
           set((state) => {
             // The fresh read replaces a saved copy: a pick that is gone from the sheet goes away,
             // and a result made with data that changed is no longer valid.
@@ -811,7 +874,7 @@ const useAppStore = create<AppStore>()((set, get) => {
           loadTeamsCatalog(),
         ]);
         if (peopleResult.status === 'rejected') throw peopleResult.reason;
-        set({ access: 'open', isFresh: true });
+        set({ access: 'open', isFresh: true, groupsCatalog: null, groupsCatalogError: null });
         return 'ok';
       } catch (fetchError) {
         console.error('Error fetching people data:', fetchError);
@@ -846,12 +909,20 @@ const useAppStore = create<AppStore>()((set, get) => {
   } catch {
     savedTeams = [];
   }
+  let savedGroups: GroupCatalog[] | null = null;
+  try {
+    savedGroups = savedRead?.groups ? parseGroupsCatalog(savedRead.groups) : null;
+  } catch {
+    savedGroups = null;
+  }
   const hasSavedCopy = savedPeople.length > 0;
 
   return {
     // Initial state
     people: savedPeople,
     teamsCatalog: savedTeams,
+    groupsCatalog: savedGroups,
+    groupsCatalogError: null,
     selectedIds: new Set(),
     generatedTeams: null,
     // A device with no key and nothing saved waits at the gate for the first answer.
@@ -928,11 +999,20 @@ const useAppStore = create<AppStore>()((set, get) => {
       const previousPerson = findPerson(person.id);
       const changedFields = getChangedFields(previousPerson, person);
 
-      // Optimistic update first. A result that includes this player is now stale.
-      set((state) => ({
-        people: state.people.map((existing) => (existing.id === person.id ? person : existing)),
-        generatedTeams: state.selectedIds.has(person.id) ? null : state.generatedTeams,
-      }));
+      // Optimistic update first. A result that includes this player is now stale, and a player
+      // made inactive leaves the picks.
+      set((state) => {
+        const wasSelected = state.selectedIds.has(person.id);
+        const selectedIds =
+          wasSelected && person.active === false
+            ? new Set([...state.selectedIds].filter((id) => id !== person.id))
+            : state.selectedIds;
+        return {
+          people: state.people.map((existing) => (existing.id === person.id ? person : existing)),
+          selectedIds,
+          generatedTeams: wasSelected ? null : state.generatedTeams,
+        };
+      });
 
       if (changedFields.length === 0) return;
 
@@ -997,13 +1077,40 @@ const useAppStore = create<AppStore>()((set, get) => {
 
     clearAvoidsRelationships: () => clearRelationships(['avoidsWith'], 'negative links'),
 
-    // Changing the selection makes a generated result stale, so it is cleared.
+    createTeam: (name, color1, color2) => {
+      const trimmed = name.trim();
+      const teamId = uniqueCatalogId(trimmed, get().teamsCatalog.map((team) => team.teamId), 'team');
+      set((state) => ({ teamsCatalog: [...state.teamsCatalog, { teamId, name: trimmed, color1, color2, crest: '' }] }));
+      void runSyncOperation({
+        label: `team "${trimmed}"`,
+        errorMessage: tr().store.couldntAddTeam(trimmed),
+        run: () => postAppsScriptPayload({ action: 'addTeam', teamId, name: trimmed, color1, color2 }),
+      });
+      return teamId;
+    },
+
+    createGroup: (name) => {
+      const trimmed = name.trim();
+      const groupId = uniqueCatalogId(trimmed, (get().groupsCatalog ?? []).map((group) => group.groupId), 'group');
+      set((state) => ({ groupsCatalog: [...(state.groupsCatalog ?? []), { groupId, name: trimmed, place: '' }] }));
+      void runSyncOperation({
+        label: `group "${trimmed}"`,
+        errorMessage: tr().store.couldntAddGroup(trimmed),
+        run: () => postAppsScriptPayload({ action: 'addGroup', groupId, name: trimmed }),
+      });
+      return groupId;
+    },
+
+    // Changing the selection makes a generated result stale, so it is cleared. Inactive players
+    // cannot be picked.
     toggleSelection: (id) => set((state) => {
       const newSelected = new Set(state.selectedIds);
       if (newSelected.has(id)) {
         newSelected.delete(id);
-      } else {
+      } else if (state.people.find((person) => person.id === id)?.active !== false) {
         newSelected.add(id);
+      } else {
+        return state;
       }
       return { selectedIds: newSelected, generatedTeams: null };
     }),

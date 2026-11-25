@@ -53,19 +53,20 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 - **Arriba de la lista.** «Players», «+ Add Player», el contador, «Clear» y «Generate Teams», en los mismos lugares. El contador va en números grandes («7/10») con diez puntitos que se llenan de a uno; con 10, «Generate Teams» se enciende con un destello, una sola vez. En el teléfono, el número va sobre sus puntitos, sin la palabra, para que entren «Clear» y «Generate Teams» en la misma fila.
 - **Controles.** Búsqueda, rol, score y orden, como hoy. Los menús muestran un nombre chico arriba y el valor abajo («Role» / «All», «Sort» / «Selected»); el orden de siempre se llama «Default».
 - **Tarjeta.** La misma información en el mismo orden: foto y número, apodo, nombre, rol y rating (oculto con privacy mode), y el marcador del equipo en la esquina. Elegida: borde rojo, fondo apenas teñido y una marca chica sobre la foto. Con 10 elegidxs, las demás tarjetas se apagan, pero el lápiz y el tacho siguen andando. Los dos van arriba a la derecha, uno sobre el otro: el lápiz arriba y el tacho abajo (25/11). En la computadora aparecen al pasar el mouse, como hoy.
+- **Sprint 6 en la tarjeta.** El segundo puesto va al lado del principal, más chico y del mismo color, más suave. La edad va debajo del número de camiseta, como él (con «~» si falta el día). En la computadora, al dejar el mouse sobre la tarjeta aparece su nota debajo, después de un momento. La edad y la nota no se ven con privacy mode. Lxs inactivxs no aparecen; con el filtro «Inactive», sus tarjetas se ven apagadas y no se pueden elegir.
 - **Estados.** La pelota que se llena sigue siendo la carga. «Updating from Google Sheets...» y «Saved copy · Refresh» pasan a una línea de estado discreta. Los errores van en una franja con el estilo del resto, con «Retry» y «×».
 
 ## El resultado
 
 Debajo de la lista, como hoy, en tres partes:
 
-1. **Los equipos.** El Rojo y el Negro lado a lado, también en el teléfono, cada uno con su color: el Rojo con una línea roja arriba y el fondo apenas teñido de rojo; el Negro, con fondo negro y una línea gris arriba (negra no se vería). La tarjeta del resultado es un toque más clara que el resto, para que NEGRO en negro se lea en las frases. Los nombres van en una etiqueta gris clara, ROJO en rojo y NEGRO en negro (sobre el fondo oscuro el negro no se leería). Cada jugadorx con su foto chica (en el teléfono, sin foto, para que entre un apodo largo), el apodo y el rol, ordenadxs por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
+1. **Los equipos.** El Rojo y el Negro lado a lado, también en el teléfono, cada uno con su color: el Rojo con una línea roja arriba y el fondo apenas teñido de rojo; el Negro, con fondo negro y una línea gris arriba (negra no se vería). La tarjeta del resultado es un toque más clara que el resto, para que NEGRO en negro se lea en las frases. Los nombres van en una etiqueta gris clara, ROJO en rojo y NEGRO en negro (sobre el fondo oscuro el negro no se leería). Cada jugadorx con su foto chica (en el teléfono, sin foto, para que entre un apodo largo), el apodo, el rol y su segundo puesto si tiene, ordenadxs por puesto como hoy; en la computadora, su nota aparece al pasar el mouse. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
 2. **El resumen.** Tres datos en una fila:
    - **Parejo:** la etiqueta del score (highly balanced, balanced…) y, sin privacy mode, la diferencia de rating y a qué equipo favorece.
    - **Social:** el porcentaje y los wants cumplidos.
    - **Reglas:** «todas se cumplen» o «fallback: se rompió 1».
 3. **El análisis completo**, plegado, con más palabras que números (25/11):
-   - **En palabras:** una frase por tema, con su palabra al frente: parejo (y el score), rating (cuánto más suma un equipo), atributos (quién es mejor en qué), arquerxs (si un equipo no tiene GK, quién ataja bien y cuántxs más pueden), ATT y links (cuántos se cumplieron, con las parejas).
+   - **En palabras:** una frase por tema, con su palabra al frente: parejo (y el score), rating (cuánto más suma un equipo), atributos (quién es mejor en qué), arquerxs (si un equipo no tiene GK, quién ataja bien y cuántxs más pueden), ATT, puestos (si un equipo no tiene DEF o ATT, quién lo cubre de segundo puesto; Sprint 6) y links (cuántos se cumplieron, con las parejas).
    - **ROJO vs NEGRO:** las barras, sin números, sobre un fondo blanco: rojas hacia ROJO y negras hacia NEGRO. Arriba, ROJO y NEGRO en su color, sin pill. Una línea explica cómo leerlas.
    - **Cómo se calcula el score:** arranca en 100 y cada línea dice qué resta o suma y por qué. Solo aparece lo que movió el score; lo demás se nombra en una frase.
 
@@ -98,7 +99,15 @@ Uno solo para sumar y para editar. Rehecho el 25/11: el primero, ancho y con col
   - **Abajo a la derecha, con quién:** «Wants to play with» y «Avoids» lado a lado, con dos nombres por fila, lxs marcadxs primero y las pistas de relación inversa. Ocupan el mismo alto que la columna de juego y scrollean por dentro, así nunca estiran el modal.
   - Abajo, siempre a la vista: «Cancel» y «Save». Enter guarda y Escape cierra, como hoy.
 - **En el teléfono**, una hoja de pantalla completa: las partes una debajo de la otra, el apodo y la × arriba, y «Cancel» y «Save» fijos abajo. El número y los equipos siguen plegados en «Más datos». Cada lista de relaciones va en su caja y scrollea por dentro.
-- **Cuando lleguen los campos del Sprint 6** no hay lugar vacío esperándolos: entran donde corresponden y el modal crece lo justo. La fecha de nacimiento, en la fila de arriba o al lado de los equipos; «activx», junto al título; las notas, como una fila más arriba; «también juega» (los varios roles), debajo del puesto; grupos y día o lugar, al final de la columna de juego. Las listas de relaciones crecen solas con esa columna.
+- **Los campos del Sprint 6** entraron sin lugares vacíos y el modal creció lo justo:
+  - «Activx», un switch al lado de la ×; solo al editar.
+  - La fecha de nacimiento, en la fila de arriba (día, mes y año; con el año alcanza), con la edad al lado de su nombre.
+  - Debajo de los equipos, los grupos como fichas; a su derecha, las notas, en una línea que crece con el texto.
+  - Equipos y grupos terminan en una ficha punteada «+ New» que se abre ahí mismo: nombre (y los dos colores, si es un equipo), Enter crea y Escape cierra solo esa ficha.
+  - El segundo puesto, al lado del puesto, en el mismo color pero más suave. Con GK ahí, «¿Ataja?» no se muestra, como con un GK principal.
+  - Con privacy mode no se ven la fecha ni las notas, como el rating.
+  - En la ventana de Ángela (unos 1100 × 920), con dos equipos y cinco grupos, mide 960 × 740 y no scrollea; a 1280 × 680, su cuerpo scrollea unos 90 px. En el teléfono, la fecha, los grupos y las notas van en «Más datos».
+  - Los días que puede cada unx quedaron para más adelante: el nombre del grupo dice el día.
 
 ## El idioma
 

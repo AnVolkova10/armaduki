@@ -299,6 +299,7 @@
 }
 
 .team-player {
+  position: relative; /* for the note shown on hover */
   display: flex;
   align-items: center;
   gap: 8px;

@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {
   calculateTeamPower,
   compareSplitsByBalance,
+  COVER_PENALTY,
   generateTeams,
   ONE_WAY_WANT_PENALTY,
   type RankableSplit,
@@ -356,4 +357,84 @@ test('a broken one-way want is reported as a preference, with the pair', () => {
     brokenLinks: [{ from: 'P2', to: 'P3', mutual: false }],
   });
   assert.equal(report.formula.wantsPref, -ONE_WAY_WANT_PENALTY);
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 6: second positions. The rules look at the main position only; the score prefers that a
+// team left without a DEF or an ATT gets someone who plays it as second position.
+// ---------------------------------------------------------------------------
+
+/** Two GK (one per team by rule) and eight MID, every rating 5: every split is equally even. */
+function evenPool(overrides: Record<number, Partial<Person>> = {}): Person[] {
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9, 11].map((id) =>
+    player(id, { role: id === 1 || id === 6 ? 'GK' : 'MID', rating: 5, ...overrides[id] }),
+  );
+}
+
+test('the hybrid: with one DEF, a MID who also plays DEF goes to the other team', () => {
+  const pool = evenPool({ 2: { role: 'DEF' }, 3: { secondaryRole: 'DEF' } });
+  const result = generateTeams(pool)!;
+  const { report } = result.primary;
+
+  assert.notEqual(teamOf(result.primary, '2'), teamOf(result.primary, '3'));
+  assert.equal(report.formula.coverPref, 0);
+  assert.equal(result.primary.score, 100);
+  assert.deepEqual(report.cover?.roles.map((cover) => cover.role), ['DEF']);
+  const [def] = report.cover!.roles;
+  const sides = [def.team1, def.team2];
+  assert.ok(sides.some((side) => side.main === 1 && side.second.length === 0));
+  assert.ok(sides.some((side) => side.main === 0 && side.second[0] === 'P3'));
+});
+
+test('the same works for ATT', () => {
+  const pool = evenPool({ 4: { role: 'ATT' }, 5: { secondaryRole: 'ATT' } });
+  const result = generateTeams(pool)!;
+
+  assert.notEqual(teamOf(result.primary, '4'), teamOf(result.primary, '5'));
+  assert.deepEqual(result.primary.report.cover?.roles.map((cover) => cover.role), ['ATT']);
+});
+
+test('the cover gives way when it would make the teams much more uneven, and the label ignores it', () => {
+  // Together, the strong DEF and the weak MID make two even teams; apart, one team is much stronger.
+  const pool = evenPool({ 2: { role: 'DEF', rating: 9 }, 3: { rating: 1, secondaryRole: 'DEF' } });
+  const result = generateTeams(pool)!;
+  const { report } = result.primary;
+
+  assert.equal(teamOf(result.primary, '2'), teamOf(result.primary, '3'));
+  assert.equal(report.formula.coverPref, -COVER_PENALTY);
+  assert.equal(result.primary.score, 100 - COVER_PENALTY);
+  assert.equal(report.cover?.roles[0].avoidable, 1);
+  assert.equal(report.balanceLabel, 'highlyBalanced', 'the teams are even; the cover is not about that');
+  assert.match(result.primary.explanation ?? '', /coverPref\(-15\)/);
+});
+
+test('a team that nobody could cover costs nothing', () => {
+  // A single player who can defend: one team goes without a DEF whatever the split.
+  const result = generateTeams(evenPool({ 3: { secondaryRole: 'DEF' } }))!;
+
+  assert.equal(result.primary.report.formula.coverPref, 0);
+  assert.equal(result.primary.report.cover?.roles[0].avoidable, 0);
+  assert.equal(result.primary.score, 100);
+});
+
+test('a keeper whose second position is DEF does not cover: they are in goal', () => {
+  const result = generateTeams(evenPool({ 1: { secondaryRole: 'DEF' }, 2: { role: 'DEF' } }))!;
+
+  assert.equal(result.primary.report.cover, null);
+  assert.equal(result.primary.report.formula.coverPref, null);
+});
+
+test('a second position equal to the main one, or FLEX, is ignored (rows edited by hand)', () => {
+  const result = generateTeams(evenPool({ 2: { role: 'DEF', secondaryRole: 'DEF' }, 3: { secondaryRole: 'FLEX' } }))!;
+
+  assert.equal(result.primary.report.cover, null);
+  assert.equal(result.primary.report.formula.coverPref, null);
+});
+
+test('without second positions there is no cover preference at all', () => {
+  const result = generateTeams(basePool())!;
+
+  assert.equal(result.primary.report.cover, null);
+  assert.equal(result.primary.report.formula.coverPref, null);
+  assert.doesNotMatch(result.primary.explanation ?? '', /coverPref|cover \(second positions/);
 });

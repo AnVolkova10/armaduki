@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useT } from '../i18n';
 import useAppStore from '../store/useAppStore';
 import type { Person, Role, GKWillingness, AttributeLevel, Attributes, TeamCatalog } from '../types';
+import { ageOn, birthDateParts, readBirthDateInput, type BirthDateParts } from '../utils/birthDate';
+import { sameCatalogName } from '../utils/catalogIds';
 import { getSuggestedRating } from '../utils/ratingSuggestion';
 import { ActionButton } from './ActionButton';
 import { Icon } from './Icon';
@@ -14,6 +16,8 @@ interface PersonFormProps {
 }
 
 const roles: Role[] = ['GK', 'FLEX', 'DEF', 'MID', 'ATT'];
+// A second position is a real place on the pitch: FLEX already means "anywhere".
+const secondRoles: Role[] = ['GK', 'DEF', 'MID', 'ATT'];
 const gkValues: GKWillingness[] = ['good', 'low', 'no'];
 
 const attributeKeys: (keyof Attributes)[] = [
@@ -42,6 +46,9 @@ const DEFAULT_ATTRIBUTES: Attributes = {
 
 const DEFAULT_TEAM_COLOR_1 = '#3a3a3a';
 const DEFAULT_TEAM_COLOR_2 = '#111111';
+// A new team starts with the ball's red and black, until its own colours are picked.
+const NEW_TEAM_COLOR_1 = '#dc2626';
+const NEW_TEAM_COLOR_2 = '#000000';
 
 // Google Sheets cells hold at most 50,000 characters. A bigger avatar makes the whole
 // row write fail, so photos are shrunk until the data URL fits with some margin.
@@ -83,6 +90,88 @@ function getHexLuminance(hex: string): number | null {
     return ((red * 0.299) + (green * 0.587) + (blue * 0.114)) / 255;
 }
 
+/**
+ * The chip that turns into a small form to make a team or a group without leaving the player.
+ * It lives inside the player form: Enter creates without saving the player, and Escape closes
+ * only this, not the whole form.
+ */
+function NewCatalogItem({
+    kind,
+    onCreate,
+    onCancel,
+}: {
+    kind: 'team' | 'group';
+    onCreate: (name: string, color1: string, color2: string) => void;
+    onCancel: () => void;
+}) {
+    const t = useT();
+    const [name, setName] = useState('');
+    const [color1, setColor1] = useState(NEW_TEAM_COLOR_1);
+    const [color2, setColor2] = useState(NEW_TEAM_COLOR_2);
+    const label = kind === 'team' ? t.form.newTeam : t.form.newGroup;
+
+    const create = () => {
+        if (name.trim()) onCreate(name.trim(), color1, color2);
+    };
+
+    const handleKeyDown = (event: React.KeyboardEvent) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            create();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            event.stopPropagation();
+            onCancel();
+        }
+    };
+
+    return (
+        <div className="catalog-new-form" role="group" aria-label={label} onKeyDown={handleKeyDown}>
+            {kind === 'team' && (
+                <span className="catalog-new-colors">
+                    <input
+                        type="color"
+                        value={color1}
+                        onChange={(event) => setColor1(event.target.value)}
+                        aria-label={t.form.teamColor1}
+                        title={t.form.teamColor1}
+                    />
+                    <input
+                        type="color"
+                        value={color2}
+                        onChange={(event) => setColor2(event.target.value)}
+                        aria-label={t.form.teamColor2}
+                        title={t.form.teamColor2}
+                    />
+                </span>
+            )}
+            <input
+                type="text"
+                className="catalog-new-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder={kind === 'team' ? t.form.newTeamName : t.form.newGroupName}
+                aria-label={kind === 'team' ? t.form.newTeamName : t.form.newGroupName}
+                maxLength={40}
+                autoFocus
+            />
+            <button
+                type="button"
+                className="catalog-new-btn catalog-new-btn--ok"
+                onClick={create}
+                disabled={!name.trim()}
+                aria-label={t.form.create}
+                title={t.form.create}
+            >
+                <Icon name="check" size={15} />
+            </button>
+            <button type="button" className="catalog-new-btn" onClick={onCancel} aria-label={t.common.cancel} title={t.common.cancel}>
+                <Icon name="x" size={15} />
+            </button>
+        </div>
+    );
+}
+
 export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const {
         people,
@@ -90,14 +179,23 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         teamsCatalog,
         isTeamsCatalogLoading,
         teamsCatalogError,
+        groupsCatalog,
+        groupsCatalogError,
+        createTeam,
+        createGroup,
     } = useAppStore();
     const t = useT();
     const personId = person?.id || '';
     const keepKnownIds = (ids: string[] | undefined) =>
         (ids || []).filter((id) => id !== personId && people.some((p) => p.id === id));
+    // A backend from Sprint 6 on answers the groups; an older one would lose the groups, the
+    // birth date and the teams and groups made here, so the form does not offer them.
+    const extrasReady = groupsCatalog !== null;
     const [name, setName] = useState(person?.name || '');
     const [nickname, setNickname] = useState(person?.nickname || '');
     const [role, setRole] = useState<Role>(person?.role || 'FLEX');
+    const [secondaryRole, setSecondaryRole] = useState<Role | undefined>(person?.secondaryRole);
+    const [active, setActive] = useState(person?.active !== false);
 
     // Rating is now manual
     const [rating, setRating] = useState(person?.rating || 5);
@@ -108,7 +206,8 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
 
     const [avatar, setAvatar] = useState(person?.avatar || '');
     const [avatarError, setAvatarError] = useState<string | null>(null);
-    const [gkWillingness, setGkWillingness] = useState<GKWillingness>(person?.gkWillingness || 'low');
+    // Somebody new keeps goal only once it is marked (Sprint 6): unknown is "no", like the sheet.
+    const [gkWillingness, setGkWillingness] = useState<GKWillingness>(person?.gkWillingness || 'no');
     // Links to ids that are no longer in the sheet are dropped, so counts match the
     // highlighted buttons and saving cleans them up.
     const [wantsWith, setWantsWith] = useState<string[]>(() => keepKnownIds(person?.wantsWith));
@@ -123,6 +222,11 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         }
         return initialTeams[0] || '';
     });
+    const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>(person?.groups || []);
+    const [creating, setCreating] = useState<'team' | 'group' | null>(null);
+    const [notes, setNotes] = useState(person?.notes || '');
+    const [birth, setBirth] = useState<BirthDateParts>(() => birthDateParts(person?.birthDate));
+    const [birthInvalid, setBirthInvalid] = useState(false);
     const [isExtraInfoOpen, setIsExtraInfoOpen] = useState(false);
     // Marked links first, in the order they had when the form opened: toggling one never makes
     // the buttons jump under the finger.
@@ -131,9 +235,18 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         avoids: new Set(keepKnownIds(person?.avoidsWith)),
     }));
 
+    // Privacy mode hides the notes and the birth date here too; saving keeps them as they were.
+    const showNotes = !privacyMode;
+    const showBirth = extrasReady && !privacyMode;
+    const birthInput = readBirthDateInput(birth);
+    const age = birthInput.kind === 'date' ? ageOn(birthInput.value, new Date()) : null;
+
     const otherPeople = useMemo(() => people.filter((p) => p.id !== personId), [people, personId]);
+    // Inactive players leave the lists, unless they were already marked.
     const markedFirst = (marked: ReadonlySet<string>) =>
-        [...otherPeople].sort((a, b) => Number(marked.has(b.id)) - Number(marked.has(a.id)));
+        otherPeople
+            .filter((p) => p.active !== false || marked.has(p.id))
+            .sort((a, b) => Number(marked.has(b.id)) - Number(marked.has(a.id)));
     const wantsOrder = markedFirst(linkedAtOpen.wants);
     const avoidsOrder = markedFirst(linkedAtOpen.avoids);
     const selectedTeamIdSet = useMemo(() => new Set(selectedTeamIds), [selectedTeamIds]);
@@ -145,6 +258,11 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const sortedTeams = useMemo(() => {
         return [...teamsCatalog].sort((a, b) => a.name.localeCompare(b.name));
     }, [teamsCatalog]);
+    const sortedGroups = useMemo(() => {
+        return [...(groupsCatalog ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+    }, [groupsCatalog]);
+    // A group id with no row in Groups still shows, as its id, so it can be seen and taken off.
+    const unknownGroupIds = selectedGroupIds.filter((id) => !groupsCatalog?.some((group) => group.groupId === id));
 
     const inverseWants = useMemo(() => {
         if (!personId) return new Set<string>();
@@ -199,7 +317,13 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!nickname.trim()) return;
+        if (showBirth && birthInput.kind === 'invalid') {
+            setBirthInvalid(true);
+            setIsExtraInfoOpen(true);
+            return;
+        }
 
+        const second = secondaryRole && secondaryRole !== role ? secondaryRole : undefined;
         onSave({
             id: person?.id || '',  // Empty string for new - addPerson will generate sequential ID
             name: name.trim(),
@@ -208,18 +332,19 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
             rating,
             attributes,
             avatar,
-            gkWillingness: role === 'GK' ? 'good' : gkWillingness,
+            // In goal as main or second position: keeps goal well.
+            gkWillingness: role === 'GK' || second === 'GK' ? 'good' : gkWillingness,
             wantsWith,
             avoidsWith,
             shirtNumber: shirtNumber.trim(),
             primaryTeam: effectivePrimaryTeamId || undefined,
             teams: selectedTeamIds,
-            groups: person?.groups || [],
+            groups: extrasReady ? selectedGroupIds : person?.groups || [],
             availability: person?.availability || [],
-            birthYear: person?.birthYear,
-            secondaryRole: person?.secondaryRole,
-            active: person?.active,
-            notes: person?.notes,
+            secondaryRole: second,
+            active,
+            notes: showNotes ? notes.trim() || undefined : person?.notes,
+            birthDate: showBirth ? (birthInput.kind === 'date' ? birthInput.value : undefined) : person?.birthDate,
         });
     };
 
@@ -246,6 +371,16 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         if (nextRole === 'GK') {
             setGkWillingness('good');
         }
+        // The same position twice is just the main one.
+        if (secondaryRole === nextRole) {
+            setSecondaryRole(undefined);
+        }
+    };
+
+    // Tapping the marked second position again takes it off. GK there hides the keeper question
+    // and saves "good"; taking it off brings back the answer it had.
+    const toggleSecondaryRole = (nextRole: Role) => {
+        setSecondaryRole((current) => (current === nextRole ? undefined : nextRole));
     };
 
     const toggleTeam = (teamId: string) => {
@@ -266,6 +401,32 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const setPrimaryTeam = (teamId: string) => {
         if (!selectedTeamIdSet.has(teamId)) return;
         setPrimaryTeamId(teamId);
+    };
+
+    const toggleGroup = (groupId: string) => {
+        setSelectedGroupIds((current) =>
+            current.includes(groupId) ? current.filter((id) => id !== groupId) : [...current, groupId],
+        );
+    };
+
+    // A name that already exists is that team or group, marked; a new one is made and marked.
+    const handleCreateTeam = (teamName: string, color1: string, color2: string) => {
+        const existing = teamsCatalog.find((team) => sameCatalogName(team.name, teamName));
+        const teamId = existing?.teamId ?? createTeam(teamName, color1, color2);
+        if (!selectedTeamIds.includes(teamId)) toggleTeam(teamId);
+        setCreating(null);
+    };
+
+    const handleCreateGroup = (groupName: string) => {
+        const existing = groupsCatalog?.find((group) => sameCatalogName(group.name, groupName));
+        const groupId = existing?.groupId ?? createGroup(groupName);
+        setSelectedGroupIds((current) => (current.includes(groupId) ? current : [...current, groupId]));
+        setCreating(null);
+    };
+
+    const updateBirth = (part: keyof BirthDateParts, value: string) => {
+        setBirth((current) => ({ ...current, [part]: value.replace(/\D/g, '') }));
+        setBirthInvalid(false);
     };
 
     // Team colours come from the sheet. The text over them is dark or light, whichever reads.
@@ -342,6 +503,26 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         </div>
     );
 
+    const renderNewChip = (kind: 'team' | 'group') =>
+        creating === kind ? (
+            <NewCatalogItem
+                kind={kind}
+                onCreate={(itemName, color1, color2) =>
+                    kind === 'team' ? handleCreateTeam(itemName, color1, color2) : handleCreateGroup(itemName)
+                }
+                onCancel={() => setCreating(null)}
+            />
+        ) : (
+            <button
+                type="button"
+                className="catalog-new"
+                onClick={() => setCreating(kind)}
+                aria-label={kind === 'team' ? t.form.newTeam : t.form.newGroup}
+            >
+                {t.form.newItem}
+            </button>
+        );
+
     // Close only when the press both started and ended on the backdrop. Otherwise selecting
     // text in an input and releasing the mouse outside the modal would discard the form.
     const handleOverlayPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -358,6 +539,13 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
 
     const title = nickname.trim() || t.form.newPlayer;
     const hasLinks = otherPeople.length > 0;
+    const canMakeTeams = extrasReady && !isTeamsCatalogLoading && !teamsCatalogError;
+    const identityClassName = [
+        'identity-grid',
+        showBirth ? 'has-born' : '',
+        extrasReady ? 'has-groups' : '',
+        showNotes ? 'has-notes' : '',
+    ].filter(Boolean).join(' ');
 
     return (
         <div className="modal-overlay" onPointerDown={handleOverlayPointerDown} onClick={handleOverlayClick}>
@@ -365,9 +553,25 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                 <form className="player-form" onSubmit={handleSubmit}>
                     <header className="modal-top">
                         <h3 className="modal-title">{title}</h3>
-                        <button type="button" className="modal-close" onClick={onCancel} aria-label={t.common.close}>
-                            <Icon name="x" size={18} />
-                        </button>
+                        <div className="modal-top-actions">
+                            {person && (
+                                <label className={`active-switch ${active ? 'is-on' : ''}`} title={t.form.activeHint}>
+                                    <input
+                                        type="checkbox"
+                                        role="switch"
+                                        checked={active}
+                                        onChange={(event) => setActive(event.target.checked)}
+                                    />
+                                    <span className="active-switch-track" aria-hidden="true">
+                                        <span className="active-switch-knob" />
+                                    </span>
+                                    <span className="active-switch-label">{t.form.active}</span>
+                                </label>
+                            )}
+                            <button type="button" className="modal-close" onClick={onCancel} aria-label={t.common.close}>
+                                <Icon name="x" size={18} />
+                            </button>
+                        </div>
                     </header>
 
                     {/* On a computer: who they are across the top; how they play on the left; who they
@@ -404,7 +608,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                 )}
                             </div>
 
-                            <div className="identity-grid">
+                            <div className={identityClassName}>
                                 <div className="form-group field-nickname">
                                     <label className="form-label" htmlFor="player-nickname">{t.form.nickname} *</label>
                                     <input
@@ -428,7 +632,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                     />
                                 </div>
 
-                                {/* On the phone the number and the teams stay folded, as before. */}
+                                {/* On the phone the rest stays folded, as before. */}
                                 <button
                                     type="button"
                                     className="extra-info-toggle"
@@ -454,6 +658,38 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                         />
                                     </div>
 
+                                    {showBirth && (
+                                        <div className="form-group field-born">
+                                            <div className="born-heading">
+                                                <span className="form-label" id="player-born-label">{t.form.birthDate}</span>
+                                                {age && <span className="born-age">{t.form.age(age.years, age.exact)}</span>}
+                                            </div>
+                                            <div
+                                                className={`born-inputs ${birthInvalid ? 'is-invalid' : ''}`}
+                                                role="group"
+                                                aria-labelledby="player-born-label"
+                                            >
+                                                {(['day', 'month', 'year'] as const).map((part) => (
+                                                    <input
+                                                        key={part}
+                                                        type="text"
+                                                        inputMode="numeric"
+                                                        className={`born-${part}`}
+                                                        maxLength={part === 'year' ? 4 : 2}
+                                                        placeholder={t.form.birthPlaceholder[part]}
+                                                        aria-label={part === 'day' ? t.form.birthDay : part === 'month' ? t.form.birthMonth : t.form.birthYear}
+                                                        aria-invalid={birthInvalid || undefined}
+                                                        value={birth[part]}
+                                                        onChange={(event) => updateBirth(part, event.target.value)}
+                                                    />
+                                                ))}
+                                            </div>
+                                            {birthInvalid && (
+                                                <span className="field-error" role="alert">{t.form.birthDateInvalid}</span>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <div className="teams-field">
                                         <span className="form-label">{t.form.teams}</span>
                                         <div className="team-options-list">
@@ -465,7 +701,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                                 <div className="teams-empty-state is-error">{teamsCatalogError}</div>
                                             )}
 
-                                            {!isTeamsCatalogLoading && !teamsCatalogError && teamsCatalog.length === 0 && (
+                                            {!isTeamsCatalogLoading && !teamsCatalogError && teamsCatalog.length === 0 && creating !== 'team' && (
                                                 <div className="teams-empty-state">{t.form.teamsEmpty}</div>
                                             )}
 
@@ -507,8 +743,63 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                                     </div>
                                                 );
                                             })}
+
+                                            {canMakeTeams && renderNewChip('team')}
                                         </div>
                                     </div>
+
+                                    {extrasReady && (
+                                        <div className="groups-field">
+                                            <span className="form-label">{t.form.groups}</span>
+                                            <div className="team-options-list">
+                                                {groupsCatalogError && (
+                                                    <div className="teams-empty-state is-error">{groupsCatalogError}</div>
+                                                )}
+
+                                                {!groupsCatalogError && sortedGroups.length === 0 && unknownGroupIds.length === 0 && creating !== 'group' && (
+                                                    <div className="teams-empty-state">{t.form.groupsEmpty}</div>
+                                                )}
+
+                                                {[
+                                                    ...sortedGroups.map((group) => ({ id: group.groupId, label: group.name })),
+                                                    ...unknownGroupIds.map((id) => ({ id, label: id })),
+                                                ].map(({ id, label }) => {
+                                                    const isSelected = selectedGroupIds.includes(id);
+                                                    return (
+                                                        <button
+                                                            key={id}
+                                                            type="button"
+                                                            className={`team-option group-option ${isSelected ? 'is-selected' : ''}`}
+                                                            aria-pressed={isSelected}
+                                                            onClick={() => toggleGroup(id)}
+                                                            title={label}
+                                                        >
+                                                            <span className="team-option-name">{label}</span>
+                                                            <span className="team-option-status">
+                                                                {isSelected ? <Icon name="check" size={13} /> : null}
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+
+                                                {!groupsCatalogError && renderNewChip('group')}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {showNotes && (
+                                        <div className="form-group field-notes">
+                                            <label className="form-label" htmlFor="player-notes">{t.form.notes}</label>
+                                            <textarea
+                                                id="player-notes"
+                                                rows={1}
+                                                maxLength={500}
+                                                value={notes}
+                                                placeholder={t.form.notesHint}
+                                                onChange={(event) => setNotes(event.target.value)}
+                                            />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {avatarError && (
@@ -536,7 +827,25 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
                                     </div>
                                 </div>
 
-                                {role !== 'GK' && (
+                                <div className="form-group">
+                                    <span className="form-label">{t.form.secondPosition}</span>
+                                    <div className="selector-group">
+                                        {secondRoles.filter((r) => r !== role).map((r) => (
+                                            <button
+                                                key={r}
+                                                type="button"
+                                                className={`role-btn is-second ${r.toLowerCase()} ${secondaryRole === r ? 'active' : ''}`}
+                                                aria-pressed={secondaryRole === r}
+                                                onClick={() => toggleSecondaryRole(r)}
+                                            >
+                                                {r}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* In goal as main or second position: it keeps goal, nothing to ask. */}
+                                {role !== 'GK' && secondaryRole !== 'GK' && (
                                     <div className="form-group">
                                         <span className="form-label">{t.form.goalkeeper}</span>
                                         <div className="gk-selector">

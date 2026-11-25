@@ -96,6 +96,7 @@ export const es: Dict = {
         savedCopyRefresh: 'Copia guardada · Actualizar',
         showing: (shown, total) => `${shown} de ${total} jugadorxs`,
         total: (total) => `Total: ${total} jugadorxs`,
+        inactiveTotal: (total) => `Inactivxs: ${total}`,
         selectExactly: (selected) => `Elegí exactamente 10 jugadorxs. Elegidxs: ${selected}`,
         couldNotGenerate: 'No se pudieron armar equipos válidos. Revisá los roles y quién puede atajar.',
     },
@@ -125,6 +126,7 @@ export const es: Dict = {
         sortSelected: 'Elegidxs',
         sortScore: 'Score',
         sortPosition: 'Puesto',
+        inactive: 'Inactivxs',
         filterByRole: 'Filtrar por rol',
         filterByScore: 'Filtrar por score',
         sortPlayers: 'Ordenar jugadorxs',
@@ -138,6 +140,8 @@ export const es: Dict = {
         editPlayer: (nickname) => `Editar a ${nickname}`,
         delete: 'Borrar',
         deletePlayer: (nickname) => `Borrar a ${nickname}`,
+        secondRole: (role) => `Segundo puesto: ${role}`,
+        age: (years, exact) => (exact ? `${years} años` : `~${years} años`),
     },
 
     notices: {
@@ -180,6 +184,7 @@ export const es: Dict = {
         teamIsMain: (name) => `${name} es el equipo principal`,
         teamSetMain: (name) => `Poner ${name} como equipo principal`,
         position: 'Puesto',
+        secondPosition: 'Segundo puesto',
         goalkeeper: '¿Ataja?',
         gkGood: 'Bien',
         gkLow: 'Poco',
@@ -195,6 +200,27 @@ export const es: Dict = {
         extraInfo: 'Más datos',
         save: 'Guardar cambios',
         add: 'Sumar jugadorx',
+        active: 'Activx',
+        activeHint: 'Apagado: no aparece en la lista ni se puede elegir. No se borra nada.',
+        notes: 'Notas',
+        notesHint: 'Solo para vos. Privacy mode las oculta.',
+        birthDate: 'Nacimiento',
+        birthDay: 'Día',
+        birthMonth: 'Mes',
+        birthYear: 'Año',
+        birthPlaceholder: { day: 'DD', month: 'MM', year: 'AAAA' },
+        birthDateInvalid: 'Revisá la fecha. Con el año alcanza.',
+        age: (years, exact) => (exact ? `${years} años` : `unos ${years} años`),
+        groups: 'Grupos',
+        groupsEmpty: 'Todavía no hay grupos',
+        newItem: '+ Nuevo',
+        newTeam: 'Equipo nuevo',
+        newGroup: 'Grupo nuevo',
+        newTeamName: 'Nombre del equipo',
+        newGroupName: 'Nombre del grupo',
+        create: 'Crear',
+        teamColor1: 'Color principal',
+        teamColor2: 'Segundo color',
     },
 
     result: {
@@ -273,6 +299,7 @@ export const es: Dict = {
             attributes: 'Atributos',
             keepers: 'Arquerxs',
             att: 'ATT',
+            cover: 'Puestos',
             links: 'Links',
         },
         balanceSentence: (label, score) => `${BALANCE_SENTENCE[label]} Score ${signed(score)}: cuanto más alto, más parejo.`,
@@ -307,6 +334,12 @@ export const es: Dict = {
                 : `${tok(label)} no tiene GK: pueden atajar ${capable}, ningunx muy bien.`;
         },
         attSentence: (team1, team2) => `${tok('T1')} tiene ${team1} y ${tok('T2')}, ${team2}.`,
+        coverSentence: (label, role, second) => {
+            if (second.length === 0) return `${tok(label)} no tiene ${role}, y nadie ahí juega de ${role} como segundo puesto.`;
+            const one = second.length === 1;
+            const verb = role === 'DEF' ? (one ? 'defiende' : 'defienden') : one ? 'ataca' : 'atacan';
+            return `${tok(label)} no tiene ${role}: ${verb} ${list(second)}, que también ${one ? 'juega' : 'juegan'} de ${role}.`;
+        },
         linksSentence: (wantsMet, wantsTotal, avoidsMet, avoidsTotal) => {
             const parts: string[] = [];
             if (wantsTotal > 0) parts.push(`Wants cumplidos: ${wantsMet} de ${wantsTotal}, juegan juntxs.`);
@@ -337,6 +370,7 @@ export const es: Dict = {
         scoreAtt: 'Reparto de ATT',
         scoreAttHelp: 'qué tan parejxs quedan lxs ATT',
         scoreWants: 'Wants de un solo lado separados',
+        scoreCover: 'Equipos sin quien cubra DEF o ATT',
         scoreTimes: (value, weight) => `${value} × ${weight}`,
         scoreShort: {
             rating: 'la diferencia de rating',
@@ -347,6 +381,7 @@ export const es: Dict = {
             keepers: 'lxs arquerxs de emergencia',
             att: 'el reparto de ATT',
             wants: 'los wants de un solo lado',
+            cover: 'la cobertura de DEF/ATT',
         },
         scoreNoEffect: (items) => `Esta vez no suman ni restan: ${list(items)}.`,
         scoreTotal: 'Score',
@@ -385,5 +420,8 @@ export const es: Dict = {
         couldntUpdate: (nickname) => `No se pudieron guardar los cambios de «${nickname}» en Google Sheets.`,
         couldntDelete: (label) => `No se pudo borrar a «${label}» en Google Sheets.`,
         rowWithoutId: 'Esta fila no tiene id en Google Sheets. Borrala ahí, o agregale un id primero.',
+        groupsError: 'No se pudieron cargar los grupos desde Google Sheets',
+        couldntAddTeam: (name) => `No se pudo guardar el equipo nuevo «${name}» en Google Sheets.`,
+        couldntAddGroup: (name) => `No se pudo guardar el grupo nuevo «${name}» en Google Sheets.`,
     },
 };

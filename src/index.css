@@ -220,6 +220,16 @@ input, select, textarea {
 .role.att { --role-color: var(--role-att); }
 .role.flex { --role-color: var(--role-flex); }
 
+/* The second position (Sprint 6): the same colour, lighter and a little smaller, after the main one. */
+.role.role--second {
+  min-height: 16px;
+  padding: 0 4px;
+  font-size: 0.7rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--role-color) 32%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--role-color) 70%, transparent);
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

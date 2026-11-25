@@ -14,6 +14,7 @@ import { useT, type Dict } from '../i18n';
 import useAppStore from '../store/useAppStore';
 import { calculateTeamPower } from '../services/teamGenerator';
 import { Icon } from './Icon';
+import { NoteTip } from './NoteTip';
 import './TeamResult.css';
 
 interface TeamResultProps {
@@ -128,18 +129,32 @@ function TeamPanel({
                 )}
             </div>
             <ul className="team-players">
-                {sorted.map((player, index) => (
-                    <li
-                        key={player.id}
-                        className={`team-player ${moved?.has(player.nickname) ? 'is-moved' : ''}`}
-                        style={{ '--deal': index * 2 + dealOffset } as CSSProperties}
-                    >
-                        <Avatar player={player} />
-                        <span className="team-player-name">{player.nickname}</span>
-                        <span className={`role ${player.role.toLowerCase()}`}>{player.role}</span>
-                        {!privacyMode && <span className="team-player-rating">{player.rating}</span>}
-                    </li>
-                ))}
+                {sorted.map((player, index) => {
+                    // The note shows on hover, never with privacy mode (Sprint 6).
+                    const note = privacyMode ? '' : player.notes?.trim() ?? '';
+                    return (
+                        <li
+                            key={player.id}
+                            className={`team-player ${moved?.has(player.nickname) ? 'is-moved' : ''} ${note ? 'has-note' : ''}`}
+                            style={{ '--deal': index * 2 + dealOffset } as CSSProperties}
+                        >
+                            <Avatar player={player} />
+                            <span className="team-player-name">{player.nickname}</span>
+                            <span className={`role ${player.role.toLowerCase()}`}>{player.role}</span>
+                            {player.secondaryRole && (
+                                <span
+                                    className={`role role--second ${player.secondaryRole.toLowerCase()}`}
+                                    title={t.card.secondRole(player.secondaryRole)}
+                                    aria-label={t.card.secondRole(player.secondaryRole)}
+                                >
+                                    {player.secondaryRole}
+                                </span>
+                            )}
+                            {!privacyMode && <span className="team-player-rating">{player.rating}</span>}
+                            {note && <NoteTip text={note} />}
+                        </li>
+                    );
+                })}
             </ul>
         </div>
     );
@@ -322,6 +337,16 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
                   keeperLine('T1', keepers.team1.gkCount, option.team1.players),
                   keeperLine('T2', keepers.team2.gkCount, option.team2.players),
               ].join(' ');
+    // A team without a DEF or an ATT as main position, when someone among the ten plays it as
+    // second position: who covers it, if anyone (Sprint 6).
+    const coverSentence = (report.cover?.roles ?? [])
+        .flatMap((cover) =>
+            (['T1', 'T2'] as const)
+                .map((label) => ({ label, side: label === 'T1' ? cover.team1 : cover.team2 }))
+                .filter(({ side }) => side.main === 0)
+                .map(({ label, side }) => t.result.coverSentence(label, cover.role, side.second)),
+        )
+        .join(' ');
 
     const times = (value: number, weight: number) => t.result.scoreTimes(formatValue(value), weight);
     const terms: ScoreTerm[] = [
@@ -340,6 +365,14 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
                   name: t.result.scoreWants,
                   detail: times(social.oneWay.broken, social.oneWay.penaltyEach),
                   value: formula.wantsPref,
+              }]
+            : []),
+        ...(formula.coverPref !== null && report.cover
+            ? [{
+                  short: 'cover' as const,
+                  name: t.result.scoreCover,
+                  detail: times(report.cover.roles.reduce((sum, cover) => sum + cover.avoidable, 0), report.cover.penaltyEach),
+                  value: formula.coverPref,
               }]
             : []),
     ];
@@ -371,6 +404,11 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
                     {att.total > 0 && (
                         <li>
                             <strong>{t.result.lead.att}.</strong> <TeamText text={t.result.attSentence(att.team1, att.team2)} t={t} />
+                        </li>
+                    )}
+                    {coverSentence && (
+                        <li>
+                            <strong>{t.result.lead.cover}.</strong> <TeamText text={coverSentence} t={t} />
                         </li>
                     )}
                     <li>

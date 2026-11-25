@@ -9,6 +9,8 @@ const LAST_READ_STORAGE = 'armaduki-last-read-v1';
 export interface SavedRead {
   players: unknown[];
   teams: unknown[];
+  /** Only from a backend that knows groups (Sprint 6 on). */
+  groups?: unknown[];
 }
 
 export function readAccessKey(): string {
@@ -33,9 +35,9 @@ export function readSavedRead(): SavedRead | null {
   try {
     const parsed: unknown = JSON.parse(localStorage.getItem(LAST_READ_STORAGE) ?? 'null');
     if (!parsed || typeof parsed !== 'object') return null;
-    const { players, teams } = parsed as Partial<SavedRead>;
+    const { players, teams, groups } = parsed as Partial<SavedRead>;
     if (!Array.isArray(players) || players.length === 0) return null;
-    return { players, teams: Array.isArray(teams) ? teams : [] };
+    return { players, teams: Array.isArray(teams) ? teams : [], ...(Array.isArray(groups) ? { groups } : {}) };
   } catch {
     return null;
   }

@@ -4,8 +4,24 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-export type Cell = string | number | boolean;
+export type Cell = string | number | boolean | Date;
 export type Row = Cell[];
+
+// Like Google Sheets: text that looks like a date is stored as a date ("1994-03" becomes 1 March
+// 1994), unless it starts with an apostrophe, which keeps it as text and is not stored. The
+// date is noon UTC, so any time zone reads the same day back.
+const DATE_LIKE = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$|^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/;
+
+export function storeCell(value: Cell): Cell {
+  if (typeof value !== 'string') return value;
+  if (value.startsWith("'")) return value.slice(1);
+  const match = DATE_LIKE.exec(value.trim());
+  if (!match) return value;
+  const [, isoYear, isoMonth, isoDay, day, month, year] = match;
+  return isoYear
+    ? new Date(Date.UTC(Number(isoYear), Number(isoMonth) - 1, Number(isoDay ?? 1), 12))
+    : new Date(Date.UTC(Number(year ?? 2026), Number(month) - 1, Number(day), 12));
+}
 
 export interface MemoryRange {
   getValues(): Row[];
@@ -56,7 +72,7 @@ export function createSheet(name: string, rows: Row[] = []): MemorySheet {
         setValues: (values) => {
           for (let r = 0; r < numRows; r++) {
             while (data.length < row + r) data.push([]);
-            for (let c = 0; c < numColumns; c++) data[row - 1 + r][column - 1 + c] = values[r][c];
+            for (let c = 0; c < numColumns; c++) data[row - 1 + r][column - 1 + c] = storeCell(values[r][c]);
           }
           pad();
         },
@@ -68,7 +84,7 @@ export function createSheet(name: string, rows: Row[] = []): MemorySheet {
     },
     appendRow: (row) => {
       sheet.calls++;
-      data.push([...row]);
+      data.push(row.map(storeCell));
       pad();
     },
     deleteRow: (index) => {
@@ -107,7 +123,17 @@ export function loadAppsScript(
     spreadsheetId = 'test-sheet-id',
     accessKey = null,
     source = CODE_GS,
-  }: { spreadsheetId?: string | null; accessKey?: string | null; source?: string } = {},
+    timeZone = 'America/Argentina/Buenos_Aires',
+    cacheEntries = {},
+  }: {
+    spreadsheetId?: string | null;
+    accessKey?: string | null;
+    source?: string;
+    /** The spreadsheet's own time zone (File > Settings). */
+    timeZone?: string;
+    /** Script cache contents left by earlier requests. */
+    cacheEntries?: Record<string, string>;
+  } = {},
 ): AppsScriptEnv {
   const all = [...sheets];
   const spreadsheet = {
@@ -118,8 +144,9 @@ export function loadAppsScript(
       all.push(sheet);
       return sheet;
     },
+    getSpreadsheetTimeZone: () => timeZone,
   };
-  const cache = new Map<string, string>();
+  const cache = new Map<string, string>(Object.entries(cacheEntries));
   // Mutable, like editing the script property while the app is in use.
   const properties = { accessKey };
   const lockEvents: string[] = [];
@@ -160,6 +187,13 @@ export function loadAppsScript(
         get: (key: string) => cache.get(key) ?? null,
         put: (key: string, value: string) => cache.set(key, value),
       }),
+    },
+    Utilities: {
+      formatDate: (date: Date, zone: string, pattern: string) => {
+        if (pattern !== 'yyyy-MM-dd') throw new Error(`formatDate pattern not in the stand-in: ${pattern}`);
+        // en-CA writes dates as yyyy-mm-dd.
+        return new Intl.DateTimeFormat('en-CA', { timeZone: zone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+      },
     },
   };
 

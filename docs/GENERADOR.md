@@ -36,10 +36,17 @@ Arranca en 100 y resta lo desparejo:
 - **Arquerxs:** en un equipo sin GK, +4 por cada `good` y −12 por cada arquerx que falte para llegar a 2.
 - **ATT:** −6 por cada ATT de diferencia. Si hay 5 ATT o más y un equipo tiene más, +6 si ese equipo tiene DEF y −8 si no.
 - **Wants de un solo lado:** −15 por cada uno que queda en equipos distintos (lo mismo que 1,5 puntos de diferencia de rating). El número es la constante `ONE_WAY_WANT_PENALTY`.
+- **Cobertura de DEF y ATT** (Sprint 6, el híbrido de Ángela): las reglas miran solo el puesto principal, pero si un equipo se queda sin DEF, el score prefiere que tenga a alguien con DEF de segundo puesto; lo mismo con ATT. Cada equipo que queda sin cubrir cuando otro reparto lo cubría resta lo mismo que un want de un solo lado (`COVER_PENALTY`, 15). Detalles:
+  - Unx GK nunca cubre: está en el arco, aunque su segundo puesto sea DEF.
+  - Un segundo puesto igual al principal, o FLEX, no cuenta (filas editadas a mano).
+  - Si menos de dos jugadorxs pueden jugar de DEF (de principal o de segundo puesto), un equipo se queda sin DEF en cualquier reparto, y eso no resta.
+  - Solo cuenta cuando alguien entre lxs diez tiene ese segundo puesto. Sin segundos puestos, el resultado es idéntico al de antes del Sprint 6, también en fallback (comparado en 2000 grupos al azar, 1385 de ellos con fallback).
+
+  El análisis lo cuenta en «Puestos»: «NEGRO no tiene DEF: defiende Caro, que también juega de DEF».
 
 El **Power** de un equipo, que usa el owner bias, es la suma de ratings más la suma de atributos.
 
-Desde el Sprint 5, el generador devuelve el análisis también como datos (`report`, además del texto de siempre), y la app arma las frases con ellos, en inglés o en castellano. El análisis empieza con frases y muestra la cuenta línea por línea, solo con lo que movió el score (lo que no sumó ni restó se nombra en una frase); muestra también el balance de cada atributo, lxs arquerxs, el reparto de ATT y la **social satisfaction**: el porcentaje de wants y avoids cumplidos. La social satisfaction no suma al score, pero desempata. Si hay wants de un solo lado, el análisis dice cuántos se respetaron y cuáles se rompieron. La etiqueta «balanced» mira solo lo parejo de los equipos y no descuenta los wants rotos.
+Desde el Sprint 5, el generador devuelve el análisis también como datos (`report`, además del texto de siempre), y la app arma las frases con ellos, en inglés o en castellano. El análisis empieza con frases y muestra la cuenta línea por línea, solo con lo que movió el score (lo que no sumó ni restó se nombra en una frase); muestra también el balance de cada atributo, lxs arquerxs, el reparto de ATT y la **social satisfaction**: el porcentaje de wants y avoids cumplidos. La social satisfaction no suma al score, pero desempata. Si hay wants de un solo lado, el análisis dice cuántos se respetaron y cuáles se rompieron. La etiqueta «balanced» mira solo lo parejo de los equipos: no descuenta los wants rotos ni la cobertura de DEF y ATT.
 
 ## Cuando ningún reparto cumple todo (fallback)
 
@@ -85,8 +92,8 @@ Charladas con Ángela el 19/11/2026. Lo que se hace está en el Sprint 2 del TOD
 - **Pesos del score: con resultados.** Están elegidos a mano; se ajustan cuando el historial guarde quién ganó cada partido (Sprint 9).
 - **Rating y atributos: propuesta pendiente.** Los ratings coinciden con el sugerido por los atributos, así que el nivel cuenta dos veces: en el rating y en los atributos. La propuesta es esperar los resultados y entonces probar que los atributos midan solo el estilo (que la velocidad o la defensa no queden todas del mismo lado). Sin resultados se pueden comparar fórmulas, pero no saber cuál arma mejores partidos.
 - **Posiciones.** FLEX es comodín: defiende, ataca y a veces ataja. MID juega en el medio, más defensiva que ofensiva. Lo ideal por equipo suele ser GK, DEF, 2 MID y ATT.
-  - **Formación ideal: no se agrega (19/11).** Con los roles de hoy no sería un buen criterio. Se puede repensar con los varios roles.
-  - **Varios roles por jugadorx en vez de FLEX: Sprint 6.** Antes hay que decidir si las reglas cuentan el rol principal o el puesto que le toca en el equipo.
+  - **Formación ideal: no se agrega (19/11).** Con los roles de hoy no sería un buen criterio. Se puede repensar con el segundo puesto.
+  - **Segundo puesto: hecho (Sprint 6).** Las reglas miran solo el puesto principal; el segundo suma la cobertura de DEF y ATT al score (arriba). Quedan para más adelante qué hacer con FLEX y que el generador decida en qué puesto juega cada unx dentro de su equipo (ver «Cosas por cerrar» en el TODO).
 - **Variedad: más adelante** (backlog): «otro reparto» entre los casi iguales, o no repetir los equipos de la última fecha.
 - **Bonus por mismo equipo:** Sprint 10.
 - **Suplentes y otros tamaños** (backlog): con 12 o 14 jugadorxs hay más repartos para probar, pero sigue siendo rápido.

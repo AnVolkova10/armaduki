@@ -163,6 +163,24 @@
   visibility: hidden;
 }
 
+/* The age, under the number and in the same voice; privacy mode hides it. */
+.card-age {
+  max-width: 52px;
+  color: var(--text-3);
+  font-family: var(--font-display);
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Inactive players only show under their filter: dimmed, and they cannot be picked. */
+.person-card.is-inactive .card-content {
+  opacity: 0.5;
+}
+
 .info {
   flex: 1;
   min-width: 0;
@@ -193,7 +211,8 @@
 
 .tags {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 4px 6px;
   align-items: center;
 }
 

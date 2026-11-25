@@ -22,8 +22,13 @@ export function PlayerListControls({ controls, onChange, privacyMode }: PlayerLi
     const showScoreDirection = !privacyMode && controls.sort === 'score';
     const isDescending = controls.scoreDirection === 'desc';
 
+    // Last, the players switched off (Sprint 6): the only place they show.
     const roleOptions = useMemo<DropdownMenuOption[]>(
-        () => [{ value: 'all', label: t.controls.all }, ...ROLE_VALUES.map((role) => ({ value: role, label: role }))],
+        () => [
+            { value: 'all', label: t.controls.all },
+            ...ROLE_VALUES.map((role) => ({ value: role, label: role })),
+            { value: 'inactive', label: t.controls.inactive },
+        ],
         [t],
     );
     const scoreOptions = useMemo<DropdownMenuOption[]>(

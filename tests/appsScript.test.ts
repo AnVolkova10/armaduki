@@ -7,6 +7,7 @@ import {
   LEGACY_PLAYER_HEADERS as HEADERS,
   loadAppsScript,
   post,
+  storeCell,
   TEAM_HEADERS,
   type MemorySheet,
   type Row,
@@ -209,7 +210,7 @@ test('with ACCESS_KEY set, every POST without the right key is refused and write
   const players = createSheet('Players', [HEADERS, ana]);
   const env = loadAppsScript([players], { accessKey: KEY });
 
-  for (const action of ['add', 'update', 'delete', 'migrateSchema', 'readTeams', 'nope']) {
+  for (const action of ['add', 'update', 'delete', 'addTeam', 'addGroup', 'migrateSchema', 'readTeams', 'nope']) {
     assert.equal(post(env, { action, id: '1', rating: 2 }), 'Error: unauthorized');
     assert.equal(post(env, { action, id: '1', rating: 2, key: 'wrong' }), 'Error: unauthorized');
   }
@@ -251,4 +252,148 @@ test('setting the key later locks requests that were open before', () => {
   env.setAccessKey(KEY);
   assert.deepEqual(get(env, 'read'), { error: 'unauthorized' });
   assert.equal((get(env, 'read', KEY) as Rows).length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 6: groups, birth dates, notes, and teams and groups made from the player form.
+// ---------------------------------------------------------------------------
+
+const GROUP_HEADERS = ['groupId', 'name', 'place', 'notes'];
+type ReadAll = { players: Rows; teams: Rows; groups: Rows; teamsError?: string; groupsError?: string };
+
+test('the sheet stand-in turns date-like text into dates, like Sheets, unless it starts with an apostrophe', () => {
+  assert.ok(storeCell('1994-03') instanceof Date);
+  assert.ok(storeCell('20/11') instanceof Date);
+  assert.equal(storeCell("'1994-03"), '1994-03');
+  assert.equal(storeCell('1994'), '1994');
+});
+
+test('readAll always answers groups: the app reads the key as a backend that saves them', () => {
+  const groups = createSheet('Groups', [
+    GROUP_HEADERS,
+    ['segurola', 'Segurola 20hs Jueves', '', ''],
+    ['', 'no id', '', ''],
+    ['amigas', '', 'Palermo', ''],
+  ]);
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana]), groups]);
+
+  const all = get(env, 'readAll') as ReadAll;
+
+  assert.deepEqual(all.groups, [
+    { groupId: 'segurola', name: 'Segurola 20hs Jueves', place: '' },
+    { groupId: 'amigas', name: 'amigas', place: 'Palermo' },
+  ]);
+  assert.equal(all.groupsError, undefined);
+  const fresh = get(loadAppsScript([createSheet('Players', [HEADERS, ana])]), 'readAll') as ReadAll;
+  assert.deepEqual(fresh.groups, [], 'no Groups tab yet: an empty list');
+});
+
+test('readAll still returns the players when the Groups tab fails', () => {
+  const groups = createSheet('Groups', [GROUP_HEADERS]);
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana]), groups]);
+  get(env, 'read');
+  groups.getDataRange = () => {
+    throw new Error('Groups is broken');
+  };
+
+  const all = get(env, 'readAll') as ReadAll;
+
+  assert.equal(all.players.length, 1);
+  assert.deepEqual(all.groups, []);
+  assert.match(all.groupsError ?? '', /Groups is broken/);
+});
+
+test('the first read after the release adds birthDate even with the old schema still cached', () => {
+  const players = createSheet('Players', [HEADERS, ana]);
+  const env = loadAppsScript([players], { cacheEntries: { 'armaduki-schema-v1': 'ok' } });
+
+  const rows = get(env, 'read') as Rows;
+
+  assert.ok(players.data()[0].includes('birthDate'));
+  assert.equal(rows[0].birthdate, '');
+});
+
+test('a partial birth date comes back exactly as it was sent', () => {
+  const players = createSheet('Players', [HEADERS, ana, bea]);
+  const env = loadAppsScript([players]);
+
+  assert.equal(post(env, { action: 'update', id: '1', birthDate: '1994-03' }), 'Updated');
+  assert.equal(post(env, { action: 'update', id: '2', birthDate: '1994-03-12' }), 'Updated');
+  assert.equal(post(env, { action: 'add', id: '3', nickname: 'Caro', birthDate: '1994' }), 'Added');
+
+  const byId = new Map((get(env, 'read') as Rows).map((row) => [String(row.id), row.birthdate]));
+  assert.equal(byId.get('1'), '1994-03', 'year and month stay text, not 1 March');
+  assert.equal(byId.get('2'), '1994-03-12');
+  assert.equal(byId.get('3'), '1994');
+  assert.equal(players.data()[1][column(players, 'birthDate')], '1994-03', 'no apostrophe in the cell');
+
+  assert.equal(post(env, { action: 'update', id: '1', birthDate: '' }), 'Updated');
+  assert.equal((get(env, 'read') as Rows)[0].birthdate, '', 'clearing it leaves the cell empty');
+});
+
+test('a birth date typed by hand as a date reads as that day in the spreadsheet time zone', () => {
+  // Midnight of 12 March 1994 in Madrid is still 11 March in UTC.
+  const typed = new Date('1994-03-11T23:00:00Z');
+  const withDate = [...HEADERS, 'birthDate'];
+  const env = loadAppsScript([createSheet('Players', [withDate, [...ana, typed]])], { timeZone: 'Europe/Madrid' });
+
+  assert.equal((get(env, 'read') as Rows)[0].birthdate, '1994-03-12');
+});
+
+test('notes stay as typed, even when they look like a date or a formula', () => {
+  const players = createSheet('Players', [HEADERS, ana]);
+  const env = loadAppsScript([players]);
+
+  assert.equal(post(env, { action: 'update', id: '1', notes: '20/11' }), 'Updated');
+  assert.equal((get(env, 'read') as Rows)[0].notes, '20/11');
+  assert.equal(post(env, { action: 'update', id: '1', notes: '=1+1 y se lesionó' }), 'Updated');
+  assert.equal(players.data()[1][column(players, 'notes')], '=1+1 y se lesionó');
+});
+
+test('addTeam appends the team with its colours; a retry adds nothing, another name with the same id is refused', () => {
+  const teams = createSheet('Teams', [TEAM_HEADERS, ['armaduki', 'Armaduki', '#dc2626', '#000000', '']]);
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana]), teams]);
+  const body = { action: 'addTeam', teamId: 'las-pibas', name: 'Las Pibas', color1: '#7c3aed', color2: '#facc15' };
+
+  assert.equal(post(env, body), 'Added');
+  assert.equal(post(env, body), 'Added', 'the same team again is a retry');
+  assert.equal(teams.data().length, 3);
+  assert.deepEqual(teams.records()[1], { teamId: 'las-pibas', name: 'Las Pibas', color1: '#7c3aed', color2: '#facc15', crest: '' });
+  assert.match(post(env, { ...body, name: 'Otras' }), /^Error: teamId las-pibas already exists/);
+  assert.equal(teams.data().length, 3);
+  assert.deepEqual((get(env, 'readTeams') as Rows).map((team) => team.teamId), ['armaduki', 'las-pibas']);
+});
+
+test('addGroup appends the group as text, so a name like 20/11 stays a name', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])]);
+
+  assert.equal(post(env, { action: 'addGroup', groupId: 'jueves-20hs', name: 'Jueves 20hs' }), 'Added');
+  assert.equal(post(env, { action: 'addGroup', groupId: '20-11', name: '20/11' }), 'Added');
+  assert.equal(post(env, { action: 'addGroup', groupId: '20-11', name: '20/11' }), 'Added', 'a retry');
+
+  const groups = env.sheet('Groups')!;
+  assert.equal(groups.data().length, 3, 'the tab is created on the way, with one row per group');
+  assert.deepEqual((get(env, 'readAll') as ReadAll).groups, [
+    { groupId: 'jueves-20hs', name: 'Jueves 20hs', place: '' },
+    { groupId: '20-11', name: '20/11', place: '' },
+  ]);
+});
+
+test('addTeam and addGroup need an id and a name', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])]);
+  assert.match(post(env, { action: 'addTeam', teamId: 'x', name: ' ' }), /^Error: missing teamId or name/);
+  assert.match(post(env, { action: 'addGroup', name: 'Sin id' }), /^Error: missing groupId or name/);
+});
+
+test('an update writes only the cells it receives, so the others keep their text', () => {
+  const players = createSheet('Players', [HEADERS, ana]);
+  const env = loadAppsScript([players]);
+  assert.equal(post(env, { action: 'update', id: '1', birthDate: '1994-03', shirtNumber: '007' }), 'Updated');
+
+  assert.equal(post(env, { action: 'update', id: '1', rating: 4 }), 'Updated');
+
+  const row = (get(env, 'read') as Rows)[0];
+  assert.equal(row.birthdate, '1994-03', 'still year and month, not 1 March');
+  assert.equal(row.shirtnumber, '007', 'the leading zeros stay');
+  assert.equal(row.rating, 4);
 });

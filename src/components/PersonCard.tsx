@@ -1,7 +1,9 @@
 import type { Person } from '../types';
 import { useT } from '../i18n';
 import useAppStore from '../store/useAppStore';
+import { ageOn } from '../utils/birthDate';
 import { Icon } from './Icon';
+import { NoteTip } from './NoteTip';
 import './PersonCard.css';
 
 interface PersonCardProps {
@@ -39,12 +41,20 @@ export function PersonCard({
 
     const canSelect = Boolean(selectable && !selectionDisabled && onSelect);
     const hasActions = Boolean(onEdit || onDelete);
+    // The age and the notes are Ángela's: privacy mode hides them, like the rating.
+    const age = privacyMode ? null : ageOn(person.birthDate, new Date());
+    const note = privacyMode ? '' : person.notes?.trim() ?? '';
+    const className = [
+        'person-card',
+        selected ? 'selected' : '',
+        selectable ? 'selectable' : '',
+        selectionDisabled ? 'selection-disabled' : '',
+        person.active === false ? 'is-inactive' : '',
+        note ? 'has-note' : '',
+    ].filter(Boolean).join(' ');
 
     return (
-        <div
-            className={`person-card ${selected ? 'selected' : ''} ${selectable ? 'selectable' : ''} ${selectionDisabled ? 'selection-disabled' : ''}`}
-            data-flip-id={person.id}
-        >
+        <div className={className} data-flip-id={person.id}>
             {selectable && (
                 // Covers the whole card, under the edit and delete icons: a tap anywhere else selects.
                 // A sibling of the icons, not their parent, so there are no buttons inside a button.
@@ -86,6 +96,7 @@ export function PersonCard({
                     <span className={`shirt-number ${person.shirtNumber?.trim() ? '' : 'is-empty'}`}>
                         {person.shirtNumber?.trim() ? `#${person.shirtNumber.trim()}` : ' '}
                     </span>
+                    {age && <span className="card-age">{t.card.age(age.years, age.exact)}</span>}
                 </div>
 
                 <div className="info">
@@ -94,10 +105,21 @@ export function PersonCard({
 
                     <div className="tags">
                         <span className={`role ${person.role.toLowerCase()}`}>{person.role}</span>
+                        {person.secondaryRole && (
+                            <span
+                                className={`role role--second ${person.secondaryRole.toLowerCase()}`}
+                                title={t.card.secondRole(person.secondaryRole)}
+                                aria-label={t.card.secondRole(person.secondaryRole)}
+                            >
+                                {person.secondaryRole}
+                            </span>
+                        )}
                         {!privacyMode && <span className="rating">{person.rating}</span>}
                     </div>
                 </div>
             </div>
+
+            {note && <NoteTip text={note} />}
 
             {hasActions && (
                 <div className="actions">

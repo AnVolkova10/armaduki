@@ -190,21 +190,43 @@ Prueba (desde el 25/11, en https://armaduki.vercel.app; antes, en local con la r
 8. Privacy mode (tres toques en el ojo del pie): prendido, no se ven ratings, Power ni la diferencia de rating del resumen.
 9. Si algo no te cierra, decime qué.
 
-## Sprint 6 - Campos de jugadorx
+## Sprint 6 - Campos de jugadorx (hecho, falta tu prueba)
 
-Objetivo: cargar desde el modal los datos que la planilla ya tiene lugar para guardar (resto de la Fase 2) y crear equipos y grupos sin ir a la planilla. Decidido con Ángela el 25/11. Los esquemas están en `apps-script/README.md`.
+Objetivo: cargar desde el modal los datos que la planilla ya tiene lugar para guardar (resto de la Fase 2) y crear equipos y grupos sin ir a la planilla. Decidido con Ángela el 25/11. Los esquemas están en `apps-script/README.md`; el modal, en `docs/DESIGN_DIRECTION.md`; la cobertura, en `docs/GENERADOR.md`.
 
-- [ ] **Segundo puesto** (F2-05.9), opcional: DEF, MID, ATT o GK, distinto del principal, en la columna `secondaryRole`. Se ve en el modal, en las tarjetas y en los equipos armados, al lado del principal, más chico y más apagado. Las reglas siguen mirando solo el puesto principal (ver «Cosas por cerrar»).
-- [ ] Con GK de segundo puesto, «¿Ataja?» no se muestra y queda en `good`, como pasa hoy con un GK principal.
-- [ ] **Cobertura de DEF y ATT**, el híbrido de Ángela: si un equipo se queda sin DEF principal, el score prefiere que tenga a alguien con DEF de segundo puesto, y lo mismo con ATT. Es una preferencia, no una regla, y pesa lo mismo que un want de un solo lado. El análisis lo cuenta: «NEGRO no tiene DEF: defiende Caro, que también juega de DEF». Para MID, FLEX y GK no hace falta (el arco ya tiene a lxs arquerxs de emergencia).
-- [ ] «¿Ataja?» arranca en `no` al sumar a alguien (ver «Cosas por cerrar»).
-- [ ] **Activx** (F2-05.10): un switch arriba del modal. Apagado, esa persona no aparece en la lista ni se puede elegir, pero no se borra nada: quedan sus datos, sus wants y sus avoids. El filtro suma «Inactivxs» para verla y volver a activarla.
-- [ ] **Notas** internas y opcionales (F2-05.11): texto libre en el modal. En la computadora aparecen al pasar el mouse sobre la tarjeta y sobre lx jugadorx en los equipos armados; en el teléfono, solo en el modal. Privacy mode las oculta. La tarjeta no lleva marca y el generador no las usa.
-- [ ] **Fecha de nacimiento** (F2-05.8), opcional: día, mes y año, y con el año alcanza. Va en una columna nueva, `birthDate` (AAAA, AAAA-MM o AAAA-MM-DD); `birthYear` queda sin uso. La edad se ve en el modal y en la tarjeta, como el número de camiseta; si falta el día, es aproximada. Privacy mode la oculta. Por ahora no se usa para nada más.
-- [ ] **Grupos** (F2-05.3): fichas en el modal, como los equipos, sin uno principal. Como los grupos se arman por cancha, por equipo, por amistad o por día, el nombre lo dice todo: «Segurola 20hs Jueves». Se leen de la pestaña `Groups`. Los días que puede cada unx quedan para más adelante (backlog).
-- [ ] **Crear equipos y grupos desde el modal:** una ficha «+ Nuevo» al final de cada fila. Se escribe el nombre (y, si es un equipo, se eligen sus dos colores), se guarda en la planilla y queda marcado. Cambiar nombres o colores y borrar sigue en la planilla; un modal propio queda en el backlog.
+- [x] **Segundo puesto** (F2-05.9), opcional: DEF, MID, ATT o GK, distinto del principal, en la columna `secondaryRole`. Se ve en el modal, en las tarjetas y en los equipos armados, al lado del principal, más chico y del mismo color, más suave. Las reglas siguen mirando solo el puesto principal (ver «Cosas por cerrar»).
+- [x] Con GK de segundo puesto, «¿Ataja?» no se muestra y se guarda `good`, como con un GK principal. Si se saca GK, vuelve la respuesta que tenía.
+- [x] **Cobertura de DEF y ATT**, el híbrido de Ángela: si un equipo se queda sin DEF principal, el score prefiere que tenga a alguien con DEF de segundo puesto, y lo mismo con ATT. Es una preferencia, no una regla, y pesa lo mismo que un want de un solo lado. El análisis lo cuenta en «Puestos»: «NEGRO no tiene DEF: defiende Caro, que también juega de DEF». Unx GK no cubre (está en el arco). Sin segundos puestos, los equipos salen idénticos a los de antes, también con fallback (2000 grupos al azar).
+- [x] «¿Ataja?» arranca en `no` al sumar a alguien (ver «Cosas por cerrar»).
+- [x] **Activx** (F2-05.10): un switch al lado de la × del modal, solo al editar. Apagado, esa persona no aparece en la lista, sale de lxs elegidxs y no se puede elegir; no se borra nada. El total cuenta solo a lxs activxs. La última opción del filtro de rol, «Inactive» («Inactivxs»), lxs muestra apagadxs, para volver a prenderlxs. Las listas de wants y avoids lxs dejan afuera, salvo que ya estén marcadxs.
+- [x] **Notas** internas y opcionales (F2-05.11): texto libre en el modal, al lado de los grupos. En la computadora aparecen al dejar el mouse sobre la tarjeta o sobre lx jugadorx en los equipos armados; en el teléfono, solo en el modal. Privacy mode las oculta, también en el modal, y guardar con privacy mode las deja como estaban.
+- [x] **Fecha de nacimiento** (F2-05.8), opcional: día, mes y año; con el año alcanza, y un día sin mes no se puede guardar. Va en la columna nueva `birthDate` (AAAA, AAAA-MM o AAAA-MM-DD), como texto; `birthYear` queda sin uso (se lee solo si `birthDate` está vacía). La edad se ve en el modal y en la tarjeta, debajo del número de camiseta; si falta el día, con «~». Privacy mode la oculta.
+- [x] **Grupos** (F2-05.3): fichas en el modal, como los equipos, sin uno principal. Se leen de la pestaña `Groups`, en la misma lectura de siempre. Los días que puede cada unx quedan para más adelante (backlog).
+- [x] **Crear equipos y grupos desde el modal:** una ficha punteada «+ New» («+ Nuevo») al final de cada fila. Se escribe el nombre (y, si es un equipo, se eligen sus dos colores: arrancan en el rojo y negro de la pelota); Enter crea y Escape cierra solo la ficha. Se guarda en la planilla y queda marcado. Un nombre que ya existe marca ese mismo. Cambiar nombres o colores y borrar sigue en la planilla; un modal propio queda en el backlog.
 - [x] Mostrar el equipo en la tarjeta (F2-05.6): alcanza con los dos colores del equipo principal, en la esquina (25/11).
-- [ ] Al cerrar: los campos nuevos leen y escriben sin romper a lxs jugadorxs existentes (criterio de cierre de la Fase 2).
+- [x] Al cerrar: los campos nuevos leen y escriben sin romper a lxs jugadorxs existentes (criterio de cierre de la Fase 2). Una fila sin las columnas nuevas, o editada a mano (un segundo puesto igual al principal, FLEX como segundo puesto, una fecha escrita como fecha), se lee sin problemas.
+- [x] Arreglo que apareció al probar: al guardar un cambio, el backend volvía a escribir la fila entera, y la planilla volvía a leer su texto: «1994-03» pasaba a ser el 1/3/1994 y una camiseta «007», un 7. Ahora escribe solo las celdas que cambian, y la fecha, las notas y la camiseta se guardan como texto.
+- [ ] Publicar el backend nuevo (versión 22). Hasta que esté, la app no ofrece fecha, grupos ni «+ New» (ese backend los perdería); el segundo puesto, activx y las notas ya andan con el de hoy.
+- [ ] **Ángela:** probar el sprint (abajo).
+- [x] Verificado: lint, tipos, 135 tests, build y pruebas en Edge contra una API local que corre `Code.gs` sobre planillas en memoria que, como Google Sheets, convierten en fecha el texto que parece una fecha. Nada tocó la planilla real. En tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado:
+  - El Sprint 6: unos 35 chequeos en cada tamaño.
+  - La app nueva contra el backend de hoy (versión 21): sin fecha, grupos ni «+ New»; el segundo puesto, activx y las notas se guardan.
+  - Escala real, con 61 jugadorxs inventadxs con segundo puesto, notas, fechas, 7 equipos y 5 grupos: a 360 px nada se sale de las tarjetas ni de los equipos. En la ventana de Ángela (unos 1100 × 920), con dos equipos y cinco grupos, el modal mide 960 × 740 y no scrollea; a 1280 × 680 su cuerpo scrollea unos 90 px.
+  - Las suites de los sprints 3b, 4 y 5 siguen pasando.
+
+Prueba (en https://armaduki.vercel.app, cuando el backend esté publicado):
+
+1. Apagá privacy mode (tres toques en el ojo del pie): las notas, la fecha y la edad solo se ven así.
+2. Tocá el lápiz de alguien. Arriba a la derecha, el switch «Active»; en la primera fila, «Born»; debajo de los equipos, los grupos y, al lado, las notas; al lado del puesto, «Second position».
+3. Elegí un segundo puesto y guardá: en la tarjeta aparece al lado del principal, más chico. Si elegís GK, «Goalkeeper?» desaparece.
+4. Poné solo el mes y el año (por ejemplo 3 y 1994), guardá y recargá la página: el modal tiene que seguir diciendo 3 y 1994, no 1/3/1994. Cambiá otra cosa de esa persona, guardá y recargá otra vez: tiene que seguir igual. La tarjeta muestra «~32 yrs» debajo del número.
+5. Escribí una nota y guardá. Dejá el mouse sobre su tarjeta: la nota aparece abajo después de un momento. Con privacy mode prendido no aparece.
+6. En los grupos, tocá «+ New», escribí «Segurola 20hs Jueves» y Enter: queda creado y marcado. Hacé lo mismo con un equipo, eligiendo sus dos colores. Guardá y mirá la planilla: aparecen en las pestañas Groups y Teams, y en la columna `birthDate` de Players, la fecha.
+7. Apagá el switch de alguien y guardá: desaparece de la lista y de lxs elegidxs. En el filtro «Role», la última opción, «Inactive», lx muestra; desde ahí lx volvés a prender.
+8. Elegí 10 con un solo DEF y alguien con DEF de segundo puesto, y generá: abrí «Full Analysis» y en «Positions» dice quién cubre DEF del lado que no tiene.
+9. Tocá «+ Add Player»: «Goalkeeper?» arranca en «No».
+10. Pasá a castellano: «Activx», «Segundo puesto», «Nacimiento», «Grupos», «+ Nuevo» e «Inactivxs».
+11. Si algo no te cierra, decime qué.
 
 ## Sprint 7 - Filtros y orden
 

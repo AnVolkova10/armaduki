@@ -86,6 +86,8 @@ export function PlayersPage() {
 
     const selectedCount = selectedIds.size;
     const canGenerate = selectedCount === MATCH_SIZE;
+    // The total counts who can play: the inactive ones have their own filter.
+    const activeCount = people.filter((person) => person.active !== false).length;
     const selectionCountClassName = [
         'selection-count',
         selectedCount === MATCH_SIZE ? 'selection-count--complete' : '',
@@ -381,7 +383,8 @@ export function PlayersPage() {
                         <PersonCard
                             key={person.id}
                             person={person}
-                            selectable
+                            // Inactive players are only shown to be edited back on, not picked.
+                            selectable={person.active !== false}
                             selected={selectedIds.has(person.id)}
                             selectionDisabled={!selectedIds.has(person.id) && selectedCount >= MATCH_SIZE}
                             onSelect={() => handlePersonSelect(person.id)}
@@ -403,7 +406,11 @@ export function PlayersPage() {
                         </button>
                     )}
                     <span className="players-total">
-                        {isFiltered ? t.page.showing(visiblePeople.length, people.length) : t.page.total(people.length)}
+                        {controls.role === 'inactive'
+                            ? t.page.inactiveTotal(visiblePeople.length)
+                            : isFiltered
+                                ? t.page.showing(visiblePeople.length, activeCount)
+                                : t.page.total(activeCount)}
                     </span>
                 </div>
             )}

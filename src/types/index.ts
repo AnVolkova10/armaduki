@@ -30,10 +30,14 @@ export interface Person {
   teams: string[];
   groups: string[];
   availability: string[];
-  birthYear?: string;
+  /** Second position (Sprint 6): GK, DEF, MID or ATT, never the main one. The rules ignore it. */
   secondaryRole?: Role;
+  /** False hides the player from the list and the picks; nothing is deleted. */
   active?: boolean;
+  /** Internal notes: on hover and in the form, never with privacy mode. */
   notes?: string;
+  /** yyyy, yyyy-MM or yyyy-MM-dd: the year alone is enough. */
+  birthDate?: string;
 }
 
 export interface TeamCatalog {
@@ -42,6 +46,13 @@ export interface TeamCatalog {
   color1: string;
   color2: string;
   crest: string;
+}
+
+/** A group from the `Groups` tab: a court, a team's friends, a day. The name says which. */
+export interface GroupCatalog {
+  groupId: string;
+  name: string;
+  place: string;
 }
 
 export interface Team {
@@ -120,6 +131,24 @@ export interface AttributeComparison {
   favors: Favors;
 }
 
+/** Positions the score wants on each team, through a second position if needed (Sprint 6). */
+export type CoverRole = 'DEF' | 'ATT';
+
+export interface TeamCover {
+  /** Players with this role as main position. */
+  main: number;
+  /** Nicknames of those who play it as second position (a GK in goal never counts). */
+  second: string[];
+}
+
+export interface CoverReport {
+  role: CoverRole;
+  team1: TeamCover;
+  team2: TeamCover;
+  /** Teams left without this role that another split could have covered. */
+  avoidable: number;
+}
+
 export interface AnalysisReport {
   score: number;
   balanceLabel: BalanceLabel;
@@ -139,6 +168,7 @@ export interface AnalysisReport {
     gkPref: number | null;
     attPref: number;
     wantsPref: number | null;
+    coverPref: number | null;
     total: number;
   };
   rating: { team1: number; team2: number; diff: number; favors: Favors };
@@ -169,6 +199,8 @@ export interface AnalysisReport {
     /** One-way wants are a preference, not a rule. Null when the selection has none. */
     oneWay: { total: number; broken: number; penaltyEach: number; adjustment: number; brokenLinks: LinkRef[] } | null;
   };
+  /** DEF and ATT cover through second positions. Null when nobody among the ten has one of them. */
+  cover: { penaltyEach: number; adjustment: number; roles: CoverReport[] } | null;
   /** Only when no split met every rule. */
   fallback: FallbackReport | null;
 }

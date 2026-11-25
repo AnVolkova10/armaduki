@@ -163,3 +163,15 @@ test('sort already on selected: the tenth pick has nothing to remember', () => {
         restore: null,
     });
 });
+
+test('inactive players only show under their own filter, which still takes search and sort', () => {
+  const withInactive = [...people, { ...person('7', 'Eli', 'MID', 4), active: false }, { ...person('8', 'Fio', 'ATT', 8), active: false }];
+  const listOf = (patch: Partial<ListingControls>) => nicknames(filterAndSortPeople(withInactive, controls(patch), new Set()));
+
+  assert.deepEqual(listOf({}), ['Rana', 'Inés', 'Ana', 'Bea', 'Caro', 'Dani']);
+  assert.deepEqual(listOf({ role: 'MID' }), ['Inés', 'Bea']);
+  assert.deepEqual(listOf({ role: 'inactive' }), ['Eli', 'Fio']);
+  assert.deepEqual(listOf({ role: 'inactive', query: 'fi' }), ['Fio']);
+  assert.deepEqual(listOf({ role: 'inactive', sort: 'score' }), ['Fio', 'Eli']);
+  assert.equal(hasActiveFilters(controls({ role: 'inactive' })), true);
+});
