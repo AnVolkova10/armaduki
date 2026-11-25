@@ -2,8 +2,12 @@
 // Plain TypeScript with no imports from the UI, so `npm test` can load it in Node.
 import type { Attributes, BalanceLabel, FallbackCause, Favors, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
 
-// The two sides are named by the colour of their bibs (25/11): T1 is Red, T2 is Black.
-const team = (label: TeamLabel): string => (label === 'T1' ? 'Red' : 'Black');
+// The two sides are named by the colour of their bibs (25/11): T1 is RED, T2 is BLACK.
+const team = (label: TeamLabel): string => (label === 'T1' ? 'RED' : 'BLACK');
+
+/** Where a sentence names a side: the result draws {T1} and {T2} as the names, in their colours. */
+const tok = (label: TeamLabel): string => (label === 'T1' ? '{T1}' : '{T2}');
+
 
 /** "a", "a and b", "a, b and c". */
 const list = (items: string[]): string =>
@@ -201,7 +205,7 @@ export const en = {
         balance: 'Balance',
         balanceLabel: balance,
         score: (score: number) => `Score ${signed(score)}`,
-        ratingDiff: (diff: number, favors: TeamLabel) => `rating +${diff} for ${team(favors)}`,
+        ratingDiff: (diff: number, favors: TeamLabel) => `rating +${diff} for ${tok(favors)}`,
         ratingEven: 'rating even',
         social: 'Social',
         wantsKept: (met: number, total: number) => `Wants ${met}/${total}`,
@@ -245,15 +249,15 @@ export const en = {
                 case 'ownerOnStronger':
                     return `${issue.nickname} is on the stronger team.`;
                 case 'defSplit':
-                    return `The 2 DEF go one per team: ${team('T1')} has ${issue.team1} and ${team('T2')} has ${issue.team2}.`;
+                    return `The 2 DEF go one per team: ${tok('T1')} has ${issue.team1} and ${tok('T2')} has ${issue.team2}.`;
                 case 'attSplit':
-                    return `ATT can differ by 1 at most: ${team('T1')} has ${issue.team1} and ${team('T2')} has ${issue.team2}.`;
+                    return `ATT can differ by 1 at most: ${tok('T1')} has ${issue.team1} and ${tok('T2')} has ${issue.team2}.`;
                 case 'tooManyGK':
-                    return `${team(issue.team)} has ${issue.count} GK (max ${issue.max}).`;
+                    return `${tok(issue.team)} has ${issue.count} GK (max ${issue.max}).`;
                 case 'tooManyDEF':
-                    return `${team(issue.team)} has ${issue.count} DEF (max ${issue.max}).`;
+                    return `${tok(issue.team)} has ${issue.count} DEF (max ${issue.max}).`;
                 case 'fewKeepers':
-                    return `${team(issue.team)} has no GK and ${issue.capable} of the ${issue.needed} emergency keepers it needs.`;
+                    return `${tok(issue.team)} has no GK and ${issue.capable} of the ${issue.needed} emergency keepers it needs.`;
             }
         },
 
@@ -275,34 +279,34 @@ export const en = {
         ratingSentence: (diff: number, favors: Favors, totals: readonly [number, number] | null): string => {
             const detail = totals ? ` (${totals[0]} to ${totals[1]})` : '';
             if (favors === 'Even') return `Both teams add up to the same rating${detail}.`;
-            return `${team(favors)} adds up to ${diff} more rating ${diff === 1 ? 'point' : 'points'}${detail}.`;
+            return `${tok(favors)} adds up to ${diff} more rating ${diff === 1 ? 'point' : 'points'}${detail}.`;
         },
         attributesSentence: (team1: string[], team2: string[], even: string[]): string => {
             const parts: string[] = [];
-            if (team1.length > 0) parts.push(`${team('T1')} is better at ${list(team1)}`);
-            if (team2.length > 0) parts.push(team1.length > 0 ? `${team('T2')} at ${list(team2)}` : `${team('T2')} is better at ${list(team2)}`);
+            if (team1.length > 0) parts.push(`${tok('T1')} is better at ${list(team1)}`);
+            if (team2.length > 0) parts.push(team1.length > 0 ? `${tok('T2')} at ${list(team2)}` : `${tok('T2')} is better at ${list(team2)}`);
             if (parts.length === 0) return 'Even in every attribute.';
             return `${parts.join('; ')}.${even.length > 0 ? ` Even in ${list(even)}.` : ''}`;
         },
         keepersEach: 'Each team has its GK.',
         /** A team without a GK: who keeps goal well by name, the others counted. */
         keepersTeam: (label: TeamLabel, gkCount: number, good: string[], others: string[], needed: number): string => {
-            if (gkCount === 1) return `${team(label)} has its GK.`;
-            if (gkCount > 1) return `${team(label)} has ${gkCount} GK.`;
+            if (gkCount === 1) return `${tok(label)} has its GK.`;
+            if (gkCount > 1) return `${tok(label)} has ${gkCount} GK.`;
             const capable = good.length + others.length;
-            if (capable === 0) return `${team(label)} has no GK and nobody who can keep goal (it needs ${needed}).`;
+            if (capable === 0) return `${tok(label)} has no GK and nobody who can keep goal (it needs ${needed}).`;
             if (capable < needed) {
-                return `${team(label)} has no GK, and only ${list([...good, ...others])} can keep goal (it needs ${needed}).`;
+                return `${tok(label)} has no GK, and only ${list([...good, ...others])} can keep goal (it needs ${needed}).`;
             }
             if (good.length > 0) {
                 const rest = others.length > 0 ? `, and ${others.length} more can if needed` : '';
-                return `${team(label)} has no GK: ${list(good)} ${good.length === 1 ? 'keeps' : 'keep'} goal well${rest}.`;
+                return `${tok(label)} has no GK: ${list(good)} ${good.length === 1 ? 'keeps' : 'keep'} goal well${rest}.`;
             }
             return capable <= 3
-                ? `${team(label)} has no GK: ${list(others)} can keep goal, none of them well.`
-                : `${team(label)} has no GK: ${capable} can keep goal, none of them well.`;
+                ? `${tok(label)} has no GK: ${list(others)} can keep goal, none of them well.`
+                : `${tok(label)} has no GK: ${capable} can keep goal, none of them well.`;
         },
-        attSentence: (team1: number, team2: number): string => `${team('T1')} has ${team1} and ${team('T2')} has ${team2}.`,
+        attSentence: (team1: number, team2: number): string => `${tok('T1')} has ${team1} and ${tok('T2')} has ${team2}.`,
         linksSentence: (wantsMet: number, wantsTotal: number, avoidsMet: number, avoidsTotal: number): string => {
             const parts: string[] = [];
             if (wantsTotal > 0) parts.push(`Wants kept: ${wantsMet} of ${wantsTotal}, playing together.`);
@@ -314,7 +318,7 @@ export const en = {
         wantsTogether: 'Together',
         avoidsApart: 'Apart',
 
-        comparison: 'Red vs Black',
+        comparison: '{T1} vs {T2}',
         comparisonHelp: 'Each bar leans toward the team that is stronger in it; the longer the bar, the bigger the gap.',
         rating: 'Rating',
         even: 'Even',
@@ -355,7 +359,7 @@ export const en = {
         scoreDelta: 'Score',
         ratingDiffDelta: 'Rating diff',
         socialDelta: 'Social',
-        movedTo: (label: TeamLabel) => `Moves to ${team(label)}`,
+        movedTo: (label: TeamLabel) => `Moves to ${tok(label)}`,
         noSwaps: 'No swaps',
         copySecond: 'Copy Second Option',
     },

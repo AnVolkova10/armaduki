@@ -53,7 +53,7 @@ test('every fallback cause and broken rule has its sentence in both languages', 
 
 test('the sentences from the design direction', () => {
   assert.equal(es.result.cause(CAUSES[0]), 'Hay 3 GK elegidas y el máximo es 1 por equipo.');
-  assert.equal(es.result.issue(ISSUES[6]), 'El Rojo quedó con 2 GK (máximo 1).');
+  assert.equal(es.result.issue(ISSUES[6]), '{T1} quedó con 2 GK (máximo 1).');
   assert.equal(es.result.issue(ISSUES[2]), 'A y B quieren jugar juntas y quedaron separadas.');
   assert.equal(en.result.cause(CAUSES[0]), '3 GK selected, and a team takes 1 at most.');
   assert.equal(es.page.generate, 'Armar equipos');
@@ -74,31 +74,31 @@ test('the texts the browser suites and old habits rely on stay as they were in E
 // ---------------------------------------------------------------------------
 
 test('keepers: each case of a team without a GK reads right', () => {
-  assert.equal(en.result.keepersTeam('T1', 1, [], [], 2), 'Red has its GK.');
-  assert.equal(es.result.keepersTeam('T2', 2, [], [], 2), 'El Negro tiene 2 GK.');
-  assert.equal(es.result.keepersTeam('T1', 0, [], [], 2), 'El Rojo no tiene GK ni quien ataje (necesita 2).');
-  assert.equal(es.result.keepersTeam('T1', 0, [], ['Flor'], 2), 'El Rojo no tiene GK y solo puede atajar Flor (necesita 2).');
-  assert.equal(en.result.keepersTeam('T1', 0, ['Maru'], [], 2), 'Red has no GK, and only Maru can keep goal (it needs 2).');
+  assert.equal(en.result.keepersTeam('T1', 1, [], [], 2), '{T1} has its GK.');
+  assert.equal(es.result.keepersTeam('T2', 2, [], [], 2), '{T2} tiene 2 GK.');
+  assert.equal(es.result.keepersTeam('T1', 0, [], [], 2), '{T1} no tiene GK ni quien ataje (necesita 2).');
+  assert.equal(es.result.keepersTeam('T1', 0, [], ['Flor'], 2), '{T1} no tiene GK y solo puede atajar Flor (necesita 2).');
+  assert.equal(en.result.keepersTeam('T1', 0, ['Maru'], [], 2), '{T1} has no GK, and only Maru can keep goal (it needs 2).');
   assert.equal(
     es.result.keepersTeam('T1', 0, ['Maru'], ['Flor', 'Tana', 'Caro', 'Rochi'], 2),
-    'El Rojo no tiene GK: ataja bien Maru; si hace falta, pueden 4 más.',
+    '{T1} no tiene GK: ataja bien Maru; si hace falta, pueden 4 más.',
   );
   assert.equal(
     en.result.keepersTeam('T2', 0, ['Maru', 'Sol'], [], 2),
-    'Black has no GK: Maru and Sol keep goal well.',
+    '{T2} has no GK: Maru and Sol keep goal well.',
   );
-  assert.equal(es.result.keepersTeam('T2', 0, [], ['Flor', 'Tana'], 2), 'El Negro no tiene GK: pueden atajar Flor y Tana, ninguna muy bien.');
-  assert.equal(es.result.keepersTeam('T2', 0, [], ['A', 'B', 'C', 'D'], 2), 'El Negro no tiene GK: pueden atajar 4, ninguna muy bien.');
+  assert.equal(es.result.keepersTeam('T2', 0, [], ['Flor', 'Tana'], 2), '{T2} no tiene GK: pueden atajar Flor y Tana, ninguna muy bien.');
+  assert.equal(es.result.keepersTeam('T2', 0, [], ['A', 'B', 'C', 'D'], 2), '{T2} no tiene GK: pueden atajar 4, ninguna muy bien.');
 });
 
 test('rating, attributes and links: the even, one-sided and empty cases', () => {
   assert.equal(es.result.ratingSentence(0, 'Even', [30, 30]), 'Los dos equipos suman el mismo rating (30 a 30).');
-  assert.equal(es.result.ratingSentence(1, 'T2', null), 'El Negro suma 1 punto más de rating.');
-  assert.equal(en.result.ratingSentence(2, 'T1', [38, 36]), 'Red adds up to 2 more rating points (38 to 36).');
-  assert.equal(es.result.attributesSentence([], ['remate'], ['pase', 'marca']), 'El Negro es mejor en remate. Iguales en pase y marca.');
+  assert.equal(es.result.ratingSentence(1, 'T2', null), '{T2} suma 1 punto más de rating.');
+  assert.equal(en.result.ratingSentence(2, 'T1', [38, 36]), '{T1} adds up to 2 more rating points (38 to 36).');
+  assert.equal(es.result.attributesSentence([], ['remate'], ['pase', 'marca']), '{T2} es mejor en remate. Iguales en pase y marca.');
   assert.equal(
     en.result.attributesSentence(['passing', 'defense'], ['shooting', 'grit', 'stamina'], ['pace']),
-    'Red is better at passing and defense; Black at shooting, grit and stamina. Even in pace.',
+    '{T1} is better at passing and defense; {T2} at shooting, grit and stamina. Even in pace.',
   );
   assert.equal(es.result.attributesSentence([], [], ['remate']), 'Iguales en todos los atributos.');
   assert.equal(es.result.linksSentence(0, 0, 0, 0), 'No hay wants ni avoids entre estas diez.');
@@ -113,4 +113,16 @@ test('the score: negative with a real minus, and what added nothing named in a s
   assert.equal(en.result.balanceSentence('highlyBalanced', 90), 'The teams are very even. Score 90: the higher, the more even.');
   assert.equal(es.result.scoreNoEffect(['la velocidad', 'el aire', 'la marca']), 'Esta vez no suman ni restan: la velocidad, el aire y la marca.');
   assert.equal(en.result.scoreTimes('1.5', 10), '1.5 × 10');
+});
+
+test('the sides are ROJO and NEGRO (RED and BLACK): names for labels, {T1}/{T2} in sentences', () => {
+  assert.deepEqual([es.common.team('T1'), es.common.team('T2'), en.common.team('T1'), en.common.team('T2')], ['ROJO', 'NEGRO', 'RED', 'BLACK']);
+  assert.equal(es.result.ratingDiff(1, 'T2'), 'rating +1 para {T2}');
+  assert.equal(es.result.movedTo('T1'), 'Pasa a {T1}');
+  assert.equal(es.result.attSentence(2, 1), '{T1} tiene 2 y {T2}, 1.');
+  assert.equal(en.result.comparison, '{T1} vs {T2}');
+  // No sentence names a side in words: they all leave it to the colours.
+  for (const dict of [en, es]) {
+    for (const issue of ISSUES) assert.doesNotMatch(dict.result.issue(issue), /\b(Rojo|Negro|Red|Black|Equipo|Team) [12]?/);
+  }
 });

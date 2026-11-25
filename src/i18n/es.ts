@@ -3,9 +3,12 @@
 import type { Attributes, BalanceLabel, FallbackCause, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
 import type { Dict } from './en.ts';
 
-// Los dos equipos se llaman por el color de la pechera (25/11): T1 es el Rojo y T2, el Negro.
-const team = (label: TeamLabel): string => (label === 'T1' ? 'Rojo' : 'Negro');
-const theTeam = (label: TeamLabel) => `El ${team(label)}`;
+// Los dos equipos se llaman por el color de la pechera (25/11): T1 es ROJO y T2, NEGRO, sin artículo.
+const team = (label: TeamLabel): string => (label === 'T1' ? 'ROJO' : 'NEGRO');
+
+/** Where a sentence names a side: the result draws {T1} and {T2} as the names, in their colours. */
+const tok = (label: TeamLabel): string => (label === 'T1' ? '{T1}' : '{T2}');
+
 
 /** "a", "a y b", "a, b y c". */
 const list = (items: string[]): string =>
@@ -203,7 +206,7 @@ export const es: Dict = {
         balance: 'Parejo',
         balanceLabel: balance,
         score: (score) => `Score ${signed(score)}`,
-        ratingDiff: (diff, favors) => `rating +${diff} para el ${team(favors)}`,
+        ratingDiff: (diff, favors) => `rating +${diff} para ${tok(favors)}`,
         ratingEven: 'rating igual',
         social: 'Social',
         wantsKept: (met, total) => `Wants ${met}/${total}`,
@@ -247,15 +250,15 @@ export const es: Dict = {
                 case 'ownerOnStronger':
                     return `${issue.nickname} quedó en el equipo más fuerte.`;
                 case 'defSplit':
-                    return `Las 2 DEF van una por equipo: el Rojo tiene ${issue.team1} y el Negro, ${issue.team2}.`;
+                    return `Las 2 DEF van una por equipo: ${tok('T1')} tiene ${issue.team1} y ${tok('T2')}, ${issue.team2}.`;
                 case 'attSplit':
-                    return `Las ATT pueden diferir en 1 como mucho: el Rojo tiene ${issue.team1} y el Negro, ${issue.team2}.`;
+                    return `Las ATT pueden diferir en 1 como mucho: ${tok('T1')} tiene ${issue.team1} y ${tok('T2')}, ${issue.team2}.`;
                 case 'tooManyGK':
-                    return `${theTeam(issue.team)} quedó con ${issue.count} GK (máximo ${issue.max}).`;
+                    return `${tok(issue.team)} quedó con ${issue.count} GK (máximo ${issue.max}).`;
                 case 'tooManyDEF':
-                    return `${theTeam(issue.team)} quedó con ${issue.count} DEF (máximo ${issue.max}).`;
+                    return `${tok(issue.team)} quedó con ${issue.count} DEF (máximo ${issue.max}).`;
                 case 'fewKeepers':
-                    return `${theTeam(issue.team)} no tiene GK y tiene ${issue.capable} de las ${issue.needed} arqueras de emergencia que necesita.`;
+                    return `${tok(issue.team)} no tiene GK y tiene ${issue.capable} de las ${issue.needed} arqueras de emergencia que necesita.`;
             }
         },
 
@@ -275,34 +278,34 @@ export const es: Dict = {
         ratingSentence: (diff, favors, totals) => {
             const detail = totals ? ` (${totals[0]} a ${totals[1]})` : '';
             if (favors === 'Even') return `Los dos equipos suman el mismo rating${detail}.`;
-            return `${theTeam(favors)} suma ${diff} ${diff === 1 ? 'punto' : 'puntos'} más de rating${detail}.`;
+            return `${tok(favors)} suma ${diff} ${diff === 1 ? 'punto' : 'puntos'} más de rating${detail}.`;
         },
         attributesSentence: (team1, team2, even) => {
             const parts: string[] = [];
-            if (team1.length > 0) parts.push(`El Rojo es mejor en ${list(team1)}`);
-            if (team2.length > 0) parts.push(team1.length > 0 ? `el Negro, en ${list(team2)}` : `El Negro es mejor en ${list(team2)}`);
+            if (team1.length > 0) parts.push(`${tok('T1')} es mejor en ${list(team1)}`);
+            if (team2.length > 0) parts.push(team1.length > 0 ? `${tok('T2')}, en ${list(team2)}` : `${tok('T2')} es mejor en ${list(team2)}`);
             if (parts.length === 0) return 'Iguales en todos los atributos.';
             return `${parts.join('; ')}.${even.length > 0 ? ` Iguales en ${list(even)}.` : ''}`;
         },
         keepersEach: 'Cada equipo tiene su GK.',
         keepersTeam: (label, gkCount, good, others, needed) => {
-            if (gkCount === 1) return `${theTeam(label)} tiene su GK.`;
-            if (gkCount > 1) return `${theTeam(label)} tiene ${gkCount} GK.`;
+            if (gkCount === 1) return `${tok(label)} tiene su GK.`;
+            if (gkCount > 1) return `${tok(label)} tiene ${gkCount} GK.`;
             const capable = good.length + others.length;
-            if (capable === 0) return `${theTeam(label)} no tiene GK ni quien ataje (necesita ${needed}).`;
+            if (capable === 0) return `${tok(label)} no tiene GK ni quien ataje (necesita ${needed}).`;
             if (capable < needed) {
                 const can = capable === 1 ? 'puede' : 'pueden';
-                return `${theTeam(label)} no tiene GK y solo ${can} atajar ${list([...good, ...others])} (necesita ${needed}).`;
+                return `${tok(label)} no tiene GK y solo ${can} atajar ${list([...good, ...others])} (necesita ${needed}).`;
             }
             if (good.length > 0) {
                 const rest = others.length > 0 ? `; si hace falta, pueden ${others.length} más` : '';
-                return `${theTeam(label)} no tiene GK: ${good.length === 1 ? 'ataja bien' : 'atajan bien'} ${list(good)}${rest}.`;
+                return `${tok(label)} no tiene GK: ${good.length === 1 ? 'ataja bien' : 'atajan bien'} ${list(good)}${rest}.`;
             }
             return capable <= 3
-                ? `${theTeam(label)} no tiene GK: pueden atajar ${list(others)}, ninguna muy bien.`
-                : `${theTeam(label)} no tiene GK: pueden atajar ${capable}, ninguna muy bien.`;
+                ? `${tok(label)} no tiene GK: pueden atajar ${list(others)}, ninguna muy bien.`
+                : `${tok(label)} no tiene GK: pueden atajar ${capable}, ninguna muy bien.`;
         },
-        attSentence: (team1, team2) => `El Rojo tiene ${team1} y el Negro, ${team2}.`,
+        attSentence: (team1, team2) => `${tok('T1')} tiene ${team1} y ${tok('T2')}, ${team2}.`,
         linksSentence: (wantsMet, wantsTotal, avoidsMet, avoidsTotal) => {
             const parts: string[] = [];
             if (wantsTotal > 0) parts.push(`Wants cumplidos: ${wantsMet} de ${wantsTotal}, juegan juntas.`);
@@ -314,7 +317,7 @@ export const es: Dict = {
         wantsTogether: 'Juntas',
         avoidsApart: 'Separadas',
 
-        comparison: 'Rojo vs Negro',
+        comparison: '{T1} vs {T2}',
         comparisonHelp: 'Cada barra se inclina hacia el equipo más fuerte en eso; cuanto más larga, más diferencia.',
         rating: 'Rating',
         even: 'Iguales',
@@ -355,7 +358,7 @@ export const es: Dict = {
         scoreDelta: 'Score',
         ratingDiffDelta: 'Dif. de rating',
         socialDelta: 'Social',
-        movedTo: (label) => `Pasa al ${team(label)}`,
+        movedTo: (label) => `Pasa a ${tok(label)}`,
         noSwaps: 'Sin cambios',
         copySecond: 'Copiar otra opción',
     },

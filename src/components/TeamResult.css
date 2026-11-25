@@ -240,6 +240,23 @@
   color: var(--team-black);
 }
 
+/* The sides named inside sentences: uppercase, in their colours, no pill. Black letters get a
+   thin light edge drawn under them, or they would vanish on the dark background. */
+.team-word {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.team-word--red {
+  color: var(--team-red);
+}
+
+.team-word--black {
+  color: var(--team-black);
+  -webkit-text-stroke: 1.5px var(--team-black-edge);
+  paint-order: stroke fill;
+}
+
 .team-tag--small {
   min-height: 18px;
   padding: 1px 6px 0;

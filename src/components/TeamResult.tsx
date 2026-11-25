@@ -71,6 +71,23 @@ function formatSigned(value: number): string {
     return '0';
 }
 
+/** A sentence from the dictionaries, with {T1} and {T2} drawn as the sides' names in their colours. */
+function TeamText({ text, t }: { text: string; t: Dict }) {
+    return (
+        <>
+            {text.split(/(\{T[12]\})/).map((part, index) => {
+                if (part !== '{T1}' && part !== '{T2}') return part;
+                const label: TeamLabel = part === '{T1}' ? 'T1' : 'T2';
+                return (
+                    <span key={index} className={`team-word team-word--${label === 'T1' ? 'red' : 'black'}`}>
+                        {t.common.team(label)}
+                    </span>
+                );
+            })}
+        </>
+    );
+}
+
 function Avatar({ player }: { player: Person }) {
     return player.avatar && player.avatar.trim() !== '' ? (
         <img className="team-player-avatar" src={player.avatar} alt="" />
@@ -159,7 +176,7 @@ function FallbackBlock({ fallback, t }: { fallback: FallbackReport; t: Dict }) {
                             </span>
                             <span>
                                 <strong>{t.result.rule[status.rule]}.</strong>{' '}
-                                {status.issues.map((issue) => t.result.issue(issue)).join(' ')}
+                                <TeamText text={status.issues.map((issue) => t.result.issue(issue)).join(' ')} t={t} />
                             </span>
                         </li>
                     ))}
@@ -209,7 +226,7 @@ function Summary({ report, privacyMode, t }: { report: AnalysisReport; privacyMo
                 <dd className="summary-value">{t.result.balanceLabel[report.balanceLabel]}</dd>
                 <dd className="summary-note">
                     {t.result.score(Math.round(report.score))}
-                    {ratingNote && <> · {ratingNote}</>}
+                    {ratingNote && <> · <TeamText text={ratingNote} t={t} /></>}
                 </dd>
             </div>
             <div className="summary-cell">
@@ -342,18 +359,18 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
                     </li>
                     <li>
                         <strong>{t.result.lead.rating}.</strong>{' '}
-                        {t.result.ratingSentence(report.rating.diff, report.rating.favors, ratingTotals)}
+                        <TeamText text={t.result.ratingSentence(report.rating.diff, report.rating.favors, ratingTotals)} t={t} />
                     </li>
                     <li>
                         <strong>{t.result.lead.attributes}.</strong>{' '}
-                        {t.result.attributesSentence(leaders('T1'), leaders('T2'), leaders('Even'))}
+                        <TeamText text={t.result.attributesSentence(leaders('T1'), leaders('T2'), leaders('Even'))} t={t} />
                     </li>
                     <li>
-                        <strong>{t.result.lead.keepers}.</strong> {keeperSentence}
+                        <strong>{t.result.lead.keepers}.</strong> <TeamText text={keeperSentence} t={t} />
                     </li>
                     {att.total > 0 && (
                         <li>
-                            <strong>{t.result.lead.att}.</strong> {t.result.attSentence(att.team1, att.team2)}
+                            <strong>{t.result.lead.att}.</strong> <TeamText text={t.result.attSentence(att.team1, att.team2)} t={t} />
                         </li>
                     )}
                     <li>
@@ -386,7 +403,9 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
             </section>
 
             <section className="analysis-section analysis-tape">
-                <h4 className="analysis-title">{t.result.comparison}</h4>
+                <h4 className="analysis-title">
+                    <TeamText text={t.result.comparison} t={t} />
+                </h4>
                 <p className="analysis-caption">{t.result.comparisonHelp}</p>
                 <div className="tape">
                     <div className="tape-head" aria-hidden="true">
@@ -563,11 +582,15 @@ export function TeamResult({ result }: TeamResultProps) {
 
                             <dl className="planb-moves">
                                 <div>
-                                    <dt>{t.result.movedTo('T1')}</dt>
+                                    <dt>
+                                        <TeamText text={t.result.movedTo('T1')} t={t} />
+                                    </dt>
                                     <dd>{comparison.movedToTeam1.length > 0 ? comparison.movedToTeam1.join(', ') : t.result.noSwaps}</dd>
                                 </div>
                                 <div>
-                                    <dt>{t.result.movedTo('T2')}</dt>
+                                    <dt>
+                                        <TeamText text={t.result.movedTo('T2')} t={t} />
+                                    </dt>
                                     <dd>{comparison.movedToTeam2.length > 0 ? comparison.movedToTeam2.join(', ') : t.result.noSwaps}</dd>
                                 </div>
                             </dl>
