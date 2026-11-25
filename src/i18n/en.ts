@@ -2,7 +2,8 @@
 // Plain TypeScript with no imports from the UI, so `npm test` can load it in Node.
 import type { Attributes, BalanceLabel, FallbackCause, Favors, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
 
-const team = (label: TeamLabel): string => (label === 'T1' ? 'Team 1' : 'Team 2');
+// The two sides are named by the colour of their bibs (25/11): T1 is Red, T2 is Black.
+const team = (label: TeamLabel): string => (label === 'T1' ? 'Red' : 'Black');
 
 /** "a", "a and b", "a, b and c". */
 const list = (items: string[]): string =>
@@ -200,7 +201,7 @@ export const en = {
         balance: 'Balance',
         balanceLabel: balance,
         score: (score: number) => `Score ${signed(score)}`,
-        ratingDiff: (diff: number, favors: TeamLabel) => `rating +${diff} ${team(favors)}`,
+        ratingDiff: (diff: number, favors: TeamLabel) => `rating +${diff} for ${team(favors)}`,
         ratingEven: 'rating even',
         social: 'Social',
         wantsKept: (met: number, total: number) => `Wants ${met}/${total}`,
@@ -244,9 +245,9 @@ export const en = {
                 case 'ownerOnStronger':
                     return `${issue.nickname} is on the stronger team.`;
                 case 'defSplit':
-                    return `The 2 DEF go one per team: Team 1 has ${issue.team1} and Team 2 has ${issue.team2}.`;
+                    return `The 2 DEF go one per team: ${team('T1')} has ${issue.team1} and ${team('T2')} has ${issue.team2}.`;
                 case 'attSplit':
-                    return `ATT can differ by 1 at most: Team 1 has ${issue.team1} and Team 2 has ${issue.team2}.`;
+                    return `ATT can differ by 1 at most: ${team('T1')} has ${issue.team1} and ${team('T2')} has ${issue.team2}.`;
                 case 'tooManyGK':
                     return `${team(issue.team)} has ${issue.count} GK (max ${issue.max}).`;
                 case 'tooManyDEF':
@@ -278,8 +279,8 @@ export const en = {
         },
         attributesSentence: (team1: string[], team2: string[], even: string[]): string => {
             const parts: string[] = [];
-            if (team1.length > 0) parts.push(`Team 1 is better at ${list(team1)}`);
-            if (team2.length > 0) parts.push(team1.length > 0 ? `Team 2 at ${list(team2)}` : `Team 2 is better at ${list(team2)}`);
+            if (team1.length > 0) parts.push(`${team('T1')} is better at ${list(team1)}`);
+            if (team2.length > 0) parts.push(team1.length > 0 ? `${team('T2')} at ${list(team2)}` : `${team('T2')} is better at ${list(team2)}`);
             if (parts.length === 0) return 'Even in every attribute.';
             return `${parts.join('; ')}.${even.length > 0 ? ` Even in ${list(even)}.` : ''}`;
         },
@@ -301,7 +302,7 @@ export const en = {
                 ? `${team(label)} has no GK: ${list(others)} can keep goal, none of them well.`
                 : `${team(label)} has no GK: ${capable} can keep goal, none of them well.`;
         },
-        attSentence: (team1: number, team2: number): string => `Team 1 has ${team1} and Team 2 has ${team2}.`,
+        attSentence: (team1: number, team2: number): string => `${team('T1')} has ${team1} and ${team('T2')} has ${team2}.`,
         linksSentence: (wantsMet: number, wantsTotal: number, avoidsMet: number, avoidsTotal: number): string => {
             const parts: string[] = [];
             if (wantsTotal > 0) parts.push(`Wants kept: ${wantsMet} of ${wantsTotal}, playing together.`);
@@ -313,7 +314,7 @@ export const en = {
         wantsTogether: 'Together',
         avoidsApart: 'Apart',
 
-        comparison: 'Team 1 vs Team 2',
+        comparison: 'Red vs Black',
         comparisonHelp: 'Each bar leans toward the team that is stronger in it; the longer the bar, the bigger the gap.',
         rating: 'Rating',
         even: 'Even',

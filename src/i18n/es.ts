@@ -3,7 +3,8 @@
 import type { Attributes, BalanceLabel, FallbackCause, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
 import type { Dict } from './en.ts';
 
-const team = (label: TeamLabel): string => (label === 'T1' ? 'Equipo 1' : 'Equipo 2');
+// Los dos equipos se llaman por el color de la pechera (25/11): T1 es el Rojo y T2, el Negro.
+const team = (label: TeamLabel): string => (label === 'T1' ? 'Rojo' : 'Negro');
 const theTeam = (label: TeamLabel) => `El ${team(label)}`;
 
 /** "a", "a y b", "a, b y c". */
@@ -202,7 +203,7 @@ export const es: Dict = {
         balance: 'Parejo',
         balanceLabel: balance,
         score: (score) => `Score ${signed(score)}`,
-        ratingDiff: (diff, favors) => `rating +${diff} ${team(favors)}`,
+        ratingDiff: (diff, favors) => `rating +${diff} para el ${team(favors)}`,
         ratingEven: 'rating igual',
         social: 'Social',
         wantsKept: (met, total) => `Wants ${met}/${total}`,
@@ -246,9 +247,9 @@ export const es: Dict = {
                 case 'ownerOnStronger':
                     return `${issue.nickname} quedó en el equipo más fuerte.`;
                 case 'defSplit':
-                    return `Las 2 DEF van una por equipo: el Equipo 1 tiene ${issue.team1} y el Equipo 2, ${issue.team2}.`;
+                    return `Las 2 DEF van una por equipo: el Rojo tiene ${issue.team1} y el Negro, ${issue.team2}.`;
                 case 'attSplit':
-                    return `Las ATT pueden diferir en 1 como mucho: el Equipo 1 tiene ${issue.team1} y el Equipo 2, ${issue.team2}.`;
+                    return `Las ATT pueden diferir en 1 como mucho: el Rojo tiene ${issue.team1} y el Negro, ${issue.team2}.`;
                 case 'tooManyGK':
                     return `${theTeam(issue.team)} quedó con ${issue.count} GK (máximo ${issue.max}).`;
                 case 'tooManyDEF':
@@ -278,8 +279,8 @@ export const es: Dict = {
         },
         attributesSentence: (team1, team2, even) => {
             const parts: string[] = [];
-            if (team1.length > 0) parts.push(`El Equipo 1 es mejor en ${list(team1)}`);
-            if (team2.length > 0) parts.push(team1.length > 0 ? `el Equipo 2, en ${list(team2)}` : `El Equipo 2 es mejor en ${list(team2)}`);
+            if (team1.length > 0) parts.push(`El Rojo es mejor en ${list(team1)}`);
+            if (team2.length > 0) parts.push(team1.length > 0 ? `el Negro, en ${list(team2)}` : `El Negro es mejor en ${list(team2)}`);
             if (parts.length === 0) return 'Iguales en todos los atributos.';
             return `${parts.join('; ')}.${even.length > 0 ? ` Iguales en ${list(even)}.` : ''}`;
         },
@@ -301,7 +302,7 @@ export const es: Dict = {
                 ? `${theTeam(label)} no tiene GK: pueden atajar ${list(others)}, ninguna muy bien.`
                 : `${theTeam(label)} no tiene GK: pueden atajar ${capable}, ninguna muy bien.`;
         },
-        attSentence: (team1, team2) => `El Equipo 1 tiene ${team1} y el Equipo 2, ${team2}.`,
+        attSentence: (team1, team2) => `El Rojo tiene ${team1} y el Negro, ${team2}.`,
         linksSentence: (wantsMet, wantsTotal, avoidsMet, avoidsTotal) => {
             const parts: string[] = [];
             if (wantsTotal > 0) parts.push(`Wants cumplidos: ${wantsMet} de ${wantsTotal}, juegan juntas.`);
@@ -313,7 +314,7 @@ export const es: Dict = {
         wantsTogether: 'Juntas',
         avoidsApart: 'Separadas',
 
-        comparison: 'Equipo 1 vs Equipo 2',
+        comparison: 'Rojo vs Negro',
         comparisonHelp: 'Cada barra se inclina hacia el equipo más fuerte en eso; cuanto más larga, más diferencia.',
         rating: 'Rating',
         even: 'Iguales',

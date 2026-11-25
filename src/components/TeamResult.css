@@ -191,6 +191,17 @@
   background: var(--bg);
 }
 
+/* Each side in its colour: Rojo with a red line on top and a touch of red behind; Negro, black. */
+.team-box--red {
+  border-top: 3px solid var(--team-red);
+  background: color-mix(in srgb, var(--team-red) 8%, var(--bg));
+}
+
+.team-box--black {
+  border-top: 3px solid var(--team-black);
+  background: var(--team-black);
+}
+
 .team-header {
   display: flex;
   align-items: center;
@@ -200,31 +211,47 @@
   border-bottom: 1px solid var(--line);
 }
 
-/* Bibs: Team 1 light, Team 2 dark. */
-.team-bib {
-  flex: 0 0 auto;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  background: var(--t1);
-  border: 1px solid var(--t1);
+.team-box--red .team-header {
+  border-bottom-color: color-mix(in srgb, var(--team-red) 35%, var(--line));
 }
 
-.team-box--t2 .team-bib {
-  background: transparent;
-  border-color: var(--text-2);
-}
-
-.team-name {
-  flex: 1;
-  min-width: 0;
+/* The team's name on a light grey tag: ROJO in red, NEGRO in black. */
+.team-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 1px 8px 0;
+  border-radius: 3px;
+  background: var(--team-tag);
   font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   white-space: nowrap;
+}
+
+.team-tag--red {
+  color: var(--team-red-ink);
+}
+
+.team-tag--black {
+  color: var(--team-black);
+}
+
+.team-tag--small {
+  min-height: 18px;
+  padding: 1px 6px 0;
+  font-size: 0.78rem;
+}
+
+.team-name {
+  flex: 0 0 auto;
+}
+
+.team-power {
+  margin-left: auto;
 }
 
 .team-power {
@@ -610,6 +637,16 @@
   border-right: 1px solid var(--text-3);
 }
 
+/* Toward Rojo, a red bar; toward Negro, a black one with a light edge so it shows on the track. */
+.tape-half--t1 .tape-fill {
+  background: var(--team-red);
+}
+
+.tape-half--t2 .tape-fill {
+  background: var(--team-black);
+  box-shadow: inset 0 0 0 1px var(--text-2);
+}
+
 .tape-fill {
   height: 100%;
   background: var(--text);
@@ -825,10 +862,6 @@
     min-height: 36px;
     padding: 8px;
     gap: 6px;
-  }
-
-  .team-name {
-    flex: 1 1 auto;
   }
 
   .team-name,

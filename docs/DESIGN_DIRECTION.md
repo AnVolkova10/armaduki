@@ -25,6 +25,7 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 - **La foto, un poco más grande.** 48 px en la computadora y 40 en el teléfono (hoy, 40 y 32). La grilla sigue igual: dos por fila en el teléfono.
 - **Las 10 suben solas.** Cada vez que la selección llega a 10, el orden pasa solo a «Sort: selected», que se ve en el menú y se puede cambiar: las elegidas quedan primero, con el orden de siempre dentro de cada grupo, y la pantalla sube al contador, como hoy. La búsqueda y los filtros siguen valiendo. Si sacás una, baja a su lugar entre las demás; la próxima que elijas sube. Cuando la selección queda vacía, vuelve el orden que había antes de la décima, salvo que lo hayas cambiado a mano. Esto cierra el pedido de Notion de ver las seleccionadas en el navbar.
 - **El resultado se lee de arriba hacia abajo:** los equipos, un resumen de tres datos y el análisis completo plegado.
+- **Rojo y Negro, no Team 1 y Team 2** (25/11): los equipos se llaman por el color de la pechera, que se entiende más rápido. En inglés, Red y Black.
 - **El fallback dice primero por qué.** Después, qué se rompió y con quién, y qué se mantuvo. Rojo solo en lo roto.
 - **Inglés, con un switch al castellano.** Inglés por defecto; la pelota del logo hace de perilla para pasar a castellano rioplatense.
 - **El modal de jugadora, compacto:** tan alto como su contenido, sin lugares vacíos reservados. Arriba, quién es; abajo, cómo juega y con quién (25/11).
@@ -39,7 +40,7 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 - **Movimiento.**
   - Tocar una tarjeta: se hunde apenas y aparece el borde rojo (150 ms).
   - La décima: las tarjetas viajan a su lugar nuevo (300 ms) mientras la pantalla sube.
-  - Generar: los equipos aparecen y las jugadoras se reparten de a una, alternando Team 1 y Team 2, como cartas (menos de un segundo en total).
+  - Generar: los equipos aparecen y las jugadoras se reparten de a una, alternando el Rojo y el Negro, como cartas (menos de un segundo en total).
   - El modal entra con un fundido y una subida corta (200 ms); en el teléfono, la hoja sube desde abajo.
   - El switch: la pelota rueda hasta el otro idioma (300 ms) y, al pasar al castellano, sus colores se intercambian con un fundido.
   - «Copy Teams» confirma con un ✓ por un momento.
@@ -58,14 +59,14 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
 
 Debajo de la lista, como hoy, en tres partes:
 
-1. **Los equipos.** Team 1 y Team 2 lado a lado, también en el teléfono, marcados como pecheras: clara y oscura. Cada jugadora con su foto chica (en el teléfono, sin foto, para que entre un apodo largo), el apodo y el rol, ordenadas por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
+1. **Los equipos.** El Rojo y el Negro lado a lado, también en el teléfono, cada uno con su color: el Rojo con una línea roja arriba y el fondo apenas teñido de rojo; el Negro, con fondo negro. Los nombres van en una etiqueta gris clara, ROJO en rojo y NEGRO en negro (sobre el fondo oscuro el negro no se leería). Cada jugadora con su foto chica (en el teléfono, sin foto, para que entre un apodo largo), el apodo y el rol, ordenadas por puesto como hoy. Debajo de cada equipo, su Power (oculto con privacy mode). «Copy Teams» queda abajo, a mano.
 2. **El resumen.** Tres datos en una fila:
    - **Parejo:** la etiqueta del score (highly balanced, balanced…) y, sin privacy mode, la diferencia de rating y a qué equipo favorece.
    - **Social:** el porcentaje y los wants cumplidos.
    - **Reglas:** «todas se cumplen» o «fallback: se rompió 1».
 3. **El análisis completo**, plegado, con más palabras que números (25/11):
    - **En palabras:** una frase por tema, con su palabra al frente: parejo (y el score), rating (cuánto más suma un equipo), atributos (quién es mejor en qué), arqueras (si un equipo no tiene GK, quién ataja bien y cuántas más pueden), ATT y links (cuántos se cumplieron, con las parejas).
-   - **Equipo 1 vs Equipo 2:** las barras, sin números, con una línea que explica cómo leerlas.
+   - **Rojo vs Negro:** las barras, sin números, rojas hacia el Rojo y negras (con un borde claro, para que se vean) hacia el Negro, con una línea que explica cómo leerlas.
    - **Cómo se calcula el score:** arranca en 100 y cada línea dice qué resta o suma y por qué. Solo aparece lo que movió el score; lo demás se nombra en una frase.
 
 «Show Second Option» sigue plegada, con la misma estética, y marca quién cambia de equipo.
@@ -77,7 +78,7 @@ Con privacy mode, el resumen muestra la etiqueta y el score, sin números de rat
 El resultado sale igual y, arriba del resumen, aparece un bloque que se entiende de un vistazo (los ejemplos van en castellano; en inglés dicen lo mismo):
 
 - **Por qué**, en una línea y más grande: «Hay 3 GK elegidas y el máximo es 1 por equipo».
-- **Qué se rompió**, y con quién: «Límite de GK: el Equipo 1 quedó con 2» o «Wants mutuos: A y B quedaron separadas». Es lo único en rojo.
+- **Qué se rompió**, y con quién: «Límites de GK y DEF: el Rojo quedó con 2 GK» o «Wants mutuos: A y B quedaron separadas». Es lo único en rojo.
 - **Qué se mantuvo**, en gris y con ✓: avoids, wants mutuos, owner bias y reparto de ATT y DEF.
 - Al pie, chico, el orden en que ceden las reglas, que no cambia: avoids > wants > owner bias > reparto de ATT y DEF > límites de GK y DEF.
 
@@ -103,7 +104,7 @@ Uno solo para sumar y para editar. Rehecho el 25/11: el primero, ancho y con col
 
 - Inglés por defecto. El switch lo pasa a castellano rioplatense y cada dispositivo recuerda lo que eligió. No se adivina por el idioma del navegador.
 - El switch: «EN» de un lado, «ES» del otro y la pelota del logo como perilla, que rueda (gira mientras se desplaza) hacia el idioma elegido. En inglés es el logo tal cual, roja con negro; en castellano los colores se intercambian con un fundido: lo rojo pasa a negro y lo negro a rojo (25/11). El activo en blanco y el otro en gris. Está a la derecha del header y en una esquina del penal, porque el penal tapa el header y sus textos también se traducen.
-- Castellano con voseo y en femenino: «Sumar jugadora», «7/10 elegidas», «Armar equipos», «Equipo 1», «Copiar equipos», «Otra opción». En el penal: «Hacé el gol para entrar», «Gol», «Atajada. Esa no es la clave.», «Palo. No hubo respuesta, probá de nuevo.».
+- Castellano con voseo y en femenino: «Sumar jugadora», «7/10 elegidas», «Armar equipos», «Rojo» y «Negro», «Copiar equipos», «Otra opción». En el penal: «Hacé el gol para entrar», «Gol», «Atajada. Esa no es la clave.», «Palo. No hubo respuesta, probá de nuevo.».
 - Los atributos, como se dicen en la cancha: remate, control, pase, marca, velocidad, visión, garra y aire.
 - Los roles quedan con sus códigos (GK, DEF, MID, ATT, FLEX) en los dos idiomas: son los de la planilla y los que ya se usan.
 - No se traduce lo que viene de la planilla: apodos, nombres y notas.

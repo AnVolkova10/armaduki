@@ -100,10 +100,9 @@ function TeamPanel({
     const dealOffset = label === 'T1' ? 0 : 1;
 
     return (
-        <div className={`team-box team-box--${label === 'T1' ? 't1' : 't2'}`}>
+        <div className={`team-box team-box--${label === 'T1' ? 'red' : 'black'}`}>
             <div className="team-header">
-                <span className="team-bib" aria-hidden="true" />
-                <span className="team-name">{t.common.team(label)}</span>
+                <span className={`team-name team-tag team-tag--${label === 'T1' ? 'red' : 'black'}`}>{t.common.team(label)}</span>
                 {!privacyMode && (
                     <span className="team-power">
                         <span className="team-power-label">{t.result.power}</span>
@@ -393,8 +392,8 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
                     <div className="tape-head" aria-hidden="true">
                         <span />
                         <span className="tape-sides">
-                            <span>{t.common.team('T1')}</span>
-                            <span>{t.common.team('T2')}</span>
+                            <span className="team-tag team-tag--red team-tag--small">{t.common.team('T1')}</span>
+                            <span className="team-tag team-tag--black team-tag--small">{t.common.team('T2')}</span>
                         </span>
                     </div>
                     <TapeRow

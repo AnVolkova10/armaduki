@@ -9,7 +9,7 @@ Fecha: 24/11/2026, con los ajustes del 25/11 después de la primera prueba de Á
 - **Tarjetas.** Foto de 48 px en la computadora y 40 en el teléfono. La elegida lleva borde rojo, un fondo apenas teñido y una marca sobre la foto. El lápiz y el tacho, arriba a la derecha, uno sobre el otro. Las pills de rol, sólidas, con los colores de siempre.
 - **Las 10 suben solas.** Con la décima, el orden pasa a «Sort: Selected» y las tarjetas viajan a su lugar. Al vaciar la selección vuelve el orden que había, salvo que se haya cambiado a mano. La regla está en `sortAfterSelectionChange` (`src/utils/playerListing.ts`), con tests.
 - **Idioma.** Inglés por defecto y castellano rioplatense con el switch de la pelota, en el header y en el penal. Cada dispositivo recuerda su elección, también si pierde la clave. Los textos están en `src/i18n/en.ts` y `es.ts`.
-- **Resultado.** Los equipos con foto (en el teléfono, sin foto, para que entre un apodo largo), rol y, sin privacy mode, rating y Power; un resumen de tres datos (parejo, social, reglas); el análisis completo plegado, que arranca en palabras; y la segunda opción, que marca quién cambia de equipo.
+- **Resultado.** El Rojo y el Negro, cada uno con su color, con foto (en el teléfono, sin foto, para que entre un apodo largo), rol y, sin privacy mode, rating y Power; un resumen de tres datos (parejo, social, reglas); el análisis completo plegado, que arranca en palabras; y la segunda opción, que marca quién cambia de equipo.
 - **Fallback.** Un bloque arriba del resultado: por qué, qué se rompió y con quién (lo único en rojo), qué se mantuvo y el orden en que ceden las reglas. Sin una causa única, empieza por lo que se rompió.
 - **Generador.** Elige igual que antes. Además del texto de siempre, devuelve el análisis como datos (`report`), y la app arma las frases con ellos en el idioma elegido.
 - **Modal de jugadora.** En la computadora, tan alto como su contenido: arriba quién es (foto, apodo, nombre y camiseta en una fila, y los equipos), abajo cómo juega y, al lado, con quién, con las dos listas del mismo alto que la columna de juego y scroll por dentro. En el teléfono, una hoja de pantalla completa. «Cancel» y «Save» siempre a la vista. Los atributos se eligen con tres rayitas.
@@ -24,6 +24,10 @@ Fecha: 24/11/2026, con los ajustes del 25/11 después de la primera prueba de Á
 3. **Modal rehecho.** El primero (tres columnas de 1060 px) se estiraba hasta el alto de la ventana por las listas de relaciones y dejaba mucho espacio vacío, con los campos desparejos. Ahora mide 960 px de ancho y entre 550 (con privacy mode) y 630 px de alto, los campos están en una grilla, las listas de relaciones muestran dos nombres por fila y no hay lugares vacíos reservados para el Sprint 6.
 4. **Análisis con palabras.** Arranca con «En palabras», una frase por tema; las barras no llevan números y el score se explica línea por línea, mostrando solo lo que lo movió.
 5. **La pelota del switch:** en inglés, el logo tal cual; en castellano, los colores se intercambian (rojo a negro, negro a rojo) con un fundido mientras rueda.
+
+Después, en una segunda vuelta, le gustaron estos cambios y pidió uno de concepto:
+
+6. **Rojo y Negro en vez de Team 1 y Team 2.** Los nombres van en una etiqueta gris clara, ROJO en rojo y NEGRO en negro: NEGRO en negro sobre el fondo oscuro no se leía. El Rojo lleva una línea roja arriba y un fondo apenas rojo; el Negro, fondo negro. En el análisis, las barras hacia el Rojo son rojas y hacia el Negro, negras con un borde claro. Las frases dicen «el Rojo» y «el Negro» (en inglés, Red y Black).
 
 ## Un arreglo que apareció al probar
 

@@ -85,9 +85,12 @@
   --team-default-1: #3a3a3a;
   --team-default-2: #111111;
 
-  /* The two sides of a match, like bibs: light and dark. */
-  --t1: #f2f1ee;
-  --t2: #6d6c75;
+  /* The two sides of a match, Rojo and Negro, like the bibs (25/11). Their names sit on a light
+     grey tag so both read: red text (a shade darker than the logo, for contrast) and black text. */
+  --team-red: #dc2626;
+  --team-red-ink: #c81e1e;
+  --team-black: #000000;
+  --team-tag: #e7e5e4;
 
   --font-body: 'Barlow', 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
   --font-display: 'Barlow Condensed', 'Arial Narrow', 'Segoe UI', system-ui, sans-serif;

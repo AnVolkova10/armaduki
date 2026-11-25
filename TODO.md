@@ -159,7 +159,7 @@ Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se
 - [x] **Ángela:** aprobó la dirección (24/11).
 - [x] **Ángela:** primera prueba (25/11). Le gustaron el switch y las rayitas de los atributos; pidió cinco cambios, hechos ese día (abajo).
 - [ ] **Ángela:** probar los cambios con los pasos de abajo, antes de pasar la rama a `main`.
-- [ ] **Ángela:** confirmar el tamaño de tu ventana. Por tu captura parece de unos 1100 × 920; el modal nuevo mide entre 550 y 630 de alto y entra de sobra.
+- [x] **Ángela:** confirmó que el modal nuevo entra bien en su pantalla (25/11).
 - [x] Lenguaje visual nuevo en toda la app: colores propios como variables, Barlow y Barlow Condensed servidas desde la app, una sola familia de íconos y estados claros. Se fueron los emojis de los atributos y las etiquetas «Filter: …» y «Sort: …».
 - [x] Tarjetas con la foto un poco más grande: 48 px en la computadora y 40 en el teléfono.
 - [x] Con la décima elegida, el orden pasa solo a «Sort: Selected» y las tarjetas viajan arriba; al vaciar la selección vuelve el orden que había. Con tests en `playerListing`.
@@ -175,6 +175,7 @@ Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se
   - Modal rehecho: el primero se estiraba hasta el alto de la ventana y dejaba mucho espacio vacío, con los campos desparejos. Ahora mide 960 de ancho y entre 550 y 630 de alto, con apodo, nombre y camiseta en una fila, y las listas de wants y avoids del mismo alto que la columna de juego, con dos nombres por fila y scroll por dentro. Sin lugares vacíos para el Sprint 6: sus campos entran cuando lleguen (dónde va cada uno, en la dirección).
   - El análisis completo arranca «En palabras», con una frase por tema (si un equipo no tiene GK, dice quién ataja bien y cuántas más pueden); las barras van sin números y el score se explica línea por línea, solo con lo que lo movió.
   - La pelota del switch: en inglés, el logo tal cual; en castellano, sus colores se intercambian con un fundido.
+- [x] Rojo y Negro en vez de Team 1 y Team 2 (pedido de Ángela, 25/11): ROJO en rojo y NEGRO en negro, sobre una etiqueta gris clara; el Rojo con línea roja y fondo apenas rojo, el Negro con fondo negro; en el análisis, barras rojas hacia el Rojo y negras hacia el Negro. Las frases dicen «el Rojo» y «el Negro» (Red y Black en inglés).
 - [x] Verificado: lint, tipos, 103 tests, build y pruebas en Edge contra una API local, en tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado: 57 chequeos del rediseño en cada tamaño, más las suites de la pantalla única (Sprint 3b) y del penal (Sprint 4), que siguen pasando, y una corrida a escala real con 61 jugadoras inventadas.
 
 Prueba (en tu computadora, con la rama `sprint-5`; todavía no está en Vercel):
@@ -183,7 +184,7 @@ Prueba (en tu computadora, con la rama `sprint-5`; todavía no está en Vercel):
 2. En el penal, tocá el switch de la esquina: los textos pasan a castellano. Entrá con la clave.
 3. Mirá la pantalla: las pills de rol con sus colores de siempre y, al pasar el mouse por una tarjeta, el lápiz arriba y el tacho abajo. Tocá el switch EN / ES del header: la pelota rueda y, en castellano, sus colores se invierten con un fundido. Recargá: sigue en el idioma que elegiste.
 4. Elegí 10: con la décima suben arriba y el menú de orden dice «Selected». Sacá una y elegí otra. «Clear» → «Clear Selection» devuelve el orden que tenías.
-5. «Generate Teams»: los equipos se reparten debajo de la lista, con el resumen. Abrí «Full Analysis»: arranca «En palabras», las barras no tienen números y el score se explica línea por línea. Probá también «Show Second Option» y «Copy Teams».
+5. «Generate Teams»: el Rojo y el Negro se reparten debajo de la lista, cada uno con su color, con el resumen. Abrí «Full Analysis»: arranca «En palabras», las barras no tienen números y el score se explica línea por línea. Probá también «Show Second Option» y «Copy Teams».
 6. Para ver el fallback: elegí 10 con 3 GK. Arriba del resultado aparece por qué, qué se rompió y qué se mantuvo, y lo único rojo es lo roto.
 7. Tocá «+ Add Player» y después el lápiz de una jugadora: el modal nuevo, compacto, con apodo, nombre y camiseta en una fila y las listas de wants y avoids al lado del juego. Guardar escribe en la planilla, como siempre.
 8. Privacy mode (tres toques en el ojo del pie): prendido, no se ven ratings, Power ni la diferencia de rating del resumen.
