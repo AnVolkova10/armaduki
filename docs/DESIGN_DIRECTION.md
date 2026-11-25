@@ -104,7 +104,7 @@ Uno solo para sumar y para editar. Rehecho el 25/11: el primero, ancho y con col
 
 - Inglés por defecto. El switch lo pasa a castellano rioplatense y cada dispositivo recuerda lo que eligió. No se adivina por el idioma del navegador.
 - El switch: «EN» de un lado, «ES» del otro y la pelota del logo como perilla, que rueda (gira mientras se desplaza) hacia el idioma elegido. En inglés es el logo tal cual, roja con negro; en castellano los colores se intercambian con un fundido: lo rojo pasa a negro y lo negro a rojo (25/11). El activo en blanco y el otro en gris. Está a la derecha del header y en una esquina del penal, porque el penal tapa el header y sus textos también se traducen.
-- Castellano con voseo y en femenino: «Sumar jugadora», «7/10 elegidas», «Armar equipos», «ROJO» y «NEGRO», «Copiar equipos», «Otra opción». En el penal: «Hacé el gol para entrar», «Gol», «Atajada. Esa no es la clave.», «Palo. No hubo respuesta, probá de nuevo.».
+- Castellano con voseo y con x para nombrar personas, porque en los grupos juegan personas de distintas identidades (pedido de Ángela, 25/11): «Sumar jugadorx», «7/10 elegidxs», «arquerxs de emergencia», «juegan juntxs»; «Armar equipos», «ROJO» y «NEGRO», «Copiar equipos», «Otra opción». En el penal: «Hacé el gol para entrar», «Gol», «Atajada. Esa no es la clave.», «Palo. No hubo respuesta, probá de nuevo.».
 - Los atributos, como se dicen en la cancha: remate, control, pase, marca, velocidad, visión, garra y aire.
 - Los roles quedan con sus códigos (GK, DEF, MID, ATT, FLEX) en los dos idiomas: son los de la planilla y los que ya se usan.
 - No se traduce lo que viene de la planilla: apodos, nombres y notas.

@@ -52,9 +52,9 @@ test('every fallback cause and broken rule has its sentence in both languages', 
 });
 
 test('the sentences from the design direction', () => {
-  assert.equal(es.result.cause(CAUSES[0]), 'Hay 3 GK elegidas y el máximo es 1 por equipo.');
+  assert.equal(es.result.cause(CAUSES[0]), 'Hay 3 GK elegidxs y el máximo es 1 por equipo.');
   assert.equal(es.result.issue(ISSUES[6]), '{T1} quedó con 2 GK (máximo 1).');
-  assert.equal(es.result.issue(ISSUES[2]), 'A y B quieren jugar juntas y quedaron separadas.');
+  assert.equal(es.result.issue(ISSUES[2]), 'A y B quieren jugar juntxs y quedaron separadxs.');
   assert.equal(en.result.cause(CAUSES[0]), '3 GK selected, and a team takes 1 at most.');
   assert.equal(es.page.generate, 'Armar equipos');
   assert.equal(es.gate.idle, 'Hacé el gol para entrar');
@@ -87,8 +87,8 @@ test('keepers: each case of a team without a GK reads right', () => {
     en.result.keepersTeam('T2', 0, ['Maru', 'Sol'], [], 2),
     '{T2} has no GK: Maru and Sol keep goal well.',
   );
-  assert.equal(es.result.keepersTeam('T2', 0, [], ['Flor', 'Tana'], 2), '{T2} no tiene GK: pueden atajar Flor y Tana, ninguna muy bien.');
-  assert.equal(es.result.keepersTeam('T2', 0, [], ['A', 'B', 'C', 'D'], 2), '{T2} no tiene GK: pueden atajar 4, ninguna muy bien.');
+  assert.equal(es.result.keepersTeam('T2', 0, [], ['Flor', 'Tana'], 2), '{T2} no tiene GK: pueden atajar Flor y Tana, ningunx muy bien.');
+  assert.equal(es.result.keepersTeam('T2', 0, [], ['A', 'B', 'C', 'D'], 2), '{T2} no tiene GK: pueden atajar 4, ningunx muy bien.');
 });
 
 test('rating, attributes and links: the even, one-sided and empty cases', () => {
@@ -101,9 +101,9 @@ test('rating, attributes and links: the even, one-sided and empty cases', () => 
     '{T1} is better at passing and defense; {T2} at shooting, grit and stamina. Even in pace.',
   );
   assert.equal(es.result.attributesSentence([], [], ['remate']), 'Iguales en todos los atributos.');
-  assert.equal(es.result.linksSentence(0, 0, 0, 0), 'No hay wants ni avoids entre estas diez.');
+  assert.equal(es.result.linksSentence(0, 0, 0, 0), 'No hay wants ni avoids entre estxs diez.');
   assert.equal(en.result.linksSentence(3, 4, 0, 0), 'Wants kept: 3 of 4, playing together.');
-  assert.equal(es.result.linksSentence(3, 3, 1, 1), 'Wants cumplidos: 3 de 3, juegan juntas. Avoids cumplidos: 1 de 1, juegan separadas.');
+  assert.equal(es.result.linksSentence(3, 3, 1, 1), 'Wants cumplidos: 3 de 3, juegan juntxs. Avoids cumplidos: 1 de 1, juegan separadxs.');
   assert.equal(es.result.oneWaySplit(15), 'Para emparejar, se separaron estos wants de un solo lado (15 puntos menos cada uno):');
 });
 
@@ -125,4 +125,23 @@ test('the sides are ROJO and NEGRO (RED and BLACK): names for labels, {T1}/{T2} 
   for (const dict of [en, es]) {
     for (const issue of ISSUES) assert.doesNotMatch(dict.result.issue(issue), /\b(Rojo|Negro|Red|Black|Equipo|Team) [12]?/);
   }
+});
+
+test('Spanish names people with x, never in the feminine', () => {
+  const texts: string[] = [];
+  const walk = (value: unknown) => {
+    if (typeof value === 'string') texts.push(value);
+    else if (value && typeof value === 'object') Object.values(value).forEach(walk);
+  };
+  walk(es);
+  for (const cause of CAUSES) texts.push(es.result.cause(cause));
+  for (const issue of ISSUES) texts.push(es.result.issue(issue));
+  texts.push(es.result.linksSentence(2, 3, 1, 1), es.result.linksSentence(0, 0, 0, 0), es.page.total(9), es.page.selectExactly(9));
+  texts.push(es.result.keepersTeam('T1', 0, [], ['A', 'B'], 2), es.form.wantsYou('A'), es.form.avoidsYou('A'));
+  // Words for things stay as they are: «todas las reglas», «las diferencias, todas juntas».
+  const feminine = /\b(jugadoras?|elegidas?|arqueras?|quedaron juntas|jugar juntas|juegan juntas|separadas|ninguna muy|entre ellas|con ella|la evita|estas diez|Las 2 DEF|Las ATT|una por equipo|todas las jugadoras)\b/i;
+  for (const text of texts) assert.doesNotMatch(text, feminine, text);
+  assert.equal(es.page.title, 'Jugadorxs');
+  assert.equal(es.page.selected, 'elegidxs');
+  assert.deepEqual([es.result.wantsTogether, es.result.avoidsApart], ['Juntxs', 'Separadxs']);
 });

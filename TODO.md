@@ -34,7 +34,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 - [x] Clave (20/11): vive en la propiedad `ACCESS_KEY` del script; nunca en el código, en `.env`, en Vercel ni en el repo, que es público. Con la clave cargada no se lee ni se guarda sin ella. Cada dispositivo la escribe una vez, en el penal de entrada.
 - [x] Players y Match son una sola pantalla (19/11): tocar la tarjeta la elige; editar y borrar siguen en la tarjeta, para borrar rápido (con confirmación); el resultado aparece debajo de la lista.
 - [x] Rediseño (24/11): un cambio moderado, no radical. La misma pantalla, con cada cosa en su lugar, más moderna, prolija y animada, y que no parezca hecha por IA. Sigue la identidad de armaduki: oscuro, rojo y la pelota. Las ideas de un rediseño grande quedan en «Para otra versión».
-- [x] Idioma (24/11): la UI sigue en inglés por defecto, con un switch a castellano rioplatense que cada dispositivo recuerda.
+- [x] Idioma (24/11): la UI sigue en inglés por defecto, con un switch a castellano rioplatense que cada dispositivo recuerda. En castellano, la app nombra a las personas con x (jugadorxs, elegidxs, arquerxs), porque en los grupos juegan personas de distintas identidades (25/11).
 - [x] Las seleccionadas (24/11): no hace falta verlas aparte en el header; con la décima, las elegidas suben solas al principio de la lista. Cierra el pedido de Notion «que en el navbar aparezcan los seleccionados».
 - [x] El rediseño se hace con Claude Fable 5.2, el modelo del rediseño de VolkosFood (24/11).
 

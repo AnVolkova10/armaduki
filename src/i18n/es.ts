@@ -1,4 +1,5 @@
-// Castellano rioplatense: voseo, y en femenino para las jugadoras. Los roles quedan con sus
+// Castellano rioplatense: voseo, y con x para nombrar personas (jugadorxs, elegidxs), porque en los
+// grupos juegan personas de distintas identidades (25/11). Los roles quedan con sus
 // códigos (GK, DEF, MID, ATT, FLEX), que son los de la planilla.
 import type { Attributes, BalanceLabel, FallbackCause, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
 import type { Dict } from './en.ts';
@@ -73,10 +74,10 @@ export const es: Dict = {
     },
 
     page: {
-        title: 'Jugadoras',
-        addPlayer: '+ Sumar jugadora',
-        addPlayerWaits: 'Primero tienen que cargar las jugadoras desde Google Sheets',
-        selected: 'elegidas',
+        title: 'Jugadorxs',
+        addPlayer: '+ Sumar jugadorx',
+        addPlayerWaits: 'Primero tienen que cargar lxs jugadorxs desde Google Sheets',
+        selected: 'elegidxs',
         clear: 'Limpiar',
         clearSelection: 'Limpiar selección',
         clearFilters: 'Limpiar filtros',
@@ -85,48 +86,48 @@ export const es: Dict = {
         clearLinks: 'Borrar links',
         generate: 'Armar equipos',
         dismissError: 'Cerrar aviso',
-        loading: 'Cargando jugadoras desde Google Sheets',
-        empty: 'Todavía no hay jugadoras.',
-        emptyHint: 'Los datos vienen de Google Sheets. Podés sumar jugadoras acá o editar la planilla.',
-        noMatch: 'Ninguna jugadora coincide con la búsqueda y los filtros.',
+        loading: 'Cargando jugadorxs desde Google Sheets',
+        empty: 'Todavía no hay jugadorxs.',
+        emptyHint: 'Los datos vienen de Google Sheets. Podés sumar jugadorxs acá o editar la planilla.',
+        noMatch: 'Ningunx jugadorx coincide con la búsqueda y los filtros.',
         noMatchFiltered: 'Probá con otro comienzo de nombre o con otro filtro de rol o score.',
         noMatchSorted: 'Probá cambiando la búsqueda, el filtro o el orden.',
         updating: 'Actualizando desde Google Sheets...',
         savedCopyRefresh: 'Copia guardada · Actualizar',
-        showing: (shown, total) => `${shown} de ${total} jugadoras`,
-        total: (total) => `Total: ${total} jugadoras`,
-        selectExactly: (selected) => `Elegí exactamente 10 jugadoras. Elegidas: ${selected}`,
+        showing: (shown, total) => `${shown} de ${total} jugadorxs`,
+        total: (total) => `Total: ${total} jugadorxs`,
+        selectExactly: (selected) => `Elegí exactamente 10 jugadorxs. Elegidxs: ${selected}`,
         couldNotGenerate: 'No se pudieron armar equipos válidos. Revisá los roles y quién puede atajar.',
     },
 
     confirm: {
-        deleteTitle: '¿Borrar jugadora?',
+        deleteTitle: '¿Borrar jugadorx?',
         deleteMessage: 'Se borra de la app y de la planilla.',
         deleteLabel: 'Borrar',
         linksTitle: '¿Borrar los links?',
-        linksMessage: 'Se borran todos los wants y los avoids de todas las jugadoras.',
+        linksMessage: 'Se borran todos los wants y los avoids de todxs lxs jugadorxs.',
         linksLabel: 'Borrar links',
         wantsTitle: '¿Borrar los wants?',
-        wantsMessage: 'Se borran los wants de todas las jugadoras.',
+        wantsMessage: 'Se borran los wants de todxs lxs jugadorxs.',
         wantsLabel: 'Borrar wants',
         avoidsTitle: '¿Borrar los avoids?',
-        avoidsMessage: 'Se borran los avoids de todas las jugadoras.',
+        avoidsMessage: 'Se borran los avoids de todxs lxs jugadorxs.',
         avoidsLabel: 'Borrar avoids',
     },
 
     controls: {
-        search: 'Buscar jugadoras por apodo o nombre',
+        search: 'Buscar jugadorxs por apodo o nombre',
         role: 'Rol',
         score: 'Score',
         sort: 'Orden',
         all: 'Todos',
         sortDefault: 'Normal',
-        sortSelected: 'Elegidas',
+        sortSelected: 'Elegidxs',
         sortScore: 'Score',
         sortPosition: 'Puesto',
         filterByRole: 'Filtrar por rol',
         filterByScore: 'Filtrar por score',
-        sortPlayers: 'Ordenar jugadoras',
+        sortPlayers: 'Ordenar jugadorxs',
         highToLow: 'Score: de mayor a menor',
         lowToHigh: 'Score: de menor a mayor',
     },
@@ -153,14 +154,14 @@ export const es: Dict = {
         goal: 'Gol',
         saved: 'Atajada. Esa no es la clave.',
         post: 'Palo. No hubo respuesta, probá de nuevo.',
-        scene: 'Una arquera en su línea, esperando un penal',
+        scene: 'Unx arquerx en su línea, esperando un penal',
         keyLabel: 'Clave de acceso',
         keyPlaceholder: 'Clave',
         shoot: 'Patear',
     },
 
     form: {
-        newPlayer: 'Jugadora nueva',
+        newPlayer: 'Jugadorx nuevx',
         nickname: 'Apodo',
         nicknameBlank: 'El apodo no puede quedar vacío',
         name: 'Nombre o descripción',
@@ -189,11 +190,11 @@ export const es: Dict = {
         level: { low: 'bajo', mid: 'medio', high: 'alto' },
         wants: 'Quiere jugar con',
         avoids: 'Evita jugar con',
-        wantsYou: (nickname) => `${nickname} quiere jugar con ella`,
-        avoidsYou: (nickname) => `${nickname} la evita`,
+        wantsYou: (nickname) => `${nickname} quiere jugar con ellx`,
+        avoidsYou: (nickname) => `${nickname} lx evita`,
         extraInfo: 'Más datos',
         save: 'Guardar cambios',
-        add: 'Sumar jugadora',
+        add: 'Sumar jugadorx',
     },
 
     result: {
@@ -211,7 +212,7 @@ export const es: Dict = {
         social: 'Social',
         wantsKept: (met, total) => `Wants ${met}/${total}`,
         avoidsKept: (met, total) => `Avoids ${met}/${total}`,
-        noLinks: 'No hay links entre ellas',
+        noLinks: 'No hay links entre ellxs',
         rules: 'Reglas',
         allKept: 'Todas se cumplen',
         brokenCount: (count) => (count === 1 ? 'Se rompió 1' : `Se rompieron ${count}`),
@@ -228,37 +229,37 @@ export const es: Dict = {
         cause: (cause: FallbackCause): string => {
             switch (cause.kind) {
                 case 'tooManyGK':
-                    return `Hay ${cause.count} GK elegidas y el máximo es ${cause.maxPerTeam} por equipo.`;
+                    return `Hay ${cause.count} GK elegidxs y el máximo es ${cause.maxPerTeam} por equipo.`;
                 case 'tooManyDEF':
-                    return `Hay ${cause.count} DEF elegidas y el máximo es ${cause.maxPerTeam} por equipo.`;
+                    return `Hay ${cause.count} DEF elegidxs y el máximo es ${cause.maxPerTeam} por equipo.`;
                 case 'fewKeepers':
-                    return `Hay ${cause.gkCount} GK elegidas y solo ${cause.capable} arqueras de emergencia: cada equipo sin GK necesita ${cause.neededPerTeam}.`;
+                    return `Hay ${cause.gkCount} GK elegidxs y solo ${cause.capable} arquerxs de emergencia: cada equipo sin GK necesita ${cause.neededPerTeam}.`;
                 case 'wantsChain':
-                    return `Los wants mutuos encadenan a ${cause.nicknames.length} jugadoras (${cause.nicknames.join(', ')}) y en un equipo entran ${cause.teamSize}.`;
+                    return `Los wants mutuos encadenan a ${cause.nicknames.length} jugadorxs (${cause.nicknames.join(', ')}) y en un equipo entran ${cause.teamSize}.`;
                 case 'avoidInChain':
-                    return `${cause.from} evita a ${cause.to}, pero los wants mutuos las encadenan en el mismo equipo.`;
+                    return `${cause.from} evita a ${cause.to}, pero los wants mutuos lxs encadenan en el mismo equipo.`;
             }
         },
         issue: (issue: RuleIssue): string => {
             switch (issue.kind) {
                 case 'avoidTogether':
                     return issue.link.mutual
-                        ? `${issue.link.from} y ${issue.link.to} se evitan y quedaron juntas.`
-                        : `${issue.link.from} evita a ${issue.link.to} y quedaron juntas.`;
+                        ? `${issue.link.from} y ${issue.link.to} se evitan y quedaron juntxs.`
+                        : `${issue.link.from} evita a ${issue.link.to} y quedaron juntxs.`;
                 case 'wantSplit':
-                    return `${issue.link.from} y ${issue.link.to} quieren jugar juntas y quedaron separadas.`;
+                    return `${issue.link.from} y ${issue.link.to} quieren jugar juntxs y quedaron separadxs.`;
                 case 'ownerOnStronger':
                     return `${issue.nickname} quedó en el equipo más fuerte.`;
                 case 'defSplit':
-                    return `Las 2 DEF van una por equipo: ${tok('T1')} tiene ${issue.team1} y ${tok('T2')}, ${issue.team2}.`;
+                    return `Lxs 2 DEF van unx por equipo: ${tok('T1')} tiene ${issue.team1} y ${tok('T2')}, ${issue.team2}.`;
                 case 'attSplit':
-                    return `Las ATT pueden diferir en 1 como mucho: ${tok('T1')} tiene ${issue.team1} y ${tok('T2')}, ${issue.team2}.`;
+                    return `Lxs ATT pueden diferir en 1 como mucho: ${tok('T1')} tiene ${issue.team1} y ${tok('T2')}, ${issue.team2}.`;
                 case 'tooManyGK':
                     return `${tok(issue.team)} quedó con ${issue.count} GK (máximo ${issue.max}).`;
                 case 'tooManyDEF':
                     return `${tok(issue.team)} quedó con ${issue.count} DEF (máximo ${issue.max}).`;
                 case 'fewKeepers':
-                    return `${tok(issue.team)} no tiene GK y tiene ${issue.capable} de las ${issue.needed} arqueras de emergencia que necesita.`;
+                    return `${tok(issue.team)} no tiene GK y tiene ${issue.capable} de lxs ${issue.needed} arquerxs de emergencia que necesita.`;
             }
         },
 
@@ -270,7 +271,7 @@ export const es: Dict = {
             balance: 'Parejo',
             rating: 'Rating',
             attributes: 'Atributos',
-            keepers: 'Arqueras',
+            keepers: 'Arquerxs',
             att: 'ATT',
             links: 'Links',
         },
@@ -302,20 +303,20 @@ export const es: Dict = {
                 return `${tok(label)} no tiene GK: ${good.length === 1 ? 'ataja bien' : 'atajan bien'} ${list(good)}${rest}.`;
             }
             return capable <= 3
-                ? `${tok(label)} no tiene GK: pueden atajar ${list(others)}, ninguna muy bien.`
-                : `${tok(label)} no tiene GK: pueden atajar ${capable}, ninguna muy bien.`;
+                ? `${tok(label)} no tiene GK: pueden atajar ${list(others)}, ningunx muy bien.`
+                : `${tok(label)} no tiene GK: pueden atajar ${capable}, ningunx muy bien.`;
         },
         attSentence: (team1, team2) => `${tok('T1')} tiene ${team1} y ${tok('T2')}, ${team2}.`,
         linksSentence: (wantsMet, wantsTotal, avoidsMet, avoidsTotal) => {
             const parts: string[] = [];
-            if (wantsTotal > 0) parts.push(`Wants cumplidos: ${wantsMet} de ${wantsTotal}, juegan juntas.`);
-            if (avoidsTotal > 0) parts.push(`Avoids cumplidos: ${avoidsMet} de ${avoidsTotal}, juegan separadas.`);
-            return parts.length > 0 ? parts.join(' ') : 'No hay wants ni avoids entre estas diez.';
+            if (wantsTotal > 0) parts.push(`Wants cumplidos: ${wantsMet} de ${wantsTotal}, juegan juntxs.`);
+            if (avoidsTotal > 0) parts.push(`Avoids cumplidos: ${avoidsMet} de ${avoidsTotal}, juegan separadxs.`);
+            return parts.length > 0 ? parts.join(' ') : 'No hay wants ni avoids entre estxs diez.';
         },
         oneWaySplit: (penalty) =>
             `Para emparejar, se separaron estos wants de un solo lado (${penalty} puntos menos cada uno):`,
-        wantsTogether: 'Juntas',
-        avoidsApart: 'Separadas',
+        wantsTogether: 'Juntxs',
+        avoidsApart: 'Separadxs',
 
         comparison: '{T1} vs {T2}',
         comparisonHelp: 'Cada barra se inclina hacia el equipo más fuerte en eso; cuanto más larga, más diferencia.',
@@ -331,10 +332,10 @@ export const es: Dict = {
         scorePace: 'La velocidad, que cuenta extra',
         scoreStamina: 'El aire, que cuenta extra',
         scoreDefense: 'La marca, que cuenta extra',
-        scoreKeepers: 'Arqueras de emergencia',
-        scoreKeepersHelp: '+4 por cada una buena, −12 por cada una que falta',
+        scoreKeepers: 'Arquerxs de emergencia',
+        scoreKeepersHelp: '+4 por cada unx buenx, −12 por cada unx que falta',
         scoreAtt: 'Reparto de ATT',
-        scoreAttHelp: 'qué tan parejas quedan las ATT',
+        scoreAttHelp: 'qué tan parejxs quedan lxs ATT',
         scoreWants: 'Wants de un solo lado separados',
         scoreTimes: (value, weight) => `${value} × ${weight}`,
         scoreShort: {
@@ -343,7 +344,7 @@ export const es: Dict = {
             pace: 'la velocidad',
             stamina: 'el aire',
             defense: 'la marca',
-            keepers: 'las arqueras de emergencia',
+            keepers: 'lxs arquerxs de emergencia',
             att: 'el reparto de ATT',
             wants: 'los wants de un solo lado',
         },
@@ -366,21 +367,21 @@ export const es: Dict = {
     store: {
         missingUrl: 'Falta VITE_APPS_SCRIPT_URL. Agregala en .env (local) o en las variables de entorno de Vercel.',
         duplicateIds: (list) =>
-            `Hay ids de jugadora repetidos en Google Sheets: ${list}. Se muestra solo la primera fila; dale a cada fila su propio id.`,
+            `Hay ids de jugadorx repetidos en Google Sheets: ${list}. Se muestra solo la primera fila; dale a cada fila su propio id.`,
         duplicateId: (id, firstRow, row) => `id ${id} (filas ${firstRow} y ${row})`,
         missingIds: (rows) =>
-            `Hay jugadoras sin id en Google Sheets (filas ${rows}). Agregales un id en la planilla antes de editarlas acá.`,
+            `Hay jugadorxs sin id en Google Sheets (filas ${rows}). Agregales un id en la planilla antes de editarlxs acá.`,
         httpStatus: (status) => `Apps Script devolvió HTTP ${status}.`,
         keyRefused: 'La clave de acceso fue rechazada. Escribila de nuevo y reintentá.',
         answered: (text) => `Apps Script respondió: ${text || '(respuesta vacía)'}`,
         timeout: (seconds) => `Apps Script no respondió en ${seconds} s.`,
         couldntClear: (label) => `No se pudieron borrar ${CLEARED[label] ?? label} en Google Sheets.`,
-        noValidPlayers: 'No hay jugadoras válidas en Google Sheets',
+        noValidPlayers: 'No hay jugadorxs válidxs en Google Sheets',
         teamsError: 'No se pudieron cargar los equipos desde Google Sheets',
         couldntRefresh: (detail) =>
             `No se pudo actualizar desde Google Sheets. ${detail} Ves la copia guardada en este dispositivo; para editar hace falta una lectura nueva.`,
         couldntLoad: (detail) => `No se pudieron cargar los datos desde Google Sheets. ${detail}`,
-        couldntAdd: (nickname) => `No se pudo guardar a la jugadora nueva «${nickname}» en Google Sheets.`,
+        couldntAdd: (nickname) => `No se pudo guardar a lx jugadorx nuevx «${nickname}» en Google Sheets.`,
         couldntUpdate: (nickname) => `No se pudieron guardar los cambios de «${nickname}» en Google Sheets.`,
         couldntDelete: (label) => `No se pudo borrar a «${label}» en Google Sheets.`,
         rowWithoutId: 'Esta fila no tiene id en Google Sheets. Borrala ahí, o agregale un id primero.',
