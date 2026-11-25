@@ -21,7 +21,7 @@ Fecha: 24/11/2026, con los ajustes del 25/11 después de la primera prueba de Á
 
 1. **Pills de rol con los colores de siempre.** Vuelven el gris, verde, ámbar, rojo y violeta de antes, sólidos, con la forma nueva. El puesto elegido en el modal se ve igual que su pill.
 2. **Lápiz y tacho, uno sobre el otro, arriba a la derecha:** el lápiz arriba y el tacho abajo, en la computadora y en el teléfono.
-3. **Modal rehecho.** El primero (tres columnas de 1060 px) se estiraba hasta el alto de la ventana por las listas de relaciones y dejaba mucho espacio vacío, con los campos desparejos. Ahora mide 880 × 630 aprox., los campos están en una grilla y no hay lugares vacíos reservados para el Sprint 6.
+3. **Modal rehecho.** El primero (tres columnas de 1060 px) se estiraba hasta el alto de la ventana por las listas de relaciones y dejaba mucho espacio vacío, con los campos desparejos. Ahora mide 960 px de ancho y entre 550 (con privacy mode) y 630 px de alto, los campos están en una grilla, las listas de relaciones muestran dos nombres por fila y no hay lugares vacíos reservados para el Sprint 6.
 4. **Análisis con palabras.** Arranca con «En palabras», una frase por tema; las barras no llevan números y el score se explica línea por línea, mostrando solo lo que lo movió.
 5. **La pelota del switch:** en inglés, el logo tal cual; en castellano, los colores se intercambian (rojo a negro, negro a rojo) con un fundido mientras rueda.
 
@@ -43,11 +43,11 @@ Fecha: 24/11/2026, con los ajustes del 25/11 después de la primera prueba de Á
   - Pantalla única (Sprint 3b): 26 y 24 chequeos con mouse y toques reales. La suite se actualizó solo donde cambiaron nombres a propósito.
   - Penal (Sprint 4): 18 chequeos en cada tamaño, sin tocar la suite. Más 6 del penal en castellano y del idioma después de perder la clave, y 4 de la pelota del switch: el logo en inglés, el fundido y los colores invertidos en castellano.
 - A escala real, con datos inventados: 61 jugadoras con foto, apodos de hasta 16 letras, atributos distintos y 7 equipos; 9 chequeos, a 360 px en castellano con privacy mode apagado, a 390 px y en computadora. Esa corrida encontró dos problemas que los datos chicos no mostraban, ya corregidos: los equipos del resultado se pisaban a 360 px y el modal del teléfono medía más de cuatro pantallas.
-- El modal nuevo mide 880 × 632 a 1280 × 680 y no scrollea, también con 60 jugadoras en las relaciones (las listas scrollean por dentro). Con 7 equipos, la franja de arriba suma una fila de fichas y el cuerpo scrollea 24 px.
+- El modal nuevo mide 960 × 632 a 1280 × 680 y no scrollea, también con 60 jugadoras en las relaciones (las listas scrollean por dentro). Con 7 equipos, la franja de arriba suma una fila de fichas y el cuerpo scrollea 24 px.
 
 ## Límites conocidos
 
-- Por su captura, la ventana de Ángela mide unos 920 px de alto: el modal (unos 630) entra de sobra. En una ventana de menos de 680 px de alto, su cuerpo scrollea.
+- Por su captura, la ventana de Ángela parece de unos 1100 × 920 (falta que lo confirme): ahí el modal entra de sobra, y con privacy mode cada lista de relaciones muestra 12 nombres a la vez (antes, 5). En una ventana de menos de 680 px de alto, su cuerpo scrollea.
 - Cuando lleguen los campos del Sprint 6, el modal va a crecer: con unos 170 px más, a 1280 × 680 su cuerpo va a scrollear un poco.
 - Las descripciones largas de las tarjetas se cortan en dos líneas.
 - La lista de relaciones muestra a todas las jugadoras; el buscador llega en el Sprint 8.

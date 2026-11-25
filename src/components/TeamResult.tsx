@@ -270,12 +270,13 @@ function LinkList({ links, kind }: { links: LinkRef[]; kind: 'want' | 'avoid' })
     );
 }
 
-/** Who can keep goal in a team without a GK: the good ones first. */
-function emergencyKeepers(players: Person[]): string[] {
-    return players
-        .filter((player) => player.role !== 'GK' && player.gkWillingness !== 'no')
-        .sort((a, b) => Number(b.gkWillingness === 'good') - Number(a.gkWillingness === 'good'))
-        .map((player) => player.nickname);
+/** Who can keep goal in a team without a GK: those who do it well, and the others who can. */
+function emergencyKeepers(players: Person[]): { good: string[]; others: string[] } {
+    const outfield = players.filter((player) => player.role !== 'GK');
+    return {
+        good: outfield.filter((player) => player.gkWillingness === 'good').map((player) => player.nickname),
+        others: outfield.filter((player) => player.gkWillingness === 'low').map((player) => player.nickname),
+    };
 }
 
 type ScoreTerm = { short: keyof Dict['result']['scoreShort']; name: string; detail: string; value: number };
@@ -294,12 +295,16 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
     // Privacy mode hides each team's rating total; the gap stays (Sprint 4).
     const ratingTotals = privacyMode ? null : ([report.rating.team1, report.rating.team2] as const);
 
+    const keeperLine = (label: TeamLabel, gkCount: number, players: Person[]) => {
+        const { good, others } = emergencyKeepers(players);
+        return t.result.keepersTeam(label, gkCount, good, others, keepers.neededWithoutGK);
+    };
     const keeperSentence =
         keepers.team1.gkCount === 1 && keepers.team2.gkCount === 1
             ? t.result.keepersEach
             : [
-                  t.result.keepersTeam('T1', keepers.team1.gkCount, emergencyKeepers(option.team1.players), keepers.neededWithoutGK),
-                  t.result.keepersTeam('T2', keepers.team2.gkCount, emergencyKeepers(option.team2.players), keepers.neededWithoutGK),
+                  keeperLine('T1', keepers.team1.gkCount, option.team1.players),
+                  keeperLine('T2', keepers.team2.gkCount, option.team2.players),
               ].join(' ');
 
     const times = (value: number, weight: number) => t.result.scoreTimes(formatValue(value), weight);

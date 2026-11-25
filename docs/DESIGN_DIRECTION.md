@@ -21,7 +21,7 @@ Referencia: las placas de estadísticas de una transmisión de fútbol. Números
   - el análisis entero en rojo cuando hay fallback.
 
   Tampoco entra nada de lo típico: degradados, brillos, sombras de neón, vidrio esmerilado, chispitas, emojis ni tarjetas infladas con bordes muy redondos.
-- **El rojo se gana.** El rojo de la pelota marca solo lo elegido, la acción principal, lo que se rompió y lo que borra. Lo que se cumplió nunca va en rojo. Por eso «+ Add Player» pasa a ser un botón de borde: el rojo queda para «Generate Teams».
+- **El rojo se gana.** El rojo de la pelota marca solo lo elegido, la acción principal, lo que se rompió y lo que borra. Lo que se cumplió nunca va en rojo. Por eso «+ Add Player» pasa a ser un botón de borde: el rojo queda para «Generate Teams». La excepción son las pills de rol, que usan sus colores de siempre, incluido el rojo de ATT.
 - **La foto, un poco más grande.** 48 px en la computadora y 40 en el teléfono (hoy, 40 y 32). La grilla sigue igual: dos por fila en el teléfono.
 - **Las 10 suben solas.** Cada vez que la selección llega a 10, el orden pasa solo a «Sort: selected», que se ve en el menú y se puede cambiar: las elegidas quedan primero, con el orden de siempre dentro de cada grupo, y la pantalla sube al contador, como hoy. La búsqueda y los filtros siguen valiendo. Si sacás una, baja a su lugar entre las demás; la próxima que elijas sube. Cuando la selección queda vacía, vuelve el orden que había antes de la décima, salvo que lo hayas cambiado a mano. Esto cierra el pedido de Notion de ver las seleccionadas en el navbar.
 - **El resultado se lee de arriba hacia abajo:** los equipos, un resumen de tres datos y el análisis completo plegado.
@@ -64,7 +64,7 @@ Debajo de la lista, como hoy, en tres partes:
    - **Social:** el porcentaje y los wants cumplidos.
    - **Reglas:** «todas se cumplen» o «fallback: se rompió 1».
 3. **El análisis completo**, plegado, con más palabras que números (25/11):
-   - **En palabras:** una frase por tema, con su palabra al frente: parejo (y el score), rating (cuánto más suma un equipo), atributos (quién es mejor en qué), arqueras (quién ataja si un equipo no tiene GK), ATT y links (cuántos se cumplieron, con las parejas).
+   - **En palabras:** una frase por tema, con su palabra al frente: parejo (y el score), rating (cuánto más suma un equipo), atributos (quién es mejor en qué), arqueras (si un equipo no tiene GK, quién ataja bien y cuántas más pueden), ATT y links (cuántos se cumplieron, con las parejas).
    - **Equipo 1 vs Equipo 2:** las barras, sin números, con una línea que explica cómo leerlas.
    - **Cómo se calcula el score:** arranca en 100 y cada línea dice qué resta o suma y por qué. Solo aparece lo que movió el score; lo demás se nombra en una frase.
 
@@ -91,10 +91,10 @@ Para esto, el generador entrega, además del texto de hoy, los datos de cada reg
 
 Uno solo para sumar y para editar. Rehecho el 25/11: el primero, ancho y con columnas estiradas, dejaba mucho espacio vacío.
 
-- **En la computadora**, de 880 px de ancho y tan alto como su contenido (unos 630 px con dos equipos cargados):
+- **En la computadora**, de 960 px de ancho y tan alto como su contenido (unos 550 px con privacy mode y 630 sin él, con dos equipos cargados):
   - **Arriba, quién es:** la foto (tocarla la cambia) y, en una fila, apodo, nombre o descripción y camiseta; debajo, los equipos como fichas, con la pelota para marcar el principal.
   - **Abajo a la izquierda, cómo juega:** el puesto (el elegido, como su pill), ¿ataja? (good, low, no), el rating del 1 al 10 con la sugerencia marcada con un punto (oculto con privacy mode) y los 8 atributos con sus tres rayitas.
-  - **Abajo a la derecha, con quién:** «Wants to play with» y «Avoids» lado a lado, con las marcadas primero y las pistas de relación inversa. Ocupan el mismo alto que la columna de juego y scrollean por dentro, así nunca estiran el modal.
+  - **Abajo a la derecha, con quién:** «Wants to play with» y «Avoids» lado a lado, con dos nombres por fila, las marcadas primero y las pistas de relación inversa. Ocupan el mismo alto que la columna de juego y scrollean por dentro, así nunca estiran el modal.
   - Abajo, siempre a la vista: «Cancel» y «Save». Enter guarda y Escape cierra, como hoy.
 - **En el teléfono**, una hoja de pantalla completa: las partes una debajo de la otra, el apodo y la × arriba, y «Cancel» y «Save» fijos abajo. El número y los equipos siguen plegados en «Más datos». Cada lista de relaciones va en su caja y scrollea por dentro.
 - **Cuando lleguen los campos del Sprint 6** no hay lugar vacío esperándolos: entran donde corresponden y el modal crece lo justo. La fecha de nacimiento, en la fila de arriba o al lado de los equipos; «activa», junto al título; las notas, como una fila más arriba; «también juega» (los varios roles), debajo del puesto; grupos y día o lugar, al final de la columna de juego. Las listas de relaciones crecen solas con esa columna.

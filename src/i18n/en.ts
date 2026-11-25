@@ -284,14 +284,22 @@ export const en = {
             return `${parts.join('; ')}.${even.length > 0 ? ` Even in ${list(even)}.` : ''}`;
         },
         keepersEach: 'Each team has its GK.',
-        keepersTeam: (label: TeamLabel, gkCount: number, keepers: string[], needed: number): string => {
+        /** A team without a GK: who keeps goal well by name, the others counted. */
+        keepersTeam: (label: TeamLabel, gkCount: number, good: string[], others: string[], needed: number): string => {
             if (gkCount === 1) return `${team(label)} has its GK.`;
             if (gkCount > 1) return `${team(label)} has ${gkCount} GK.`;
-            if (keepers.length === 0) return `${team(label)} has no GK and nobody who can keep goal (it needs ${needed}).`;
-            if (keepers.length < needed) {
-                return `${team(label)} has no GK, and only ${list(keepers)} can keep goal (it needs ${needed}).`;
+            const capable = good.length + others.length;
+            if (capable === 0) return `${team(label)} has no GK and nobody who can keep goal (it needs ${needed}).`;
+            if (capable < needed) {
+                return `${team(label)} has no GK, and only ${list([...good, ...others])} can keep goal (it needs ${needed}).`;
             }
-            return `${team(label)} has no GK: ${list(keepers)} can keep goal.`;
+            if (good.length > 0) {
+                const rest = others.length > 0 ? `, and ${others.length} more can if needed` : '';
+                return `${team(label)} has no GK: ${list(good)} ${good.length === 1 ? 'keeps' : 'keep'} goal well${rest}.`;
+            }
+            return capable <= 3
+                ? `${team(label)} has no GK: ${list(others)} can keep goal, none of them well.`
+                : `${team(label)} has no GK: ${capable} can keep goal, none of them well.`;
         },
         attSentence: (team1: number, team2: number): string => `Team 1 has ${team1} and Team 2 has ${team2}.`,
         linksSentence: (wantsMet: number, wantsTotal: number, avoidsMet: number, avoidsTotal: number): string => {

@@ -284,15 +284,22 @@ export const es: Dict = {
             return `${parts.join('; ')}.${even.length > 0 ? ` Iguales en ${list(even)}.` : ''}`;
         },
         keepersEach: 'Cada equipo tiene su GK.',
-        keepersTeam: (label, gkCount, keepers, needed) => {
+        keepersTeam: (label, gkCount, good, others, needed) => {
             if (gkCount === 1) return `${theTeam(label)} tiene su GK.`;
             if (gkCount > 1) return `${theTeam(label)} tiene ${gkCount} GK.`;
-            if (keepers.length === 0) return `${theTeam(label)} no tiene GK ni quien ataje (necesita ${needed}).`;
-            const can = keepers.length === 1 ? 'puede' : 'pueden';
-            if (keepers.length < needed) {
-                return `${theTeam(label)} no tiene GK y solo ${can} atajar ${list(keepers)} (necesita ${needed}).`;
+            const capable = good.length + others.length;
+            if (capable === 0) return `${theTeam(label)} no tiene GK ni quien ataje (necesita ${needed}).`;
+            if (capable < needed) {
+                const can = capable === 1 ? 'puede' : 'pueden';
+                return `${theTeam(label)} no tiene GK y solo ${can} atajar ${list([...good, ...others])} (necesita ${needed}).`;
             }
-            return `${theTeam(label)} no tiene GK: ${can} atajar ${list(keepers)}.`;
+            if (good.length > 0) {
+                const rest = others.length > 0 ? `; si hace falta, pueden ${others.length} más` : '';
+                return `${theTeam(label)} no tiene GK: ${good.length === 1 ? 'ataja bien' : 'atajan bien'} ${list(good)}${rest}.`;
+            }
+            return capable <= 3
+                ? `${theTeam(label)} no tiene GK: pueden atajar ${list(others)}, ninguna muy bien.`
+                : `${theTeam(label)} no tiene GK: pueden atajar ${capable}, ninguna muy bien.`;
         },
         attSentence: (team1, team2) => `El Equipo 1 tiene ${team1} y el Equipo 2, ${team2}.`,
         linksSentence: (wantsMet, wantsTotal, avoidsMet, avoidsTotal) => {

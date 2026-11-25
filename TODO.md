@@ -159,7 +159,7 @@ Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se
 - [x] **Ángela:** aprobó la dirección (24/11).
 - [x] **Ángela:** primera prueba (25/11). Le gustaron el switch y las rayitas de los atributos; pidió cinco cambios, hechos ese día (abajo).
 - [ ] **Ángela:** probar los cambios con los pasos de abajo, antes de pasar la rama a `main`.
-- [x] Su ventana: por su captura, unos 920 px de alto; el modal nuevo mide unos 630 y entra de sobra.
+- [ ] **Ángela:** confirmar el tamaño de tu ventana. Por tu captura parece de unos 1100 × 920; el modal nuevo mide entre 550 y 630 de alto y entra de sobra.
 - [x] Lenguaje visual nuevo en toda la app: colores propios como variables, Barlow y Barlow Condensed servidas desde la app, una sola familia de íconos y estados claros. Se fueron los emojis de los atributos y las etiquetas «Filter: …» y «Sort: …».
 - [x] Tarjetas con la foto un poco más grande: 48 px en la computadora y 40 en el teléfono.
 - [x] Con la décima elegida, el orden pasa solo a «Sort: Selected» y las tarjetas viajan arriba; al vaciar la selección vuelve el orden que había. Con tests en `playerListing`.
@@ -172,10 +172,10 @@ Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se
 - [x] Cambios del 25/11, después de la prueba de Ángela:
   - Las pills de rol vuelven a los colores de siempre (gris, verde, ámbar, rojo, violeta), sólidas y con la forma nueva. El puesto elegido en el modal se ve igual.
   - El lápiz y el tacho de la tarjeta, uno sobre el otro, arriba a la derecha: el lápiz arriba y el tacho abajo (en la computadora y en el teléfono).
-  - Modal rehecho: el primero se estiraba hasta el alto de la ventana y dejaba mucho espacio vacío, con los campos desparejos. Ahora mide unos 880 × 630, con apodo, nombre y camiseta en una fila, y las listas de wants y avoids del mismo alto que la columna de juego, con scroll por dentro. Sin lugares vacíos para el Sprint 6: sus campos entran cuando lleguen (dónde va cada uno, en la dirección).
-  - El análisis completo arranca «En palabras», con una frase por tema; las barras van sin números y el score se explica línea por línea, solo con lo que lo movió.
+  - Modal rehecho: el primero se estiraba hasta el alto de la ventana y dejaba mucho espacio vacío, con los campos desparejos. Ahora mide 960 de ancho y entre 550 y 630 de alto, con apodo, nombre y camiseta en una fila, y las listas de wants y avoids del mismo alto que la columna de juego, con dos nombres por fila y scroll por dentro. Sin lugares vacíos para el Sprint 6: sus campos entran cuando lleguen (dónde va cada uno, en la dirección).
+  - El análisis completo arranca «En palabras», con una frase por tema (si un equipo no tiene GK, dice quién ataja bien y cuántas más pueden); las barras van sin números y el score se explica línea por línea, solo con lo que lo movió.
   - La pelota del switch: en inglés, el logo tal cual; en castellano, sus colores se intercambian con un fundido.
-- [x] Verificado: lint, tipos, 100 tests, build y pruebas en Edge contra una API local, en tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado: 57 chequeos del rediseño en cada tamaño, más las suites de la pantalla única (Sprint 3b) y del penal (Sprint 4), que siguen pasando, y una corrida a escala real con 61 jugadoras inventadas.
+- [x] Verificado: lint, tipos, 103 tests, build y pruebas en Edge contra una API local, en tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado: 57 chequeos del rediseño en cada tamaño, más las suites de la pantalla única (Sprint 3b) y del penal (Sprint 4), que siguen pasando, y una corrida a escala real con 61 jugadoras inventadas.
 
 Prueba (en tu computadora, con la rama `sprint-5`; todavía no está en Vercel):
 

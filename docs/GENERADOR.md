@@ -39,7 +39,7 @@ Arranca en 100 y resta lo desparejo:
 
 El **Power** de un equipo, que usa el owner bias, es la suma de ratings más la suma de atributos.
 
-Desde el Sprint 5, el generador devuelve el análisis también como datos (`report`, además del texto de siempre), y la app arma las frases con ellos, en inglés o en castellano. El análisis muestra esta cuenta completa, el balance de cada atributo, las arqueras, el reparto de ATT y la **social satisfaction**: el porcentaje de wants y avoids cumplidos. La social satisfaction no suma al score, pero desempata. Si hay wants de un solo lado, el análisis dice cuántos se respetaron y cuáles se rompieron. La etiqueta «balanced» mira solo lo parejo de los equipos y no descuenta los wants rotos.
+Desde el Sprint 5, el generador devuelve el análisis también como datos (`report`, además del texto de siempre), y la app arma las frases con ellos, en inglés o en castellano. El análisis empieza con frases y muestra la cuenta línea por línea, solo con lo que movió el score (lo que no sumó ni restó se nombra en una frase); muestra también el balance de cada atributo, las arqueras, el reparto de ATT y la **social satisfaction**: el porcentaje de wants y avoids cumplidos. La social satisfaction no suma al score, pero desempata. Si hay wants de un solo lado, el análisis dice cuántos se respetaron y cuáles se rompieron. La etiqueta «balanced» mira solo lo parejo de los equipos y no descuenta los wants rotos.
 
 ## Cuando ningún reparto cumple todo (fallback)
 
