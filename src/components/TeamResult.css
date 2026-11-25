@@ -246,8 +246,16 @@
 /* The sides named inside sentences: uppercase, in their colours, no pill. Black letters get a
    thin light edge drawn under them, or they would vanish on the dark background. */
 .team-word {
+  margin-left: 0.2em;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+/* A little air before the name: Barlow's space is narrow, and next to NEGRO in black it looked
+   missing. Not where the name starts its line or label. */
+.analysis-title .team-word:first-of-type,
+.tape-sides .team-word {
+  margin-left: 0;
 }
 
 .team-word--red {

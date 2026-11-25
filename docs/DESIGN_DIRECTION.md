@@ -1,6 +1,6 @@
 # armaduki — Camiseta nueva
 
-Dirección vigente desde el 24/11/2026: Ángela la aprobó ese día y se implementó en la rama `sprint-5`, que pasa a `main` cuando ella la prueba. Ajustada el 25/11, después de la primera prueba de Ángela. Cómo quedó y cómo se verificó: [REDESIGN_REVIEW.md](REDESIGN_REVIEW.md). Parte de lo que eligió el 24/11: un cambio moderado y no radical, la identidad de armaduki, la app más linda, profesional y animada, y que no parezca hecha por IA.
+Dirección vigente desde el 24/11/2026: Ángela la aprobó ese día, se implementó en la rama `sprint-5`, se ajustó el 25/11 después de sus pruebas y ese mismo día pasó a `main`. Cómo quedó y cómo se verificó: [REDESIGN_REVIEW.md](REDESIGN_REVIEW.md). Parte de lo que eligió el 24/11: un cambio moderado y no radical, la identidad de armaduki, la app más linda, profesional y animada, y que no parezca hecha por IA.
 
 ## Idea
 

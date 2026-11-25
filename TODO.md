@@ -6,7 +6,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 
 - [x] Se lee y se ejecuta de arriba hacia abajo, de a un ítem por vez. Un ítem no toca otros módulos salvo lo que necesita.
 - [x] Los sprints son por objetivo, no por fecha. Al cerrar cada uno, Ángela lo revisa antes de seguir.
-- [x] Cuando Ángela dice «hacé el Sprint N», Claude lo implementa, lo verifica (lint, tests, build y una prueba en navegador contra una API local), hace commit y push a `main`, que publica en Vercel, y le pasa dónde y cómo probarlo. El sprint se cierra cuando ella lo prueba. Excepción: el rediseño (Sprint 5) se hace en la rama `sprint-5` y pasa a `main` recién cuando Ángela lo aprueba (24/11).
+- [x] Cuando Ángela dice «hacé el Sprint N», Claude lo implementa, lo verifica (lint, tests, build y una prueba en navegador contra una API local), hace commit y push a `main`, que publica en Vercel, y le pasa dónde y cómo probarlo. El sprint se cierra cuando ella lo prueba. El rediseño (Sprint 5) fue la excepción: se hizo en la rama `sprint-5` y pasó a `main` cuando Ángela lo aprobó (25/11).
 - [x] Primero la base (Sprints 1 a 5), después las funciones nuevas (Sprints 6 a 10).
 - [x] En cada sprint va solo lo que se puede hacer ya. Lo que espera una decisión va en «Cosas por cerrar», con quién decide y un default para seguir.
 - [x] Un ítem nuevo se conversa antes de construirlo. Lo que sugiere Claude está marcado como **Propuesta**: Ángela lo acepta o lo descarta.
@@ -151,14 +151,14 @@ Prueba (después de prender la clave; en https://armaduki.vercel.app, mejor desd
 4. Para volver a ver el penal: una ventana privada, o borrar los datos del sitio en el navegador.
 5. Con privacy mode prendido, generá equipos: en el análisis, la línea «Rating» muestra la diferencia pero no el total de cada equipo.
 
-## Sprint 5 - Rediseño con Fable (hecho, falta tu prueba)
+## Sprint 5 - Rediseño con Fable (hecho)
 
-Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se usa (24/11). Hecho con Claude Fable 5.2 en la rama `sprint-5`, que pasa a `main`, y de ahí a Vercel, recién cuando Ángela la aprueba. La dirección está en `docs/DESIGN_DIRECTION.md`; lo que cambió y cómo se verificó, en `docs/REDESIGN_REVIEW.md`.
+Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se usa (24/11). Hecho con Claude Fable 5.2 y ajustado con Claude Opus en la rama `sprint-5`; Ángela lo aprobó y pasó a `main`, y de ahí a Vercel, el 25/11. La dirección está en `docs/DESIGN_DIRECTION.md`; lo que cambió y cómo se verificó, en `docs/REDESIGN_REVIEW.md`.
 
 - [x] Dirección de diseño en `docs/DESIGN_DIRECTION.md` (24/11): idea, decisiones, lenguaje visual, la pantalla, el resultado, el modal, el idioma y lo que no cambia.
 - [x] **Ángela:** aprobó la dirección (24/11).
 - [x] **Ángela:** primera prueba (25/11). Le gustaron el switch y las rayitas de los atributos; pidió cinco cambios, hechos ese día (abajo).
-- [ ] **Ángela:** probar los cambios con los pasos de abajo, antes de pasar la rama a `main`.
+- [x] **Ángela:** probó los cambios y aprobó el sprint (25/11): «terminó el S5».
 - [x] **Ángela:** confirmó que el modal nuevo entra bien en su pantalla (25/11).
 - [x] Lenguaje visual nuevo en toda la app: colores propios como variables, Barlow y Barlow Condensed servidas desde la app, una sola familia de íconos y estados claros. Se fueron los emojis de los atributos y las etiquetas «Filter: …» y «Sort: …».
 - [x] Tarjetas con la foto un poco más grande: 48 px en la computadora y 40 en el teléfono.
@@ -176,11 +176,11 @@ Objetivo: que la app se vea más moderna, prolija y animada sin cambiar cómo se
   - El análisis completo arranca «En palabras», con una frase por tema (si un equipo no tiene GK, dice quién ataja bien y cuántas más pueden); las barras van sin números y el score se explica línea por línea, solo con lo que lo movió.
   - La pelota del switch: en inglés, el logo tal cual; en castellano, sus colores se intercambian con un fundido.
 - [x] Rojo y Negro en vez de Team 1 y Team 2 (pedido de Ángela, 25/11): ROJO en rojo y NEGRO en negro, sobre una etiqueta gris clara; el Rojo con línea roja y fondo apenas rojo, el Negro con fondo negro; en el análisis, barras rojas hacia el Rojo y negras hacia el Negro. En las frases, ROJO y NEGRO en mayúscula, en su color y sin artículo, sin pill; NEGRO en negro puro, sobre una tarjeta de resultado un toque más clara. Las barras de la comparación, sobre fondo blanco, con ROJO y NEGRO arriba sin pill. El Negro lleva una línea gris arriba, como la roja del Rojo (RED y BLACK en inglés). «Copiar equipos» queda como estaba.
-- [x] Verificado: lint, tipos, 103 tests, build y pruebas en Edge contra una API local, en tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado: 57 chequeos del rediseño en cada tamaño, más las suites de la pantalla única (Sprint 3b) y del penal (Sprint 4), que siguen pasando, y una corrida a escala real con 61 jugadoras inventadas.
+- [x] Verificado: lint, tipos, 104 tests, build y pruebas en Edge contra una API local, en tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado: 57 chequeos del rediseño en cada tamaño, más las suites de la pantalla única (Sprint 3b) y del penal (Sprint 4), que siguen pasando, y una corrida a escala real con 61 jugadoras inventadas.
 
-Prueba (en tu computadora, con la rama `sprint-5`; todavía no está en Vercel):
+Prueba (desde el 25/11, en https://armaduki.vercel.app; antes, en local con la rama `sprint-5`):
 
-1. En la terminal del proyecto: `npm run dev`, y abrí la dirección «Local» que muestra. Si entra directo, sin el penal, es porque ese navegador ya tiene la clave guardada para esa dirección: para ver el penal, abrila en una ventana privada. Para verla desde el teléfono, en la misma wifi: `npm run dev -- --host` y abrí la dirección «Network».
+1. Abrí https://armaduki.vercel.app. Si entra directo, sin el penal, es porque ese navegador ya tiene la clave guardada: para ver el penal, abrilo en una ventana privada.
 2. En el penal, tocá el switch de la esquina: los textos pasan a castellano. Entrá con la clave.
 3. Mirá la pantalla: las pills de rol con sus colores de siempre y, al pasar el mouse por una tarjeta, el lápiz arriba y el tacho abajo. Tocá el switch EN / ES del header: la pelota rueda y, en castellano, sus colores se invierten con un fundido. Recargá: sigue en el idioma que elegiste.
 4. Elegí 10: con la décima suben arriba y el menú de orden dice «Selected». Sacá una y elegí otra. «Clear» → «Clear Selection» devuelve el orden que tenías.
@@ -188,7 +188,7 @@ Prueba (en tu computadora, con la rama `sprint-5`; todavía no está en Vercel):
 6. Para ver el fallback: elegí 10 con 3 GK. Arriba del resultado aparece por qué, qué se rompió y qué se mantuvo, y lo único rojo es lo roto.
 7. Tocá «+ Add Player» y después el lápiz de una jugadora: el modal nuevo, compacto, con apodo, nombre y camiseta en una fila y las listas de wants y avoids al lado del juego. Guardar escribe en la planilla, como siempre.
 8. Privacy mode (tres toques en el ojo del pie): prendido, no se ven ratings, Power ni la diferencia de rating del resumen.
-9. Si te gusta, decime y la paso a `main`. Si algo no, decime qué.
+9. Si algo no te cierra, decime qué.
 
 ## Sprint 6 - Campos de jugadora
 

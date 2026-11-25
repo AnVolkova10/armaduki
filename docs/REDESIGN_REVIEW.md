@@ -1,6 +1,6 @@
 # Revisión del rediseño
 
-Fecha: 24/11/2026, con los ajustes del 25/11 después de la primera prueba de Ángela. Rama `sprint-5`, sin pasar a `main` ni a Vercel hasta que ella la apruebe. La dirección está en [DESIGN_DIRECTION.md](DESIGN_DIRECTION.md).
+Fecha: 24/11/2026, con los ajustes del 25/11 después de las pruebas de Ángela, que lo aprobó ese día: pasó de la rama `sprint-5` a `main` y a Vercel. La dirección está en [DESIGN_DIRECTION.md](DESIGN_DIRECTION.md).
 
 ## Qué cambió
 
