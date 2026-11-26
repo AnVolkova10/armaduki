@@ -260,14 +260,20 @@ Prueba (en https://armaduki.vercel.app):
 
 ## Sprint 8 - Wants y avoids con historial
 
-Objetivo: elegir relaciones más rápido, empezando por las de siempre.
+Objetivo: elegir relaciones más rápido, empezando por las de siempre. Decidido con Ángela el 25/11 (falta una respuesta, en «Cosas por cerrar»).
 
-- [ ] Confirmar el contrato de la pestaña `RelationshipHistory` (F2-07.1). Un «no quiero» se guarda como avoid (F2-07.3).
-- [ ] Apps Script: al agregar un want o un avoid nuevo, sumar 1 a su contador (F2-07.5).
-- [ ] Leer el historial con la acción `readRelationshipHistory` y valores por defecto si está vacío (F2-07.2, F2-07.4). Sin historial, el selector funciona igual (F2-07.6).
-- [ ] Buscador en los selectores de Wants y Avoids (F2-08.1, F2-08.2).
-- [ ] Orden del selector: seleccionadxs primero, después el historial del par, después la popularidad general y, si empatan, alfabético (F2-08.3 a F2-08.6).
-- [ ] Mantener las pistas de relación inversa (F2-08.7) y validar en el teléfono: listas con scroll y botones legibles (F2-08.8).
+- [ ] **Historial** (F2-07.1, F2-07.3, F2-07.5): la pestaña `RelationshipHistory`, con el contrato de la v1 (`sourceId`, `targetId`, `wantsCount`, `avoidsCount`, `updatedAt`). El backend suma 1 cada vez que un guardado trae un want o un avoid que esa persona no tenía, también al volver a marcarlo después de limpiarlo. Guarda quién marcó a quién, nunca resta y arranca vacío. «Clear Wants», «Clear Avoids» y «Clear Links» no lo borran: para empezar de cero se borran filas a mano en la pestaña. Un «no quiero» es un avoid.
+- [ ] Publicar el backend con `npm run backend:release` (versión 23).
+- [ ] **Lectura** (F2-07.2, F2-07.4, F2-07.6): el historial llega en `readAll`, con su propia clave. Vacío, o con un backend anterior, las listas andan igual.
+- [ ] **Buscador** (F2-08.1, F2-08.2): uno solo, arriba de las dos listas. Filtra Wants y Avoids a la vez, por apodo o nombre y sin acentos, como el de la lista principal.
+- [ ] **Orden de cada lista** (F2-08.3 a F2-08.6), fijo al abrir el modal (buscar o tocar un botón no mueve a los demás):
+  1. Lxs que esa persona ya tiene marcadxs, como hoy.
+  2. Lxs que hoy la marcan a ella: al abrir a B, si A quiere a B, A aparece arriba en los Wants de B; lo mismo con los avoids. Pedido de Ángela: a veces el want se carga del lado que es más rápido, y en realidad era al revés.
+  3. Los de siempre, contando las dos direcciones: que A haya querido a B suma en la lista de A y en la de B. Más veces, más arriba.
+  4. Solo en Wants: lxs que más veces estuvieron en un want, de cualquier lado (la popularidad general). En Avoids no, para no poner a las mismas personas arriba de la lista de todxs.
+  5. El resto, por apodo (hoy van en el orden de la planilla).
+- [ ] Se nota solo en el orden, sin números ni marcas. Siguen las pistas de quién lx quiere o lx evita (F2-08.7), y lxs inactivxs afuera salvo que ya estén marcadxs.
+- [ ] Validar en el teléfono: el buscador, las listas con scroll y los botones legibles (F2-08.8).
 - [ ] Al cerrar: los selectores buscan y ordenan por historial cuando existe (criterio de cierre de la Fase 2).
 
 ## Sprint 9 - Historial de partidos
@@ -302,6 +308,7 @@ Objetivo: que lxs que juegan juntxs en un equipo real tiendan a caer juntxs, sin
 - [x] **«Fable 2.5».** Era Claude Fable 5.2, el modelo del rediseño de VolkosFood (24/11).
 - [x] **Default de arquerx (`gkWillingness`).** `no` en los dos (25/11): el modal crea jugadorxs con `no`, igual que una fila de la planilla sin el dato (RV-14), así lo desconocido no cuenta como arquerx de emergencia. Se hace en el Sprint 6.
 - [x] **Qué oculta privacy mode** (RV-12). Se aplicó el default (20/11): oculta también el total de rating de cada equipo en el análisis. La diferencia entre equipos se sigue viendo, porque el score la necesita para entenderse.
+- [ ] **Wants y avoids: ¿para cada partido o fijos?** El historial del Sprint 8 cuenta cada want o avoid nuevo, así que sirve si se marcan para cada partido y después se limpian. Si quedan fijos por meses, casi no se mueve: el sprint se achica al buscador y el orden, sin backend. Decide: Ángela. Default: el sprint completo, con historial.
 - [ ] **Guardar partidos: automático o con botón** (F2-11.4). Decide: Ángela. Default: botón explícito, con «prueba» o «partido real».
 - [ ] **Alcance** (F2-12.6): uso personal o abrir a más grupos. Cambia cuánto pesan la clave, los roles y el multi-grupo. Decide: Ángela. Default: uso personal.
 - [ ] **Requisitos dudosos de la v1:** «sugerencia #1 no entendida» (F2-12.7) y «pregunta #10 no entendida» (F2-12.8). Decide: Ángela. Default: se descartan si nadie los recuerda.
