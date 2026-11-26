@@ -50,13 +50,18 @@ Current migration status:
 - `Players` is the canonical players sheet name.
 - Legacy `db` is only used as a migration source.
 - If neither `Players` nor `db` exists, the script creates `Players` with the current player headers.
-- `ensureSchema()` creates missing `Teams`, `Groups`, `RelationshipHistory`, and `MatchHistory` sheets.
+- `ensureSchema()` creates missing `Teams`, `Groups`, `RelationshipHistory`, `MatchHistory` and `MatchPlayers` sheets.
 - `ensureSchema()` appends missing columns to the end of existing header rows and does not reorder or delete existing data.
 - `action=migrateSchema` runs `ensureSchema()` explicitly from the deployed web app URL.
 - `action=migratePlayersSheet` remains available as a focused legacy rename action.
 - `action=readTeams` returns the `Teams` catalog for the frontend with safe defaults.
 - Every action checks `ACCESS_KEY` first (see above): reads, saves and migrations.
 - `action=readAll` returns `{ players, teams, groups, relationshipHistory }` in one execution; the app uses it on open. A `Teams`, `Groups` or `RelationshipHistory` failure comes back as `teamsError`, `groupsError` or `relationshipHistoryError` and does not block the players. The `groups` key is always there from Sprint 6 on: the app reads it as the sign that the backend saves groups, birth dates and new teams and groups, and hides them with an older backend. The `relationshipHistory` key is always there from Sprint 8 on (version 23); without it the form's lists skip the history in their order.
+- From Sprint 9 on (version 24), `readAll` also returns `capabilities: ['matches']`, the sign that this backend saves matches (the app hides «Matches» without it), and `highestPlayerId`: the highest numeric player id this backend knows was ever used, counting the players, their links, `RelationshipHistory` and the script property `HIGHEST_PLAYER_ID`, which every `delete` and every `saveMatch` raise (so the id of a player who played a match stays taken even if their row is deleted by hand). The app picks new ids above it, so a new player never takes over the matches or the history of a deleted one. A failure there leaves `highestPlayerId` out; the app then counts only what it has.
+- `action=readMatches` (Sprint 9) returns `{ matches }`: every `MatchHistory` row with its `MatchPlayers` rows nested as `players`. Matches are read when the app opens «Matches», never with `readAll`, so opening the app does not grow with the history. Rows without `matchId` (or player rows without `playerId`) are skipped; player rows of a match that has no `MatchHistory` row are ignored.
+- `saveMatch` (POST, `{ action: 'saveMatch', match }`) creates or replaces a whole match: the `MatchHistory` row (found by `matchId`) and every `MatchPlayers` row of that match (the old ones are deleted, the new ones appended), so a retry never duplicates anything. `team1Ids`, `team2Ids` and `selectedIds` are written from the players' sides. Answers `Saved`.
+- `deleteMatch` (POST, `{ action: 'deleteMatch', matchId }`) deletes the match row and its player rows. Answers `Deleted`, or `Match not found` when it is already gone (the app treats that as deleted).
+- Match cells that hold text (ids, dates, timestamps, nicknames, place, origin, links, attributes) are written with the leading apostrophe, so `2026-10-13`, a place like `5/11` or an id like `2026-11` stay as typed. Goals and counters are numbers; a match with no result yet leaves `team1Goals` and `team2Goals` empty, and `readMatches` answers `null` for them (a 0 stays 0).
 - `add` and `update` count new links in `RelationshipHistory` (Sprint 8): 1 more for each want or avoid the player did not have before, in the direction it was marked (`sourceId` marked `targetId`), also when one cleared earlier is marked again. Removing a link or clearing them never takes anything away, and a player never counts for themselves. One row per pair; a typed row is picked up and counted on. Ids and `updatedAt` go as text (with the apostrophe), so a timestamp never turns into a date. The player row is written first: a problem with the history never undoes a save, it only leaves that save uncounted. An unknown action answers `{ error: 'Action unknown' }`, which the app uses to fall back to `read` + `readTeams` on older versions.
 - `update` writes only the cells it receives. Writing the rest of the row back would make Sheets parse its text again (a birth date kept as `1994-03` would become 1 March 1994, a shirt number `007` would become `7`).
 - `birthDate`, `notes` and `shirtNumber` are written with a leading apostrophe, which keeps the cell as text and is not part of its value; so are the ids and names of new teams and groups. A date typed by hand in `birthDate` is read back as `yyyy-MM-dd` in the spreadsheet's time zone.
@@ -69,8 +74,8 @@ Current migration status:
 
 Write answers (plain text, checked by the frontend):
 
-- `Added`, `Updated`, `Deleted`: success.
-- `ID not found`: delete of a row that is already gone; the frontend treats it as deleted.
+- `Added`, `Updated`, `Deleted`, `Saved`: success.
+- `ID not found` and `Match not found`: delete of a row that is already gone; the frontend treats it as deleted.
 - `ID not found for update`, `Action unknown`, `Error: ...`: failure; the frontend shows it with a `Retry` button.
 
 Sheet schemas:
@@ -139,12 +144,34 @@ Safety note: `update` payloads only contain the fields that changed in the app (
 
 ### MatchHistory
 
-- `matchId`: required unique match history id.
-- `createdAt`: required timestamp.
-- `selectedIds`: pipe-separated selected `Players.id` values.
-- `team1Ids`: pipe-separated Team 1 ids.
-- `team2Ids`: pipe-separated Team 2 ids.
-- `score`: generated analysis score.
-- `stage`: `STRICT`, `RELAXED_UNILATERAL`, `RELAXED_MUTUAL`, or `FALLBACK`.
-- `socialSatisfactionPct`: number from `0` to `100`.
-- `isTest`: `true` for test generations, `false` for real/final matches.
+One row per match played (Sprint 9), whoever built the teams: the app, Ángela or someone else. The v1 columns stay and the Sprint 9 ones are added after them (`SCHEMA_CACHE_KEY` is `armaduki-schema-v3`).
+
+- `matchId`: required unique match id, picked by the app.
+- `createdAt`: when it was first saved, as text (ISO 8601, UTC).
+- `selectedIds`: pipe-separated `Players.id` values of everyone who played.
+- `team1Ids`: pipe-separated ids of ROJO (RED).
+- `team2Ids`: pipe-separated ids of NEGRO (BLACK).
+- `score`: what the analysis measured when it was saved; empty when there was no analysis (only 5 against 5 is measured).
+- `stage`: `STRICT` or `FALLBACK` when the teams are exactly the ones the app made; empty otherwise. `RELAXED_UNILATERAL` and `RELAXED_MUTUAL` are v1 values that no longer occur.
+- `socialSatisfactionPct`: number from `0` to `100`, from the same analysis; empty without one.
+- `isTest`: always `false`. There are no test matches: every saved match counts, and one that was not played is deleted.
+- `date`: the day it was played, `yyyy-MM-dd`, as text.
+- `groupId`: optional `Groups.groupId`.
+- `place`: where it was played, free text. The app starts it with the group's `place` and it can change per match.
+- `team1Goals`, `team2Goals`: the result. Both empty while it has no result yet.
+- `team1KeeperId`, `team2KeeperId`: the side's fixed keeper. Empty means that side rotated in goal.
+- `origin`: `app` (the teams the app made, unchanged), `edited` (made by the app, changed by hand) or `manual` (built by hand).
+- `updatedAt`: when it was last saved, as text (ISO 8601, UTC).
+
+### MatchPlayers
+
+One row per player per match (Sprint 9), for the statistics.
+
+- `matchId`: the `MatchHistory.matchId`.
+- `playerId`: the `Players.id` of that day.
+- `nickname`: their nickname that day, so a deleted player still shows in old matches.
+- `team`: `1` (ROJO) or `2` (NEGRO).
+- `goals`: goals they scored.
+- `conceded`: goals they let in. With a fixed keeper, the keeper gets the other side's goals and the rest of the side 0; when the side rotated, each one's own count.
+- `errors`: errors that ended in a goal. Private: the app hides them with privacy mode.
+- `role`, `secondaryRole`, `rating`, `attributes`, `gkWillingness`, `wantsWith`, `avoidsWith`: how the player was when the match was saved (the links only with others in that match). The analysis of an old match uses these, so it does not change when ratings change later.

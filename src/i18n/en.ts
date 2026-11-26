@@ -1,6 +1,16 @@
 // English, the app's default language. `es.ts` has the same shape (the type checks it).
 // Plain TypeScript with no imports from the UI, so `npm test` can load it in Node.
-import type { Attributes, BalanceLabel, CoverRole, FallbackCause, Favors, HardRule, RuleIssue, TeamLabel } from '../types/index.ts';
+import type {
+    Attributes,
+    BalanceLabel,
+    CoverRole,
+    FallbackCause,
+    Favors,
+    HardRule,
+    MatchOrigin,
+    RuleIssue,
+    TeamLabel,
+} from '../types/index.ts';
 
 // The two sides are named by the colour of their bibs (25/11): T1 is RED, T2 is BLACK.
 const team = (label: TeamLabel): string => (label === 'T1' ? 'RED' : 'BLACK');
@@ -415,6 +425,73 @@ export const en = {
         copySecond: 'Copy Second Option',
     },
 
+    // Matches as they were played (Sprint 9): the list, and a match built or changed by hand.
+    matches: {
+        nav: 'Matches',
+        navBack: 'Players',
+        title: 'Matches',
+        newMatch: '+ New Match',
+        logMatch: 'Log Match',
+        viewMatch: 'View Match',
+        loading: 'Loading matches from Google Sheets',
+        empty: 'No matches yet.',
+        emptyHint: 'Log one with + New Match, or from the teams with Log Match.',
+        unsupported: 'The backend in use does not save matches yet.',
+        notFound: 'That match is not here anymore.',
+        weekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+        won: (side: TeamLabel, winner: number, loser: number) => `${tok(side)} won ${winner}–${loser}`,
+        draw: (goals: number) => `Draw ${goals}–${goals}`,
+        noResult: 'No result yet',
+        open: (day: string) => `Open the match of ${day}`,
+        deleteMatch: (day: string) => `Delete the match of ${day}`,
+        count: (total: number) => (total === 1 ? '1 match' : `${total} matches`),
+
+        newTitle: 'New match',
+        origin: {
+            app: 'Teams by the app',
+            edited: 'Teams by the app, changed by hand',
+            manual: 'Teams built by hand',
+        } as Record<MatchOrigin, string>,
+        date: 'Date',
+        group: 'Group',
+        noGroup: 'No group',
+        place: 'Place',
+        placeHint: 'Where it was played',
+        result: 'Result',
+        goalsOf: (side: TeamLabel) => `Goals of ${team(side)}`,
+        addPlayers: 'Add players',
+        search: 'Search a player to add',
+        noOneFound: 'Nobody by that name',
+        allIn: 'Already in the match',
+        addTo: (side: TeamLabel) => `Add to ${team(side)}`,
+        keeper: 'In goal',
+        rotate: 'They rotate',
+        keeperTag: 'in goal',
+        nobodyYet: 'Nobody yet',
+        move: (nickname: string) => `Move ${nickname} to the other team`,
+        remove: (nickname: string) => `Take ${nickname} out`,
+        goals: 'Goals',
+        conceded: 'Conceded',
+        errors: 'Errors',
+        less: (what: string, nickname: string) => `One less: ${what}, ${nickname}`,
+        more: (what: string, nickname: string) => `One more: ${what}, ${nickname}`,
+        scorers: (named: number, total: number) => `Goals with a name: ${named} of ${total}`,
+
+        measureTitle: 'How even it is',
+        needsFive: (team1: number, team2: number) =>
+            `The analysis needs 5 per team: ${tok('T1')} has ${team1} and ${tok('T2')} has ${team2}.`,
+        brokenTitle: (count: number) => (count === 1 ? 'This split breaks a rule' : `This split breaks ${count} rules`),
+        manualBrokenNote: 'This split breaks them',
+
+        save: 'Save Match',
+        needsPlayers: 'Add at least one player to each team.',
+        needsDate: 'Pick the day it was played.',
+        waits: 'Matches wait for the players to load from Google Sheets',
+        deleteTitle: 'Delete match?',
+        deleteMessage: 'This removes the match and its goals from this app and from the sheet.',
+        deleteLabel: 'Delete',
+    },
+
     // Written by the store when something happens, in the language of that moment.
     store: {
         missingUrl: 'Missing VITE_APPS_SCRIPT_URL. Add it to .env (local) or to the Vercel environment variables.',
@@ -440,6 +517,9 @@ export const en = {
         groupsError: 'Error loading groups from Google Sheets',
         couldntAddTeam: (name: string) => `Couldn't save the new team "${name}" to Google Sheets.`,
         couldntAddGroup: (name: string) => `Couldn't save the new group "${name}" to Google Sheets.`,
+        couldntLoadMatches: (detail: string) => `Error loading matches from Google Sheets. ${detail}`,
+        couldntSaveMatch: (day: string) => `Couldn't save the match of ${day} to Google Sheets.`,
+        couldntDeleteMatch: (day: string) => `Couldn't delete the match of ${day} in Google Sheets.`,
     },
 };
 

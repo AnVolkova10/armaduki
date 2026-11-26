@@ -267,6 +267,8 @@ type ReadAll = {
   teamsError?: string;
   groupsError?: string;
   relationshipHistoryError?: string;
+  capabilities?: string[];
+  highestPlayerId?: number;
 };
 
 test('the sheet stand-in turns date-like text into dates, like Sheets, unless it starts with an apostrophe', () => {
@@ -508,4 +510,256 @@ test('a broken history never undoes a save, and readAll still returns the player
 test('readAll always answers the history: the app reads the key as a backend that counts links', () => {
   const fresh = get(loadAppsScript([createSheet('Players', [HEADERS, ana])]), 'readAll') as ReadAll;
   assert.deepEqual(fresh.relationshipHistory, [], 'no tab yet: an empty list');
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 9: matches as they were played (MatchHistory) and their players (MatchPlayers).
+// ---------------------------------------------------------------------------
+
+const V1_MATCH_HEADERS = ['matchId', 'createdAt', 'selectedIds', 'team1Ids', 'team2Ids', 'score', 'stage', 'socialSatisfactionPct', 'isTest'];
+const SPRINT_9_MATCH_HEADERS = ['date', 'groupId', 'place', 'team1Goals', 'team2Goals', 'team1KeeperId', 'team2KeeperId', 'origin', 'updatedAt'];
+const MATCH_PLAYER_HEADERS = ['matchId', 'playerId', 'nickname', 'team', 'goals', 'conceded', 'errors', 'role', 'secondaryRole', 'rating', 'attributes', 'gkWillingness', 'wantsWith', 'avoidsWith'];
+type MatchAnswer = { matches: (Record<string, unknown> & { players: Rows })[] };
+
+const matchPlayer = (playerId: string, nickname: string, team: 1 | 2, extra: Record<string, unknown> = {}) => ({
+  playerId,
+  nickname,
+  team,
+  goals: 0,
+  conceded: 0,
+  errors: 0,
+  role: 'MID',
+  secondaryRole: '',
+  rating: 5,
+  attributes: { pace: 'high' },
+  gkWillingness: 'no',
+  wantsWith: '',
+  avoidsWith: '',
+  ...extra,
+});
+// Every text that Sheets would turn into a date if it went without the apostrophe.
+const sample = {
+  matchId: 'm20261013-ab12',
+  createdAt: '2026-10-13T23:10:00.000Z',
+  updatedAt: '2026-10-13T23:10:00.000Z',
+  date: '2026-10-13',
+  groupId: '2026-11',
+  place: '5/11',
+  team1Goals: 5,
+  team2Goals: 3,
+  team1KeeperId: '1',
+  team2KeeperId: '',
+  origin: 'manual',
+  stage: '',
+  score: 52.5,
+  socialSatisfactionPct: 80,
+  players: [
+    matchPlayer('1', 'Ana', 1, { role: 'GK', conceded: 3, gkWillingness: 'good' }),
+    matchPlayer('2', 'Bea', 1, { goals: 2, wantsWith: '3|9' }),
+    matchPlayer('3', 'Cami', 2, { goals: 1, conceded: 2, errors: 1 }),
+    matchPlayer('4', 'Dani', 2, { conceded: 1 }),
+  ],
+};
+const matchesOf = (env: ReturnType<typeof loadAppsScript>) => (get(env, 'readMatches') as MatchAnswer).matches;
+const saveMatch = (env: ReturnType<typeof loadAppsScript>, match: unknown) => post(env, { action: 'saveMatch', match });
+
+test('the first read after the release adds the match columns after the v1 ones and the MatchPlayers tab', () => {
+  const history = createSheet('MatchHistory', [V1_MATCH_HEADERS]);
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana]), history], {
+    cacheEntries: { 'armaduki-schema-v2': 'ok' },
+  });
+
+  get(env, 'readAll');
+
+  assert.deepEqual(history.data()[0], [...V1_MATCH_HEADERS, ...SPRINT_9_MATCH_HEADERS]);
+  assert.deepEqual(env.sheet('MatchPlayers')?.data()[0], MATCH_PLAYER_HEADERS);
+});
+
+test('saveMatch writes one row for the match and one per player, with every text kept as text', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana, bea])]);
+
+  assert.equal(saveMatch(env, sample), 'Saved');
+
+  const [row, ...others] = env.sheet('MatchHistory')!.records();
+  assert.equal(others.length, 0);
+  assert.deepEqual(
+    [row.matchId, row.createdAt, row.updatedAt, row.date, row.groupId, row.place],
+    ['m20261013-ab12', '2026-10-13T23:10:00.000Z', '2026-10-13T23:10:00.000Z', '2026-10-13', '2026-11', '5/11'],
+  );
+  assert.deepEqual([row.selectedIds, row.team1Ids, row.team2Ids], ['1|2|3|4', '1|2', '3|4'], 'the sides come from the players');
+  assert.deepEqual([row.team1Goals, row.team2Goals, row.team1KeeperId, row.team2KeeperId], [5, 3, '1', '']);
+  assert.deepEqual([row.score, row.stage, row.socialSatisfactionPct, row.isTest, row.origin], [52.5, '', 80, false, 'manual']);
+
+  const players = env.sheet('MatchPlayers')!.records();
+  assert.deepEqual(
+    players.map((player) => [player.matchId, player.playerId, player.nickname, player.team, player.goals, player.conceded, player.errors]),
+    [
+      ['m20261013-ab12', '1', 'Ana', 1, 0, 3, 0],
+      ['m20261013-ab12', '2', 'Bea', 1, 2, 0, 0],
+      ['m20261013-ab12', '3', 'Cami', 2, 1, 2, 1],
+      ['m20261013-ab12', '4', 'Dani', 2, 0, 1, 0],
+    ],
+  );
+  assert.deepEqual([players[0].role, players[0].gkWillingness, players[0].rating], ['GK', 'good', 5]);
+  assert.equal(players[1].wantsWith, '3|9');
+  assert.equal(players[0].attributes, '{"pace":"high"}');
+  const cells = [...env.sheet('MatchHistory')!.data().flat(), ...env.sheet('MatchPlayers')!.data().flat()];
+  assert.ok(cells.every((cell) => !(cell instanceof Date)), 'no cell turned into a date');
+});
+
+test('readMatches nests the players; no result reads as null and a 0 stays 0', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])]);
+  saveMatch(env, sample);
+  saveMatch(env, { ...sample, matchId: 'goalless', team1Goals: 0, team2Goals: 0 });
+  saveMatch(env, { ...sample, matchId: 'not-played-yet', team1Goals: null, team2Goals: '', score: null });
+
+  const matches = Object.fromEntries(matchesOf(env).map((match) => [String(match.matchId), match]));
+
+  assert.deepEqual([matches.goalless.team1Goals, matches.goalless.team2Goals], [0, 0]);
+  assert.deepEqual([matches['not-played-yet'].team1Goals, matches['not-played-yet'].team2Goals], [null, null]);
+  assert.equal(matches['not-played-yet'].score, null);
+  const first = matches['m20261013-ab12'];
+  assert.deepEqual(
+    [first.date, first.groupId, first.place, first.team1KeeperId, first.team2KeeperId, first.origin, first.score, first.socialSatisfactionPct],
+    ['2026-10-13', '2026-11', '5/11', '1', '', 'manual', 52.5, 80],
+  );
+  assert.deepEqual(first.players[2], {
+    playerId: '3',
+    nickname: 'Cami',
+    team: 2,
+    goals: 1,
+    conceded: 2,
+    errors: 1,
+    role: 'MID',
+    secondaryRole: '',
+    rating: 5,
+    attributes: '{"pace":"high"}',
+    gkWillingness: 'no',
+    wantsWith: '',
+    avoidsWith: '',
+  });
+});
+
+test('saving a match again replaces it: one row, its players replaced, the other matches untouched', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])]);
+  const other = { ...sample, matchId: 'other', date: '2026-10-06' };
+  saveMatch(env, sample);
+  saveMatch(env, other);
+  assert.equal(saveMatch(env, sample), 'Saved', 'a retry');
+  assert.equal(env.sheet('MatchHistory')!.records().length, 2);
+  assert.equal(env.sheet('MatchPlayers')!.records().length, 8, 'a retry duplicates nothing');
+
+  // One of them was not there after all, and ROJO scored one more.
+  saveMatch(env, { ...sample, team1Goals: 6, updatedAt: '2026-10-14T10:00:00.000Z', players: sample.players.slice(0, 3) });
+
+  const matches = Object.fromEntries(matchesOf(env).map((match) => [String(match.matchId), match]));
+  assert.equal(env.sheet('MatchHistory')!.records().length, 2);
+  assert.equal(matches[sample.matchId].team1Goals, 6);
+  assert.equal(matches[sample.matchId].updatedAt, '2026-10-14T10:00:00.000Z');
+  assert.deepEqual(matches[sample.matchId].players.map((player) => player.nickname), ['Ana', 'Bea', 'Cami']);
+  assert.deepEqual(matches.other.players.map((player) => player.nickname), ['Ana', 'Bea', 'Cami', 'Dani']);
+  assert.equal(env.sheet('MatchHistory')!.records().find((row) => row.matchId === sample.matchId)?.team2Ids, '3');
+});
+
+test('an edit keeps a column added by hand to MatchHistory exactly as it was', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])]);
+  saveMatch(env, sample);
+  const history = env.sheet('MatchHistory')!;
+  history.getRange(1, history.getLastColumn() + 1, 2, 1).setValues([['notes'], ["'1/2"]]);
+
+  saveMatch(env, { ...sample, team1Goals: 6 });
+
+  const [row] = history.records();
+  assert.equal(row.notes, '1/2');
+  assert.equal(row.team1Goals, 6);
+});
+
+test('deleteMatch takes out the match and its players; deleting it again answers Match not found', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])]);
+  saveMatch(env, sample);
+  saveMatch(env, { ...sample, matchId: 'other' });
+
+  assert.equal(post(env, { action: 'deleteMatch', matchId: sample.matchId }), 'Deleted');
+
+  assert.deepEqual(matchesOf(env).map((match) => match.matchId), ['other']);
+  assert.ok(env.sheet('MatchPlayers')!.records().every((row) => row.matchId === 'other'));
+  assert.equal(post(env, { action: 'deleteMatch', matchId: sample.matchId }), 'Match not found');
+});
+
+test('saveMatch and deleteMatch need a match and its id, and run under the script lock', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana])]);
+  assert.equal(post(env, { action: 'saveMatch' }), 'Error: missing match');
+  assert.equal(saveMatch(env, { ...sample, matchId: ' ' }), 'Error: missing matchId');
+  assert.equal(post(env, { action: 'deleteMatch' }), 'Error: missing matchId');
+  assert.deepEqual(env.lockEvents, ['lock', 'unlock', 'lock', 'unlock', 'lock', 'unlock']);
+});
+
+test('readMatches skips rows without ids and the players of a match that is not there', () => {
+  const history = createSheet('MatchHistory', [
+    [...V1_MATCH_HEADERS, ...SPRINT_9_MATCH_HEADERS],
+    ['typed', '', '', '', '', '', '', '', '', new Date(Date.UTC(2026, 9, 13, 3)), '', 'Club', 3, '', '', '', 'manual', ''],
+    ['', '', '', '', '', '', '', '', '', "'2026-11-20", '', '', '', '', '', '', '', ''],
+  ]);
+  const players = createSheet('MatchPlayers', [
+    MATCH_PLAYER_HEADERS,
+    ['typed', '7', 'Gabi', '2', 1, '', '', 'ATT', '', 7, '', '', '', ''],
+    ['typed', '', 'Nobody', 1, 0, 0, 0, '', '', '', '', '', '', ''],
+    ['ghost', '8', 'Hana', 1, 0, 0, 0, '', '', '', '', '', '', ''],
+  ]);
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana]), history, players]);
+
+  const matches = matchesOf(env);
+
+  assert.equal(matches.length, 1);
+  assert.equal(matches[0].date, '2026-10-13', 'a date typed by hand reads as that day in the sheet time zone');
+  assert.deepEqual([matches[0].team1Goals, matches[0].team2Goals], [3, null]);
+  assert.deepEqual(matches[0].players, [
+    {
+      playerId: '7',
+      nickname: 'Gabi',
+      team: 2,
+      goals: 1,
+      conceded: 0,
+      errors: 0,
+      role: 'ATT',
+      secondaryRole: '',
+      rating: 7,
+      attributes: '',
+      gkWillingness: '',
+      wantsWith: '',
+      avoidsWith: '',
+    },
+  ]);
+});
+
+test('readAll says this backend saves matches, and gives the highest player id ever used', () => {
+  const history = createSheet('RelationshipHistory', [HISTORY_HEADERS, ['20', '2', 1, 0, '']]);
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana, bea])]);
+  let all = get(env, 'readAll') as ReadAll;
+  assert.deepEqual(all.capabilities, ['matches']);
+  assert.equal(all.highestPlayerId, 2, 'Ana (1) and Bea (2), and Ana wants 2');
+
+  assert.equal(post(env, { action: 'add', id: '9', nickname: 'Isa' }), 'Added');
+  assert.equal(post(env, { action: 'delete', id: '9' }), 'Deleted');
+  assert.equal(post(env, { action: 'delete', id: '1' }), 'Deleted');
+  all = get(env, 'readAll') as ReadAll;
+  assert.equal(all.highestPlayerId, 9, 'a deleted id is never handed out again');
+  assert.equal(env.property('HIGHEST_PLAYER_ID'), '9', 'a lower id deleted later does not lower it');
+
+  const withHistory = loadAppsScript([createSheet('Players', [HEADERS, ana]), history], {
+    scriptProperties: { HIGHEST_PLAYER_ID: '12' },
+  });
+  assert.equal((get(withHistory, 'readAll') as ReadAll).highestPlayerId, 20, 'ids in the link history count too');
+  const fresh = loadAppsScript([createSheet('Players', [HEADERS])]);
+  assert.equal((get(fresh, 'readAll') as ReadAll).highestPlayerId, -1, 'no ids at all');
+});
+
+test('a player who played a match keeps their id taken, even if their row is deleted by hand', () => {
+  const players = createSheet('Players', [HEADERS, ana, bea]);
+  const env = loadAppsScript([players]);
+  saveMatch(env, { ...sample, players: [matchPlayer('1', 'Ana', 1), matchPlayer('30', 'Gone', 2)] });
+  assert.equal(env.property('HIGHEST_PLAYER_ID'), '30');
+  assert.equal((get(env, 'readAll') as ReadAll).highestPlayerId, 30, 'nobody has 30 in Players');
+  saveMatch(env, { ...sample, matchId: 'later', players: [matchPlayer('2', 'Bea', 1)] });
+  assert.equal(env.property('HIGHEST_PLAYER_ID'), '30', 'a lower id never lowers it');
 });

@@ -10,7 +10,9 @@ export type IconName =
     | 'trash'
     | 'search'
     | 'arrowDown'
-    | 'arrowUp';
+    | 'arrowUp'
+    | 'plus'
+    | 'minus';
 
 // One family of line icons, the same weight everywhere. Drawn here because the app's fonts only
 // carry Latin, so a typed check or arrow would fall back to a system font.
@@ -35,6 +37,8 @@ const SHAPES: Record<IconName, ReactNode> = {
     ),
     arrowDown: <path d="M12 5v14m-5-5l5 5 5-5" />,
     arrowUp: <path d="M12 19V5m-5 5l5-5 5 5" />,
+    plus: <path d="M12 5v14M5 12h14" />,
+    minus: <path d="M5 12h14" />,
 };
 
 export function Icon({ name, size = 16 }: { name: IconName; size?: number }) {

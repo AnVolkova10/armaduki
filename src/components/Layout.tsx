@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet, useLocation } from 'react-router-dom';
 import './Layout.css';
 
+import { useT } from '../i18n';
 import useAppStore from '../store/useAppStore';
 import { AppNotices } from './AppNotices';
 import { Gate } from './Gate';
@@ -11,6 +12,11 @@ export function Layout() {
     const privacyMode = useAppStore((state) => state.privacyMode);
     const togglePrivacyMode = useAppStore((state) => state.togglePrivacyMode);
     const access = useAppStore((state) => state.access);
+    const matchesSupported = useAppStore((state) => state.matchesSupported);
+    const location = useLocation();
+    const t = useT();
+    // The other screen, by its name (Sprint 9): «Matches» from the players, «Players» from the matches.
+    const onMatches = location.pathname === '/matches' || location.pathname.startsWith('/matches/');
 
     // The gate covers the app while the backend has not let this device in, and stays up
     // until its own exit (the goal) has played. It comes back if the device is locked again.
@@ -28,7 +34,14 @@ export function Layout() {
                     <h1 className="logo">armaduki</h1>
                     <img className="brand-ball" src="/ball.svg" alt="" aria-hidden="true" />
                 </div>
-                <LangSwitch />
+                <div className="header-end">
+                    {matchesSupported && access === 'open' && (
+                        <Link className="header-link" to={onMatches ? '/' : '/matches'}>
+                            {onMatches ? t.matches.navBack : t.matches.nav}
+                        </Link>
+                    )}
+                    <LangSwitch />
+                </div>
             </header>
             <main className="main">
                 {/* Locked: nothing of the roster is on screen, and nothing asks the backend. */}

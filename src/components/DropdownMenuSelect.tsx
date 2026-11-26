@@ -53,7 +53,10 @@ export function DropdownMenuSelect({
         };
 
         const handleEscape = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
+            if (event.key === 'Escape' && open) {
+                // An open menu takes Escape for itself: the match it sits in stays open (Sprint 9),
+                // since the modal listens on window, after the document.
+                event.stopPropagation();
                 setOpen(false);
             }
         };

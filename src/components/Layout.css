@@ -44,6 +44,38 @@
   transform: translateY(-1px);
 }
 
+.header-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* The other screen (Sprint 9): «Matches» from the players, «Players» from the matches. */
+.header-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 1px 10px 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  color: var(--text-2);
+  transition: color var(--t-press) ease, border-color var(--t-press) ease;
+}
+
+.header-link:hover {
+  color: var(--text);
+  border-color: var(--text-3);
+}
+
 .main {
   flex: 1;
   padding: 28px 32px 32px;

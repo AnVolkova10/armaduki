@@ -10,19 +10,24 @@ import {
   saveRead,
 } from '../services/deviceStorage';
 import type {
-  Attributes,
-  AttributeLevel,
   GeneratedTeams,
-  GKWillingness,
   GroupCatalog,
   LinkHistoryEntry,
+  Match,
   Person,
-  Role,
   TeamCatalog,
 } from '../types';
 import { normalizeBirthDate } from '../utils/birthDate';
 import { uniqueCatalogId } from '../utils/catalogIds';
 import { parseLinkHistory, recordNewLinks } from '../utils/linkHistory';
+import { formatDay, parseMatches, serializeMatch, sortMatches } from '../utils/matches';
+import {
+  parseAttributes,
+  validateGKWillingness,
+  validateRating,
+  validateRole,
+  validateSecondaryRole,
+} from '../utils/playerFields';
 
 // Google Apps Script Web App URL
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
@@ -36,10 +41,6 @@ const SYNC_REQUEST_TIMEOUT_MS = 60_000;
 
 // Players whose sheet row has no id get a placeholder that can never collide with real ids.
 const MISSING_ID_PREFIX = 'missing-id-row-';
-
-const DEFAULT_ROLE: Role = 'FLEX';
-const DEFAULT_RATING = 5;
-const DEFAULT_GK_WILLINGNESS: GKWillingness = 'no';
 
 function debugLog(...args: unknown[]) {
   if (import.meta.env.DEV) console.log(...args);
@@ -79,13 +80,19 @@ export interface FailedSyncOperation extends SyncOperation {
   detail: string;
 }
 
-// Next id = highest numeric id seen anywhere (players or their links) + 1, so a new player
-// never inherits wants/avoids that still point at the id of a deleted player.
-function getNextId(people: Person[]): string {
-  let maxId = -1;
+/** "12" is 12; an id that is not a whole number is -1. */
+function numericId(id: string): number {
+  return /^\d+$/.test(id) ? Number(id) : -1;
+}
+
+// Next id = highest numeric id seen anywhere + 1: the players and their links, and `floor`, the
+// highest id ever used as far as the backend and this visit know (deleted players included, since
+// Sprint 9). So a new player never inherits the links, the history or the matches of a deleted one.
+function getNextId(people: Person[], floor: number): string {
+  let maxId = floor;
   for (const person of people) {
     for (const id of [person.id, ...person.wantsWith, ...person.avoidsWith]) {
-      if (/^\d+$/.test(id)) maxId = Math.max(maxId, Number(id));
+      maxId = Math.max(maxId, numericId(id));
     }
   }
   return String(maxId + 1);
@@ -116,63 +123,6 @@ function parseArrayField(value: unknown): string[] {
 /** Relationship ids without duplicates and without the player's own id. */
 function parseRelationshipIds(value: unknown, ownId: string): string[] {
   return [...new Set(parseArrayField(value))].filter((id) => id !== ownId);
-}
-
-const ATTRIBUTE_KEYS: (keyof Attributes)[] = [
-  'shooting',
-  'control',
-  'passing',
-  'defense',
-  'pace',
-  'vision',
-  'grit',
-  'stamina',
-];
-
-const DEFAULT_ATTRIBUTES: Attributes = {
-  shooting: 'mid',
-  control: 'mid',
-  passing: 'mid',
-  defense: 'mid',
-  pace: 'mid',
-  vision: 'mid',
-  grit: 'mid',
-  stamina: 'mid',
-};
-
-function isAttributeLevel(value: unknown): value is AttributeLevel {
-  return value === 'high' || value === 'mid' || value === 'low';
-}
-
-function parseAttributes(value: unknown): Attributes {
-  if (value === undefined || value === null || value === '') {
-    return { ...DEFAULT_ATTRIBUTES };
-  }
-
-  let parsed: unknown = value;
-  if (typeof value === 'string') {
-    try {
-      parsed = JSON.parse(value);
-    } catch {
-      return { ...DEFAULT_ATTRIBUTES };
-    }
-  }
-
-  if (!parsed || typeof parsed !== 'object') {
-    return { ...DEFAULT_ATTRIBUTES };
-  }
-
-  const raw = parsed as Partial<Record<keyof Attributes, unknown>>;
-  const normalized: Attributes = { ...DEFAULT_ATTRIBUTES };
-
-  for (const key of ATTRIBUTE_KEYS) {
-    const maybeLevel = raw[key];
-    if (isAttributeLevel(maybeLevel)) {
-      normalized[key] = maybeLevel;
-    }
-  }
-
-  return normalized;
 }
 
 function normalizeKey(key: string): string {
@@ -268,18 +218,6 @@ function parseTeamCatalogRow(row: unknown): TeamCatalog | null {
   };
 }
 
-function validateRole(value: unknown): Role {
-  const validRoles: Role[] = ['GK', 'FLEX', 'DEF', 'MID', 'ATT'];
-  const normalized = getOptionalString(value).toUpperCase() as Role;
-  return validRoles.includes(normalized) ? normalized : DEFAULT_ROLE;
-}
-
-function validateSecondaryRole(value: unknown, mainRole: Role): Role | undefined {
-  const normalized = getOptionalString(value).toUpperCase();
-  const secondary: Role[] = ['GK', 'DEF', 'MID', 'ATT'];
-  return secondary.includes(normalized as Role) && normalized !== mainRole ? (normalized as Role) : undefined;
-}
-
 function parseGroupCatalogRow(row: unknown): GroupCatalog | null {
   const getValue = createRowGetter(row);
   if (!getValue) return null;
@@ -294,24 +232,11 @@ function parseGroupCatalogRow(row: unknown): GroupCatalog | null {
   };
 }
 
-function validateGKWillingness(value: unknown): GKWillingness {
-  const valid: GKWillingness[] = ['good', 'no', 'low'];
-  const normalized = getOptionalString(value).toLowerCase();
-  if (normalized === 'yes') return 'good';
-  return valid.includes(normalized as GKWillingness) ? (normalized as GKWillingness) : DEFAULT_GK_WILLINGNESS;
-}
-
 function validateActive(value: unknown): boolean {
   const normalized = getOptionalString(value).toLowerCase();
   if (!normalized) return true;
   if (['false', 'no', '0', 'inactive', 'off'].includes(normalized)) return false;
   return true;
-}
-
-function validateRating(value: unknown): number {
-  const num = typeof value === 'number' ? value : parseInt(getOptionalString(value) || String(DEFAULT_RATING), 10);
-  if (!Number.isFinite(num)) return DEFAULT_RATING;
-  return Math.max(1, Math.min(10, Math.trunc(num)));
 }
 
 interface ParsedPeople {
@@ -407,7 +332,7 @@ const BASE_FIELDS: SyncedField[] = [
 const SYNCED_FIELDS = Object.keys(FIELD_SERIALIZERS) as SyncedField[];
 const OPTIONAL_FIELDS = SYNCED_FIELDS.filter((field) => !BASE_FIELDS.includes(field));
 
-type SheetsAction = 'add' | 'update' | 'delete' | 'addTeam' | 'addGroup';
+type SheetsAction = 'add' | 'update' | 'delete' | 'addTeam' | 'addGroup' | 'saveMatch' | 'deleteMatch';
 type SheetsPayload = { action: SheetsAction } & Record<string, unknown>;
 
 function getChangedFields(previous: Person | undefined, next: Person): SyncedField[] {
@@ -450,6 +375,10 @@ const SUCCESS_RESPONSES: Record<SheetsPayload['action'], string[]> = {
   // The backend answers Added again for a team or group it already has (a retry).
   addTeam: ['Added'],
   addGroup: ['Added'],
+  // A save replaces the whole match, so a retry is a save too.
+  saveMatch: ['Saved'],
+  // A match that is already gone counts as deleted.
+  deleteMatch: ['Deleted', 'Match not found'],
 };
 
 async function postAppsScriptPayload(payload: SheetsPayload): Promise<void> {
@@ -522,8 +451,9 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
- * Answer of `action=readAll`: players, teams, (from Sprint 6) groups and (from Sprint 8) the
- * wants and avoids history in one request.
+ * Answer of `action=readAll`: players, teams, (from Sprint 6) groups, (from Sprint 8) the wants
+ * and avoids history, and (from Sprint 9) what else the backend does and the floor for new ids,
+ * in one request.
  */
 interface ReadAllPayload {
   players: unknown[];
@@ -533,13 +463,25 @@ interface ReadAllPayload {
   groupsError?: unknown;
   relationshipHistory?: unknown;
   relationshipHistoryError?: unknown;
+  capabilities?: unknown;
+  highestPlayerId?: unknown;
 }
 
 function isReadAllPayload(value: unknown): value is ReadAllPayload {
   return Boolean(value) && typeof value === 'object' && Array.isArray((value as ReadAllPayload).players);
 }
 
-async function getAppsScriptJson(action: 'readAll' | 'read' | 'readTeams'): Promise<unknown> {
+/** Whether this backend saves matches (Sprint 9): an older one does not say so, and the app hides them. */
+function readMatchesSupport(payload: ReadAllPayload): boolean {
+  return Array.isArray(payload.capabilities) && payload.capabilities.includes('matches');
+}
+
+function readHighestPlayerId(payload: ReadAllPayload): number {
+  const value = payload.highestPlayerId;
+  return typeof value === 'number' && Number.isInteger(value) ? value : -1;
+}
+
+async function getAppsScriptJson(action: 'readAll' | 'read' | 'readTeams' | 'readMatches'): Promise<unknown> {
   const keyParam = accessKey ? `&key=${encodeURIComponent(accessKey)}` : '';
   const response = await fetch(`${APPS_SCRIPT_URL}?action=${action}${keyParam}`);
   if (!response.ok) {
@@ -642,6 +584,18 @@ interface AppStore {
   selectedIds: Set<string>;
   generatedTeams: GeneratedTeams | null;
 
+  // Matches (Sprint 9). Read when «Matches» opens, never with readAll, and never kept on the device.
+  /** The backend saves matches (readAll says so). False with an older one: «Matches» is hidden. */
+  matchesSupported: boolean;
+  /** Null until the first read of this visit. Newest first. */
+  matches: Match[] | null;
+  matchesStatus: LoadStatus;
+  matchesError: string | null;
+  /** The result a match was logged from, so «Log Match» turns into «View Match» for it. */
+  loggedMatch: { result: GeneratedTeams; matchId: string } | null;
+  /** The highest player id ever used, as far as the backend and this visit know (-1: none). */
+  highestPlayerId: number;
+
   // Access (see Access) and whether the sheet answered in this visit. While isFresh is false
   // the screen may show the copy saved on the device: picking works, editing waits.
   access: Access;
@@ -687,6 +641,12 @@ interface AppStore {
   // Actions - Team generation
   setGeneratedTeams: (teams: GeneratedTeams | null) => void;
 
+  // Actions - Matches (Sprint 9). Saves show at once and go to the sheet behind, like players.
+  fetchMatches: () => Promise<void>;
+  /** Creates or replaces a whole match. `fromResult`: it was logged from the teams on screen. */
+  saveMatch: (match: Match, options?: { fromResult?: boolean }) => Promise<void>;
+  deleteMatch: (matchId: string) => Promise<void>;
+
   // Actions - Errors
   setError: (error: string | null) => void;
   dismissDataWarning: () => void;
@@ -704,6 +664,13 @@ const useAppStore = create<AppStore>()((set, get) => {
 
   let inflightLoad: Promise<LoadResult> | null = null;
 
+  // Matches (Sprint 9). The latest version of every match saved or deleted in this visit (null:
+  // deleted): a save that runs late, or again after a failure, sends what the match is now, and
+  // nothing once it was deleted. The version counts local changes, so a read that was on its way
+  // while something was saved never covers it up.
+  const latestMatch = new Map<string, Match | null>();
+  let matchesVersion = 0;
+
   const findPerson = (id: string) => get().people.find((person) => person.id === id);
 
   // The backend refused this device's key: nothing of the roster stays on screen or on the device.
@@ -711,7 +678,14 @@ const useAppStore = create<AppStore>()((set, get) => {
     accessKey = '';
     saveAccessKey('');
     clearSavedRead();
+    latestMatch.clear();
+    matchesVersion++;
     set({
+      matchesSupported: false,
+      matches: null,
+      matchesStatus: 'idle',
+      matchesError: null,
+      loggedMatch: null,
       access: 'locked',
       isFresh: false,
       isReading: false,
@@ -895,11 +869,14 @@ const useAppStore = create<AppStore>()((set, get) => {
             }
           }
           const groupsAnswer = readGroupsAnswer(rawData);
-          set({
+          set((state) => ({
             groupsCatalog: groupsAnswer.groups,
             groupsCatalogError: groupsAnswer.error,
             linkHistory: readLinkHistoryAnswer(rawData),
-          });
+            matchesSupported: readMatchesSupport(rawData),
+            // Never lower than what this visit already used (a delete made before this read).
+            highestPlayerId: Math.max(state.highestPlayerId, readHighestPlayerId(rawData)),
+          }));
           saveRead({
             players: rawData.players,
             teams: Array.isArray(rawData.teams) ? rawData.teams : [],
@@ -927,7 +904,14 @@ const useAppStore = create<AppStore>()((set, get) => {
           loadTeamsCatalog(),
         ]);
         if (peopleResult.status === 'rejected') throw peopleResult.reason;
-        set({ access: 'open', isFresh: true, groupsCatalog: null, groupsCatalogError: null, linkHistory: null });
+        set({
+          access: 'open',
+          isFresh: true,
+          groupsCatalog: null,
+          groupsCatalogError: null,
+          linkHistory: null,
+          matchesSupported: false,
+        });
         return 'ok';
       } catch (fetchError) {
         console.error('Error fetching people data:', fetchError);
@@ -980,6 +964,13 @@ const useAppStore = create<AppStore>()((set, get) => {
     linkHistory: null,
     selectedIds: new Set(),
     generatedTeams: null,
+    // Matches wait for a fresh read to say the backend saves them.
+    matchesSupported: false,
+    matches: null,
+    matchesStatus: 'idle',
+    matchesError: null,
+    loggedMatch: null,
+    highestPlayerId: -1,
     // A device with no key and nothing saved waits at the gate for the first answer.
     access: hasSavedCopy || accessKey ? 'open' : 'asking',
     isFresh: false,
@@ -1037,13 +1028,14 @@ const useAppStore = create<AppStore>()((set, get) => {
     },
 
     addPerson: async (person) => {
-      const id = person.id || getNextId(get().people);
+      const id = person.id || getNextId(get().people, get().highestPlayerId);
       const personWithId = { ...person, id };
 
       // Optimistic update first. The history counts the new links as the backend will.
       set((state) => ({
         people: [...state.people, personWithId],
         linkHistory: state.linkHistory && recordNewLinks(state.linkHistory, id, undefined, personWithId),
+        highestPlayerId: Math.max(state.highestPlayerId, numericId(id)),
       }));
 
       await runSyncOperation({
@@ -1099,11 +1091,13 @@ const useAppStore = create<AppStore>()((set, get) => {
         .map((person) => person.id);
       const referencing = new Set(referencingIds);
 
-      // Optimistic update first: remove the player and every link that points at them.
+      // Optimistic update first: remove the player and every link that points at them. Their id is
+      // never handed out again in this visit (the backend remembers it for the next ones).
       set((innerState) => {
         const newSelected = new Set(innerState.selectedIds);
         const wasSelected = newSelected.delete(id);
         return {
+          highestPlayerId: Math.max(innerState.highestPlayerId, numericId(id)),
           people: innerState.people
             .filter((person) => person.id !== id)
             .map((person) =>
@@ -1181,6 +1175,86 @@ const useAppStore = create<AppStore>()((set, get) => {
     clearSelection: () => set({ selectedIds: new Set(), generatedTeams: null }),
 
     setGeneratedTeams: (teams) => set({ generatedTeams: teams }),
+
+    fetchMatches: async () => {
+      if (get().matchesStatus === 'loading') return;
+      if (!APPS_SCRIPT_URL) {
+        set({ matchesStatus: 'error', matchesError: missingUrlMessage() });
+        return;
+      }
+      set({ matchesStatus: 'loading', matchesError: null });
+
+      try {
+        // A few tries at most: each one waits for the saves already sent, so the read has them.
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const version = matchesVersion;
+          await syncQueue;
+          const rawData = await getAppsScriptJson('readMatches');
+          if (isUnauthorized(rawData)) {
+            lock();
+            return;
+          }
+          const matches = parseMatches(rawData);
+          if (version !== matchesVersion) continue; // something was saved meanwhile: read again
+          // What this visit saved or deleted goes on top: a save that failed and waits for Retry
+          // stays in the list, and a delete still on its way does not come back.
+          const merged = new Map(matches.map((match) => [match.matchId, match]));
+          for (const [matchId, local] of latestMatch) {
+            if (local) merged.set(matchId, local);
+            else merged.delete(matchId);
+          }
+          set({ matches: sortMatches([...merged.values()]), matchesStatus: 'loaded', matchesError: null });
+          return;
+        }
+        // Saves kept coming while reading: what this device has stays, and a later read catches up.
+        set((state) => ({ matchesStatus: state.matches ? 'loaded' : 'idle' }));
+      } catch (fetchError) {
+        console.error('Error fetching matches:', fetchError);
+        set({ matchesStatus: 'error', matchesError: tr().store.couldntLoadMatches(getErrorMessage(fetchError)) });
+      }
+    },
+
+    saveMatch: async (match, options = {}) => {
+      matchesVersion++;
+      latestMatch.set(match.matchId, match);
+      set((state) => ({
+        matches: state.matches
+          ? sortMatches([...state.matches.filter((existing) => existing.matchId !== match.matchId), match])
+          : state.matches,
+        loggedMatch:
+          options.fromResult && state.generatedTeams
+            ? { result: state.generatedTeams, matchId: match.matchId }
+            : state.loggedMatch,
+      }));
+
+      const day = formatDay(match.date, tr().matches.weekdays);
+      await runSyncOperation({
+        label: `match ${match.matchId}`,
+        errorMessage: tr().store.couldntSaveMatch(day),
+        run: async () => {
+          const current = latestMatch.get(match.matchId);
+          if (!current) return; // Deleted before it was saved.
+          await postAppsScriptPayload({ action: 'saveMatch', match: serializeMatch(current) });
+        },
+      });
+    },
+
+    deleteMatch: async (matchId) => {
+      const existing = latestMatch.get(matchId) ?? get().matches?.find((match) => match.matchId === matchId);
+      matchesVersion++;
+      latestMatch.set(matchId, null);
+      set((state) => ({
+        matches: state.matches ? state.matches.filter((match) => match.matchId !== matchId) : state.matches,
+        loggedMatch: state.loggedMatch?.matchId === matchId ? null : state.loggedMatch,
+      }));
+
+      const day = existing ? formatDay(existing.date, tr().matches.weekdays) : matchId;
+      await runSyncOperation({
+        label: `delete match ${matchId}`,
+        errorMessage: tr().store.couldntDeleteMatch(day),
+        run: () => postAppsScriptPayload({ action: 'deleteMatch', matchId }),
+      });
+    },
 
     setError: (error) => set({ error }),
 

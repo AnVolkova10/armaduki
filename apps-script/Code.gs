@@ -13,11 +13,21 @@ const TEAMS_SHEET_NAME = 'Teams';
 const GROUPS_SHEET_NAME = 'Groups';
 const RELATIONSHIP_HISTORY_SHEET_NAME = 'RelationshipHistory';
 const MATCH_HISTORY_SHEET_NAME = 'MatchHistory';
+const MATCH_PLAYERS_SHEET_NAME = 'MatchPlayers';
+
+// The highest numeric player id ever deleted (Sprint 9). New ids go above it, so a new player
+// never takes over the matches or the link history of a deleted one.
+const HIGHEST_PLAYER_ID_PROPERTY = 'HIGHEST_PLAYER_ID';
+
+// What this backend can do beyond players, teams, groups and the link history. The app shows a
+// feature only when its name is here, so an older backend simply hides it.
+const CAPABILITIES = ['matches'];
 
 // ensureSchema() costs many Spreadsheet calls, so normal requests run it at most once per
 // cache window. Bump the version when headers change; `action=migrateSchema` always runs it.
 // v2 (Sprint 6): adds the birthDate column on the first read after the release.
-const SCHEMA_CACHE_KEY = 'armaduki-schema-v2';
+// v3 (Sprint 9): adds the match columns to MatchHistory and the MatchPlayers tab.
+const SCHEMA_CACHE_KEY = 'armaduki-schema-v3';
 const SCHEMA_CACHE_SECONDS = 6 * 60 * 60;
 
 // Writes wait up to this long for other writes to finish (prevents interleaved row edits).
@@ -80,6 +90,34 @@ const MATCH_HISTORY_HEADERS = [
   'stage',
   'socialSatisfactionPct',
   'isTest',
+  // Sprint 9: matches as they were played, whoever built the teams.
+  'date',
+  'groupId',
+  'place',
+  'team1Goals',
+  'team2Goals',
+  'team1KeeperId',
+  'team2KeeperId',
+  'origin',
+  'updatedAt',
+];
+
+// One row per player per match (Sprint 9): their side, their counters and how they were that day.
+const MATCH_PLAYERS_HEADERS = [
+  'matchId',
+  'playerId',
+  'nickname',
+  'team',
+  'goals',
+  'conceded',
+  'errors',
+  'role',
+  'secondaryRole',
+  'rating',
+  'attributes',
+  'gkWillingness',
+  'wantsWith',
+  'avoidsWith',
 ];
 
 // Matches frontend logic: "GK Willingness" -> "gkwillingness".
@@ -279,6 +317,7 @@ function ensureSchema() {
     RELATIONSHIP_HISTORY_HEADERS,
   );
   const matchHistorySheet = getOrCreateSheet(spreadsheet, MATCH_HISTORY_SHEET_NAME, MATCH_HISTORY_HEADERS);
+  const matchPlayersSheet = getOrCreateSheet(spreadsheet, MATCH_PLAYERS_SHEET_NAME, MATCH_PLAYERS_HEADERS);
 
   CacheService.getScriptCache().put(SCHEMA_CACHE_KEY, 'ok', SCHEMA_CACHE_SECONDS);
 
@@ -290,6 +329,7 @@ function ensureSchema() {
       groups: groupsSheet.getName(),
       relationshipHistory: relationshipHistorySheet.getName(),
       matchHistory: matchHistorySheet.getName(),
+      matchPlayers: matchPlayersSheet.getName(),
     },
   };
 }
@@ -388,9 +428,17 @@ function readRelationshipHistory() {
 // A Teams, Groups or RelationshipHistory problem does not block the players: it comes back as
 // `teamsError`, `groupsError` or `relationshipHistoryError`. The `groups` key is always there
 // from Sprint 6 on, and `relationshipHistory` from Sprint 8 on: the app reads them as the sign
-// of what this backend saves.
+// of what this backend saves. From Sprint 9 on, `capabilities` names the rest (matches), and
+// `highestPlayerId` is the floor for new ids. Matches are not here: the app asks for them when
+// it opens «Matches» (readMatches).
 function readAll() {
-  const result = { players: readPlayers(), teams: [], groups: [], relationshipHistory: [] };
+  const result = {
+    players: readPlayers(),
+    teams: [],
+    groups: [],
+    relationshipHistory: [],
+    capabilities: CAPABILITIES.slice(),
+  };
   try {
     result.teams = readTeams();
   } catch (err) {
@@ -406,7 +454,50 @@ function readAll() {
   } catch (err) {
     result.relationshipHistoryError = err.toString();
   }
+  try {
+    result.highestPlayerId = highestKnownPlayerId(result.players, result.relationshipHistory);
+  } catch (err) {
+    // The app then counts only the ids it has.
+  }
   return result;
+}
+
+// "12" is 12; anything that is not a whole number (or missing) is -1.
+function numericId(value) {
+  const id = normalizeId(value);
+  return /^\d+$/.test(id) ? Number(id) : -1;
+}
+
+// The highest player id ever used, as far as this backend can tell: the players, their links,
+// the link history, and the script property, which every delete and every saved match raise. So
+// a player who played a match keeps their id taken even if their row is later deleted by hand.
+function highestKnownPlayerId(players, history) {
+  let highest = numericId(PropertiesService.getScriptProperties().getProperty(HIGHEST_PLAYER_ID_PROPERTY));
+  players.forEach(row => {
+    highest = Math.max(highest, numericId(row.id));
+    parseIdList(row.wantswith).concat(parseIdList(row.avoidswith)).forEach(id => {
+      highest = Math.max(highest, numericId(id));
+    });
+  });
+  history.forEach(entry => {
+    highest = Math.max(highest, numericId(entry.sourceId), numericId(entry.targetId));
+  });
+  return highest;
+}
+
+// Raises the floor for new ids to `ids` (see highestKnownPlayerId): the id of a deleted player, or
+// the players of a saved match. A problem here never undoes the delete or the save.
+function rememberPlayerIds(ids) {
+  try {
+    const value = ids.reduce((highest, id) => Math.max(highest, numericId(id)), -1);
+    if (value < 0) return;
+    const properties = PropertiesService.getScriptProperties();
+    if (value > numericId(properties.getProperty(HIGHEST_PLAYER_ID_PROPERTY))) {
+      properties.setProperty(HIGHEST_PLAYER_ID_PROPERTY, String(value));
+    }
+  } catch (err) {
+    // Nothing else to do here.
+  }
 }
 
 function migratePlayersSheetName() {
@@ -545,6 +636,7 @@ function handlePlayerWrite(body) {
   if (action === 'delete') {
     if (rowIndex === -1) return 'ID not found';
     sheet.deleteRow(rowIndex + 1);
+    rememberPlayerIds([id]);
     return 'Deleted';
   }
 
@@ -615,6 +707,218 @@ function handleCatalogAdd(body) {
   return 'Added';
 }
 
+// ---------------------------------------------------------------------------
+// Matches (Sprint 9): MatchHistory holds one row per match, MatchPlayers one row per player in
+// it. The app builds the whole match and saves it in one go; a save replaces what was there.
+// ---------------------------------------------------------------------------
+
+// A result is a whole number from 0 up; empty means the match has no result yet (null).
+function toGoals(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const goals = Number(value);
+  return isFinite(goals) && goals >= 0 ? Math.floor(goals) : null;
+}
+
+function toNumberOrNull(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const number = Number(value);
+  return isFinite(number) ? number : null;
+}
+
+function emptyIfNull(value) {
+  return value === null ? '' : value;
+}
+
+function toSide(value) {
+  return Number(value) === 2 ? 2 : 1;
+}
+
+// Rewriting a cell this script does not own: text goes back as text, or Sheets would parse it
+// again (see asText).
+function keepCell(value) {
+  return typeof value === 'string' && value !== '' ? "'" + value : value;
+}
+
+function rowFromValues(headers, values, existingRow) {
+  return headers.map((header, index) => {
+    const value = values[normalizeKey(header)];
+    if (value !== undefined) return value;
+    return existingRow ? keepCell(existingRow[index]) : '';
+  });
+}
+
+// The players of a match, each once, in the order the app sent them.
+function matchPlayersOf(match) {
+  const seen = {};
+  return (Array.isArray(match.players) ? match.players : []).filter(player => {
+    const playerId = player && typeof player === 'object' ? normalizeId(player.playerId) : '';
+    if (!playerId || seen[playerId]) return false;
+    seen[playerId] = true;
+    return true;
+  });
+}
+
+function matchHistoryValues(match, players) {
+  const idsOf = side => players.filter(player => toSide(player.team) === side).map(player => normalizeId(player.playerId));
+  return {
+    matchid: asText(match.matchId),
+    createdat: asText(match.createdAt),
+    selectedids: asText(players.map(player => normalizeId(player.playerId)).join('|')),
+    team1ids: asText(idsOf(1).join('|')),
+    team2ids: asText(idsOf(2).join('|')),
+    score: emptyIfNull(toNumberOrNull(match.score)),
+    stage: asText(match.stage),
+    socialsatisfactionpct: emptyIfNull(toNumberOrNull(match.socialSatisfactionPct)),
+    istest: false,
+    date: asText(match.date),
+    groupid: asText(match.groupId),
+    place: asText(match.place),
+    team1goals: emptyIfNull(toGoals(match.team1Goals)),
+    team2goals: emptyIfNull(toGoals(match.team2Goals)),
+    team1keeperid: asText(match.team1KeeperId),
+    team2keeperid: asText(match.team2KeeperId),
+    origin: asText(match.origin),
+    updatedat: asText(match.updatedAt),
+  };
+}
+
+function matchPlayerValues(matchId, player) {
+  const attributes = player.attributes && typeof player.attributes === 'object'
+    ? JSON.stringify(player.attributes)
+    : player.attributes;
+  return {
+    matchid: asText(matchId),
+    playerid: asText(player.playerId),
+    nickname: asText(player.nickname),
+    team: toSide(player.team),
+    goals: toCount(player.goals),
+    conceded: toCount(player.conceded),
+    errors: toCount(player.errors),
+    role: asText(player.role),
+    secondaryrole: asText(player.secondaryRole),
+    rating: emptyIfNull(toNumberOrNull(player.rating)),
+    attributes: asText(attributes),
+    gkwillingness: asText(player.gkWillingness),
+    wantswith: asText(parseIdList(player.wantsWith).join('|')),
+    avoidswith: asText(parseIdList(player.avoidsWith).join('|')),
+  };
+}
+
+// Deletes, from the bottom up, every data row whose `column` holds `id`. Returns how many.
+function deleteRowsWithId(sheet, columnName, id) {
+  const data = sheet.getDataRange().getValues();
+  const column = getColumnIndex(data[0], columnName);
+  if (column === -1) return 0;
+  let deleted = 0;
+  for (let index = data.length - 1; index >= 1; index--) {
+    if (normalizeId(data[index][column]) === id) {
+      sheet.deleteRow(index + 1);
+      deleted++;
+    }
+  }
+  return deleted;
+}
+
+function readMatches() {
+  ensureSchemaForRead();
+  const spreadsheet = getSpreadsheet();
+  const historySheet = getOrCreateSheet(spreadsheet, MATCH_HISTORY_SHEET_NAME, MATCH_HISTORY_HEADERS);
+  const playersSheet = getOrCreateSheet(spreadsheet, MATCH_PLAYERS_SHEET_NAME, MATCH_PLAYERS_HEADERS);
+
+  const playersByMatch = {};
+  readSheetObjects(playersSheet).forEach(row => {
+    const matchId = getRowString(row, 'matchId');
+    const playerId = getRowString(row, 'playerId');
+    if (!matchId || !playerId) return;
+    if (!playersByMatch[matchId]) playersByMatch[matchId] = [];
+    playersByMatch[matchId].push({
+      playerId: playerId,
+      nickname: getRowString(row, 'nickname'),
+      team: toSide(row.team),
+      goals: toCount(row.goals),
+      conceded: toCount(row.conceded),
+      errors: toCount(row.errors),
+      role: getRowString(row, 'role'),
+      secondaryRole: getRowString(row, 'secondaryRole'),
+      rating: toNumberOrNull(row.rating),
+      attributes: getRowString(row, 'attributes'),
+      gkWillingness: getRowString(row, 'gkWillingness'),
+      wantsWith: getRowString(row, 'wantsWith'),
+      avoidsWith: getRowString(row, 'avoidsWith'),
+    });
+  });
+
+  const matches = [];
+  readSheetObjects(historySheet).forEach(row => {
+    const matchId = getRowString(row, 'matchId');
+    if (!matchId) return;
+    matches.push({
+      matchId: matchId,
+      createdAt: getRowString(row, 'createdAt'),
+      updatedAt: getRowString(row, 'updatedAt'),
+      date: getRowString(row, 'date'),
+      groupId: getRowString(row, 'groupId'),
+      place: getRowString(row, 'place'),
+      team1Goals: toGoals(row.team1goals),
+      team2Goals: toGoals(row.team2goals),
+      team1KeeperId: getRowString(row, 'team1KeeperId'),
+      team2KeeperId: getRowString(row, 'team2KeeperId'),
+      origin: getRowString(row, 'origin'),
+      stage: getRowString(row, 'stage'),
+      score: toNumberOrNull(row.score),
+      socialSatisfactionPct: toNumberOrNull(row.socialsatisfactionpct),
+      players: playersByMatch[matchId] || [],
+    });
+  });
+
+  return { matches: matches };
+}
+
+// Creates or replaces a whole match, found by its id: its MatchHistory row and all its
+// MatchPlayers rows (the old ones go, the new ones are appended). A retry changes nothing more.
+function handleSaveMatch(body) {
+  ensureSchemaIfStale();
+  const match = body.match;
+  if (!match || typeof match !== 'object') return 'Error: missing match';
+  const matchId = normalizeId(match.matchId);
+  if (!matchId) return 'Error: missing matchId';
+  const players = matchPlayersOf(match);
+  const spreadsheet = getSpreadsheet();
+
+  const historySheet = getOrCreateSheet(spreadsheet, MATCH_HISTORY_SHEET_NAME, MATCH_HISTORY_HEADERS);
+  const data = historySheet.getDataRange().getValues();
+  const headers = data[0];
+  const idColumn = getColumnIndex(headers, 'matchId');
+  const rowIndex = data.findIndex((row, index) => index > 0 && normalizeId(row[idColumn]) === matchId);
+  const values = matchHistoryValues(match, players);
+  if (rowIndex === -1) {
+    historySheet.appendRow(rowFromValues(headers, values, null));
+  } else {
+    historySheet.getRange(rowIndex + 1, 1, 1, headers.length).setValues([rowFromValues(headers, values, data[rowIndex])]);
+  }
+
+  const playersSheet = getOrCreateSheet(spreadsheet, MATCH_PLAYERS_SHEET_NAME, MATCH_PLAYERS_HEADERS);
+  deleteRowsWithId(playersSheet, 'matchId', matchId);
+  const playerHeaders = getHeaders(playersSheet);
+  players.forEach(player => {
+    playersSheet.appendRow(rowFromValues(playerHeaders, matchPlayerValues(matchId, player), null));
+  });
+  rememberPlayerIds(players.map(player => player.playerId));
+  return 'Saved';
+}
+
+function handleDeleteMatch(body) {
+  ensureSchemaIfStale();
+  const matchId = normalizeId(body.matchId);
+  if (!matchId) return 'Error: missing matchId';
+  const spreadsheet = getSpreadsheet();
+  const historySheet = getOrCreateSheet(spreadsheet, MATCH_HISTORY_SHEET_NAME, MATCH_HISTORY_HEADERS);
+  const playersSheet = getOrCreateSheet(spreadsheet, MATCH_PLAYERS_SHEET_NAME, MATCH_PLAYERS_HEADERS);
+  const deleted = deleteRowsWithId(historySheet, 'matchId', matchId);
+  deleteRowsWithId(playersSheet, 'matchId', matchId);
+  return deleted > 0 ? 'Deleted' : 'Match not found';
+}
+
 function doGet(e) {
   try {
     const action = e && e.parameter && e.parameter.action ? e.parameter.action : 'read';
@@ -634,6 +938,10 @@ function doGet(e) {
 
     if (action === 'readTeams') {
       return jsonOutput(readTeams());
+    }
+
+    if (action === 'readMatches') {
+      return jsonOutput(readMatches());
     }
 
     if (action === 'migratePlayersSheet') {
@@ -674,6 +982,14 @@ function doPost(e) {
 
     if (action === 'addTeam' || action === 'addGroup') {
       return textOutput(withScriptLock(() => handleCatalogAdd(body)));
+    }
+
+    if (action === 'saveMatch') {
+      return textOutput(withScriptLock(() => handleSaveMatch(body)));
+    }
+
+    if (action === 'deleteMatch') {
+      return textOutput(withScriptLock(() => handleDeleteMatch(body)));
     }
 
     return textOutput(withScriptLock(() => handlePlayerWrite(body)));

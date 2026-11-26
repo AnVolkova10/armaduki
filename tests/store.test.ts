@@ -9,7 +9,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer, type ViteDevServer } from 'vite';
 import type useAppStore from '../src/store/useAppStore.ts';
-import type { Person } from '../src/types/index.ts';
+import type { GeneratedTeams, Match, Person } from '../src/types/index.ts';
+import { addPlayer, buildMatch, newDraft } from '../src/utils/matches.ts';
 import { createSheet, loadAppsScript, TEAM_HEADERS, type Cell } from './helpers/appsScriptHarness.ts';
 
 const TEST_ORIGIN = 'https://script.test';
@@ -60,6 +61,8 @@ let answerReadAllLikeOldBackend = false;
 let answerReadAllWithoutGroups = false;
 /** Answers readAll without the wants and avoids history, like a backend from before Sprint 8. */
 let answerReadAllWithoutHistory = false;
+/** Answers readAll without capabilities and the id floor, like a backend from before Sprint 9. */
+let answerReadAllWithoutMatches = false;
 
 globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}) => {
   const url = new URL(input instanceof Request ? input.url : String(input));
@@ -80,6 +83,12 @@ globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}
       delete all.groups;
       delete all.groupsError;
       delete all.relationshipHistory;
+      return new Response(JSON.stringify(all));
+    }
+    if (answerReadAllWithoutMatches && action === 'readAll') {
+      const all = JSON.parse(backend.doGet({ parameter: Object.fromEntries(url.searchParams) }).content);
+      delete all.capabilities;
+      delete all.highestPlayerId;
       return new Response(JSON.stringify(all));
     }
     if (answerReadAllWithoutHistory && action === 'readAll') {
@@ -490,6 +499,207 @@ test('the Sprint 8 tests leave the sheet as they found it', async () => {
   resetStore();
   await S().fetchPeople();
   assert.deepEqual(S().linkHistory, historyAtStart);
+});
+
+// ---------------------------------------------------------------------------
+// matches (Sprint 9)
+// ---------------------------------------------------------------------------
+// These tests also put the sheet back as they found it.
+const sprint9Snapshot: Record<string, Cell[][]> = {};
+const sprint9Sheets = () => ({
+  Players: players,
+  MatchHistory: backend.sheet('MatchHistory'),
+  MatchPlayers: backend.sheet('MatchPlayers'),
+});
+const blankPlayer = (nickname: string): Person => ({ ...S().people[0], id: '', nickname, name: '', wantsWith: [], avoidsWith: [] });
+/** A match between some of the players on screen, as the editor would save it. */
+const matchWith = (matchId: string, sides: [string[], string[]], result: [string, string] = ['', '']): Match => {
+  let draft = newDraft({ matchId, createdAt: '2026-10-13T22:00:00.000Z', date: '2026-10-13' });
+  sides.forEach((nicknames, index) => {
+    for (const nickname of nicknames) draft = addPlayer(draft, findPerson(nickname), index === 0 ? 1 : 2);
+  });
+  return buildMatch({ ...draft, team1Goals: result[0], team2Goals: result[1] }, new Date('2026-10-14T01:30:00.000Z'));
+};
+const matchRows = (sheet: 'MatchHistory' | 'MatchPlayers', matchId: string) =>
+  (backend.sheet(sheet)?.records() ?? []).filter((row) => row.matchId === matchId);
+
+test('readAll says the backend saves matches, but does not read them; an older backend hides them', async () => {
+  resetStore();
+  gets.length = 0;
+  await S().fetchPeople();
+  for (const [name, sheet] of Object.entries(sprint9Sheets())) sprint9Snapshot[name] = (sheet?.data() ?? []).map((r) => [...r]);
+
+  assert.equal(S().matchesSupported, true);
+  assert.deepEqual(gets, ['readAll'], 'matches wait until «Matches» opens');
+  assert.equal(S().matches, null);
+  assert.ok(S().highestPlayerId >= 8, 'the highest id, Eli (8), or above');
+
+  resetStore();
+  answerReadAllWithoutMatches = true;
+  try {
+    await S().fetchPeople();
+  } finally {
+    answerReadAllWithoutMatches = false;
+  }
+  assert.equal(S().matchesSupported, false);
+  assert.equal(S().highestPlayerId, -1);
+
+  resetStore();
+  await S().fetchPeople();
+});
+
+test('a new player never takes the id of a deleted one, in this visit or the next', async () => {
+  await S().addPerson(blankPlayer('Temp1'));
+  await settle();
+  const first = Number(findPerson('Temp1').id);
+  await S().deletePerson(String(first));
+  await settle();
+
+  await S().addPerson(blankPlayer('Temp2'));
+  await settle();
+  const second = Number(findPerson('Temp2').id);
+  assert.equal(second, first + 1, 'not the id Temp1 had');
+  await S().deletePerson(String(second));
+  await settle();
+
+  resetStore();
+  await S().fetchPeople();
+  assert.equal(S().highestPlayerId, second, 'the backend remembers the deleted ids');
+  await S().addPerson(blankPlayer('Temp3'));
+  await settle();
+  assert.equal(Number(findPerson('Temp3').id), second + 1);
+  await S().deletePerson(findPerson('Temp3').id);
+  await settle();
+  assert.equal(S().syncErrors.length, 0);
+});
+
+test('a saved match shows at once, reaches both tabs and comes back the same after a reload', async () => {
+  await S().fetchMatches();
+  assert.equal(S().matchesStatus, 'loaded');
+  assert.deepEqual(S().matches, []);
+
+  const match = matchWith('m-store-1', [['Ana', 'Bea'], ['Caro']], ['2', '1']);
+  const saving = S().saveMatch(match);
+  assert.deepEqual(S().matches?.map((m) => m.matchId), ['m-store-1'], 'at once');
+  await saving;
+  await settle();
+
+  assert.equal(matchRows('MatchHistory', 'm-store-1').length, 1);
+  assert.equal(matchRows('MatchPlayers', 'm-store-1').length, 3);
+  assert.equal(posts.at(-1)?.action, 'saveMatch');
+  resetStore();
+  await S().fetchPeople();
+  await S().fetchMatches();
+  assert.deepEqual(S().matches, [match]);
+});
+
+test('a match saved before the list was read is in the list once it loads', async () => {
+  resetStore();
+  await S().fetchPeople();
+  const match = matchWith('m-store-2', [['Bea'], ['Ana']]);
+
+  const saving = S().saveMatch(match);
+  assert.equal(S().matches, null, 'nothing to show yet');
+  await S().fetchMatches();
+  await saving;
+
+  assert.deepEqual(S().matches?.map((m) => m.matchId).sort(), ['m-store-1', 'm-store-2']);
+});
+
+test('a retried save sends the match as it is now, and nothing once it was deleted', async () => {
+  const match = matchWith('m-store-3', [['Ana'], ['Bea']]);
+  failNextPosts = ['network'];
+  await S().saveMatch(match);
+  await settle();
+  assert.equal(S().syncErrors.length, 1);
+
+  await S().saveMatch({ ...match, team1Goals: 3, team2Goals: 0 });
+  await settle();
+  await S().retryFailedSyncs();
+  await settle();
+  assert.equal(S().syncErrors.length, 0);
+  assert.equal(matchRows('MatchHistory', 'm-store-3')[0]?.team1Goals, 3, 'the latest version, also from the retry');
+
+  failNextPosts = ['network'];
+  await S().saveMatch(matchWith('m-store-4', [['Ana'], ['Bea']]));
+  await settle();
+  await S().deleteMatch('m-store-4');
+  await settle();
+  const sent = posts.length;
+  await S().retryFailedSyncs();
+  await settle();
+  assert.equal(posts.length, sent, 'nothing to send for a match that is gone');
+  assert.deepEqual(matchRows('MatchHistory', 'm-store-4'), []);
+  assert.ok(!S().matches?.some((m) => m.matchId === 'm-store-4'));
+  assert.equal(S().syncErrors.length, 0);
+});
+
+test('deleting a match takes it out at once and from both tabs', async () => {
+  const deleting = S().deleteMatch('m-store-3');
+  assert.ok(!S().matches?.some((m) => m.matchId === 'm-store-3'), 'at once');
+  await deleting;
+  await settle();
+  assert.deepEqual(matchRows('MatchHistory', 'm-store-3'), []);
+  assert.deepEqual(matchRows('MatchPlayers', 'm-store-3'), []);
+});
+
+test('a match logged from the teams on screen marks those teams, until it is deleted', async () => {
+  const onScreen = { primary: {}, secondary: null } as unknown as GeneratedTeams;
+  S().setGeneratedTeams(onScreen);
+  await S().saveMatch(matchWith('m-store-5', [['Ana'], ['Bea']]), { fromResult: true });
+  assert.equal(S().loggedMatch?.result, onScreen);
+  assert.equal(S().loggedMatch?.matchId, 'm-store-5');
+
+  await S().deleteMatch('m-store-5');
+  assert.equal(S().loggedMatch, null);
+  S().setGeneratedTeams(null);
+  await settle();
+});
+
+test('a save that failed before the list was read stays in the list, and Retry saves it', async () => {
+  resetStore();
+  await S().fetchPeople();
+  failNextPosts = ['network'];
+  await S().saveMatch(matchWith('m-store-6', [['Ana'], ['Bea']]));
+  await settle();
+  assert.equal(S().syncErrors.length, 1);
+
+  await S().fetchMatches();
+  assert.ok(S().matches?.some((m) => m.matchId === 'm-store-6'), 'waiting for Retry, but on the list');
+  assert.deepEqual(matchRows('MatchHistory', 'm-store-6'), []);
+  await S().retryFailedSyncs();
+  await settle();
+  assert.equal(matchRows('MatchHistory', 'm-store-6').length, 1);
+  await S().deleteMatch('m-store-6');
+  await settle();
+  assert.equal(S().syncErrors.length, 0);
+});
+
+test('a refused key while reading matches locks the device and forgets them', async () => {
+  backend.setAccessKey(KEY);
+  try {
+    await S().fetchMatches();
+  } finally {
+    backend.setAccessKey(null);
+  }
+  assert.equal(S().access, 'locked');
+  assert.equal(S().matches, null);
+  assert.equal(S().matchesSupported, false);
+
+  resetStore();
+  await S().fetchPeople();
+  assert.equal(S().access, 'open');
+});
+
+test('the Sprint 9 tests leave the sheet as they found it', async () => {
+  for (const [name, sheet] of Object.entries(sprint9Sheets())) {
+    if (sheet) sheet.data().splice(0, Infinity, ...sprint9Snapshot[name].map((r) => [...r]));
+  }
+  resetStore();
+  await S().fetchPeople();
+  await S().fetchMatches();
+  assert.deepEqual(S().matches, []);
+  assert.equal(S().syncErrors.length, 0);
 });
 
 // ---------------------------------------------------------------------------

@@ -484,10 +484,16 @@
 }
 
 .result-btn.is-copied,
-.result-btn.is-copied:hover {
+.result-btn.is-copied:hover,
+.result-btn.is-logged {
   background: transparent;
   border-color: var(--ok-line);
   color: var(--ok);
+}
+
+.result-btn.is-logged:hover {
+  color: var(--text);
+  background: var(--surface-2);
 }
 
 .result-btn-caret {
@@ -937,6 +943,12 @@
     flex: 1 1 0;
     padding: 0 8px;
     font-size: 0.86rem;
+  }
+
+  /* With «Log Match» (Sprint 9): Copy and Log share the first row, the other two the second. */
+  .result-actions--log .result-btn,
+  .result-actions--log .result-btn:not(.copy-btn) {
+    flex: 1 1 calc(50% - 4px);
   }
 
   .analysis {

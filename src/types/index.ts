@@ -243,3 +243,74 @@ export interface GeneratedTeams {
   secondaryReason: string | null;
   comparison: TeamOptionComparison | null;
 }
+
+/** How even two teams built by hand are (Sprint 9), with the sides as they are. */
+export interface SplitAnalysis {
+  team1: Team;
+  team2: Team;
+  /** The same analysis as a generated result; its `fallback` is always null. */
+  report: AnalysisReport;
+  /** Every hard rule that applies to these players, kept or broken, in relax order. */
+  rules: RuleStatus[];
+  score: number;
+  socialSatisfactionPct: number;
+}
+
+// ---------------------------------------------------------------------------
+// Matches as they were played (Sprint 9): the MatchHistory and MatchPlayers tabs.
+// ---------------------------------------------------------------------------
+
+/** ROJO (1) or NEGRO (2). */
+export type MatchSide = 1 | 2;
+
+/** app: the teams the app made, unchanged; edited: made by the app and changed; manual: by hand. */
+export type MatchOrigin = 'app' | 'edited' | 'manual';
+
+/** How a player was when the match was saved. An old match is measured with this. */
+export interface MatchSnapshot {
+  role: Role;
+  secondaryRole?: Role;
+  rating: number;
+  attributes: Attributes;
+  gkWillingness: GKWillingness;
+  /** Only the links with others in that match. */
+  wantsWith: string[];
+  avoidsWith: string[];
+}
+
+export interface MatchPlayer {
+  playerId: string;
+  /** Their nickname that day, so a deleted player still shows. */
+  nickname: string;
+  team: MatchSide;
+  goals: number;
+  /** Goals let in: the fixed keeper gets the other side's goals; when a side rotates, each one's own. */
+  conceded: number;
+  /** Errors that ended in a goal. Private: hidden with privacy mode. */
+  errors: number;
+  snapshot: MatchSnapshot;
+}
+
+export interface Match {
+  matchId: string;
+  /** ISO timestamps, set by the app. */
+  createdAt: string;
+  updatedAt: string;
+  /** The day it was played, yyyy-MM-dd. */
+  date: string;
+  groupId: string;
+  place: string;
+  /** Both null while the match has no result yet. */
+  team1Goals: number | null;
+  team2Goals: number | null;
+  /** The fixed keeper of each side; empty when that side rotated in goal. */
+  team1KeeperId: string;
+  team2KeeperId: string;
+  origin: MatchOrigin;
+  /** The generator's stage, only when the teams are the app's, unchanged. */
+  stage: GenerationStage | '';
+  /** What the analysis measured when it was saved; null without one (not 5 against 5). */
+  score: number | null;
+  socialSatisfactionPct: number | null;
+  players: MatchPlayer[];
+}

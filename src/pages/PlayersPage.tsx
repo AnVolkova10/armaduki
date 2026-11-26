@@ -10,6 +10,7 @@ import { SheetLoader } from '../components/SheetLoader';
 import { TeamResult } from '../components/TeamResult';
 import { useFlipList } from '../hooks/useFlipList';
 import { usePlayerListing } from '../hooks/usePlayerListing';
+import { useRosterLoad } from '../hooks/useRosterLoad';
 import { useT } from '../i18n';
 import { generateTeams } from '../services/teamGenerator';
 import type { Person } from '../types';
@@ -54,7 +55,6 @@ export function PlayersPage() {
         clearAvoidsRelationships,
         setError,
         privacyMode,
-        access,
         isFresh,
         isReading,
         teamsCatalog,
@@ -108,11 +108,7 @@ export function PlayersPage() {
 
     // One request loads players and the Teams catalog (see fetchPeople). It also runs behind a
     // saved copy, until the sheet has answered once in this visit.
-    useEffect(() => {
-        if (access !== 'locked' && !isFresh && peopleStatus !== 'loading' && peopleStatus !== 'error') {
-            void fetchPeople();
-        }
-    }, [access, fetchPeople, isFresh, peopleStatus]);
+    useRosterLoad();
 
     useEffect(() => {
         const handleDocumentClick = (event: MouseEvent) => {

@@ -116,6 +116,8 @@ export interface AppsScriptEnv {
   openedIds: string[];
   /** Sets or clears the ACCESS_KEY script property. */
   setAccessKey(key: string | null): void;
+  /** A script property other than the spreadsheet id and the key, as the script left it. */
+  property(name: string): string | null;
 }
 
 const CODE_GS = fs.readFileSync(new URL('../../apps-script/Code.gs', import.meta.url), 'utf8');
@@ -128,6 +130,7 @@ export function loadAppsScript(
     source = CODE_GS,
     timeZone = 'America/Argentina/Buenos_Aires',
     cacheEntries = {},
+    scriptProperties = {},
   }: {
     spreadsheetId?: string | null;
     accessKey?: string | null;
@@ -136,6 +139,8 @@ export function loadAppsScript(
     timeZone?: string;
     /** Script cache contents left by earlier requests. */
     cacheEntries?: Record<string, string>;
+    /** Other script properties, as earlier requests left them (Sprint 9: HIGHEST_PLAYER_ID). */
+    scriptProperties?: Record<string, string>;
   } = {},
 ): AppsScriptEnv {
   const all = [...sheets];
@@ -152,6 +157,7 @@ export function loadAppsScript(
   const cache = new Map<string, string>(Object.entries(cacheEntries));
   // Mutable, like editing the script property while the app is in use.
   const properties = { accessKey };
+  const otherProperties = new Map<string, string>(Object.entries(scriptProperties));
   const lockEvents: string[] = [];
   const openedIds: string[] = [];
 
@@ -182,7 +188,15 @@ export function loadAppsScript(
     PropertiesService: {
       getScriptProperties: () => ({
         getProperty: (key: string) =>
-          key === 'SPREADSHEET_ID' ? spreadsheetId : key === 'ACCESS_KEY' ? properties.accessKey : null,
+          key === 'SPREADSHEET_ID'
+            ? spreadsheetId
+            : key === 'ACCESS_KEY'
+              ? properties.accessKey
+              : (otherProperties.get(key) ?? null),
+        setProperty: (key: string, value: string) => {
+          if (key === 'SPREADSHEET_ID' || key === 'ACCESS_KEY') throw new Error(`the script never writes ${key}`);
+          otherProperties.set(key, String(value));
+        },
       }),
     },
     CacheService: {
@@ -212,6 +226,7 @@ export function loadAppsScript(
     setAccessKey: (key) => {
       properties.accessKey = key;
     },
+    property: (name) => otherProperties.get(name) ?? null,
   };
 }
 

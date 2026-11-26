@@ -91,6 +91,20 @@ El resto del resultado se ve normal: ningún otro texto se pone rojo.
 
 Para esto, el generador entrega, además del texto de hoy, los datos de cada regla (cumplida o rota, y con quién) y las causas que detecta. Elige el reparto igual que antes, y los tests lo cuidan. Con esos datos, la app arma las frases en el idioma elegido.
 
+## Los partidos (Sprint 9)
+
+Una segunda pantalla, «Partidos» («Matches»), para anotar los partidos como se jugaron, aunque los equipos no los haya armado la app.
+
+- **Cómo se llega.** En el header, a la izquierda del switch, un botón de borde con el nombre de la otra pantalla: «Partidos» desde lxs jugadorxs, «Jugadorxs» desde los partidos. Con un backend que no guarda partidos, no aparece. El botón atrás del teléfono vuelve de una pantalla a la otra.
+- **La lista.** «Partidos» y «+ Nuevo partido» arriba, como «Jugadorxs» y «+ Sumar jugadorx». Una fila por partido, del más nuevo al más viejo: el día con la letra de camiseta («MAR 24/11»; con el año si no es este), el grupo y el lugar en gris, y el resultado en palabras con la etiqueta del que ganó: «Ganó [ROJO] 5 a 3», «Empate 2 a 2» o «Sin resultado». El tacho a la derecha borra, con confirmación. En el teléfono, el día y el resultado arriba, y el grupo y el lugar abajo.
+- **El partido**, en el mismo modal que lx jugadorx (en el teléfono, la hoja de pantalla completa). Se abre encima de la pantalla de la que vino, así cerrar o volver la deja como estaba: desde «Anotar partido», el resultado sigue ahí, con el mismo scroll. Arriba, el título («Partido nuevo», o el día) y de dónde salieron los equipos («Equipos de la app», «…cambiados a mano», «Equipos armados a mano»). Después, de arriba hacia abajo:
+  - La fecha (arranca en hoy), el grupo y el lugar, que arranca con el del grupo.
+  - El resultado, con dos casilleros grandes entre ROJO y NEGRO, y al lado, «Sumar jugadorxs»: un buscador por apodo o nombre que ofrece a cada unx con dos botones, ROJO y NEGRO, como sus etiquetas.
+  - Los dos equipos, como en el resultado (ROJO con su línea roja, NEGRO en negro), lado a lado en la compu y uno debajo del otro en el teléfono. En la cabecera, «Al arco»: lx GK del equipo si hay unx solx, o «Rotan». Cada jugadorx con su puesto, «al arco» si ataja fijo, el rating (oculto con privacy mode), ⇄ para pasarlx al otro equipo y × para sacarlx. Cuando hay resultado aparecen sus contadores, − n +: goles, «le hicieron» (solo si su equipo rota) y errores (ocultos con privacy mode). Si los goles con nombre no suman el resultado, una línea gris lo dice.
+  - «Cuánto mide»: la tarjeta del resultado, un toque más clara, con el mismo resumen de tres datos, las reglas que rompe ese armado (si rompe alguna, con el bloque del fallback, rojo solo en lo roto) y el análisis completo plegado. Con otro tamaño que 5 contra 5, una línea dice cuántxs tiene cada equipo.
+  - Abajo, siempre a la vista, «Cancelar» y «Guardar partido»; mientras falte algo, una línea gris dice qué.
+- **En el resultado,** «Anotar partido» al lado de «Copiar equipos» (en el teléfono, los dos en la primera fila). Guardado ese partido, el botón pasa a «Ver partido», en verde, y lo abre.
+
 ## El modal de jugadorx
 
 Uno solo para sumar y para editar. Rehecho el 25/11: el primero, ancho y con columnas estiradas, dejaba mucho espacio vacío.
@@ -123,7 +137,7 @@ Uno solo para sumar y para editar. Rehecho el 25/11: el primero, ancho y con col
 
 ## No cambia
 
-- Una sola pantalla: tocar la tarjeta la elige; editar y borrar, en la tarjeta (borrar, con confirmación); el resultado, debajo de la lista.
+- Una sola pantalla para armar: tocar la tarjeta la elige; editar y borrar, en la tarjeta (borrar, con confirmación); el resultado, debajo de la lista. Los partidos jugados tienen su propia pantalla desde el Sprint 9.
 - El penal de entrada: la misma escena y lx mismx arquerx. Solo se traduce, suma el switch y sus textos toman la letra nueva.
 - Privacy mode: el ojo escondido del pie, que se prende con tres toques, y lo que oculta.
 - El fondo oscuro y el diseño pensado primero para el teléfono.

@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type {
     AnalysisReport,
     Attributes,
@@ -8,6 +9,7 @@ import type {
     GeneratedTeamOption,
     LinkRef,
     Person,
+    RuleStatus,
     TeamLabel,
 } from '../types';
 import { useT, type Dict } from '../i18n';
@@ -73,7 +75,7 @@ function formatSigned(value: number): string {
 }
 
 /** A sentence from the dictionaries, with {T1} and {T2} drawn as the sides' names in their colours. */
-function TeamText({ text, t }: { text: string; t: Dict }) {
+export function TeamText({ text, t }: { text: string; t: Dict }) {
     return (
         <>
             {text.split(/(\{T[12]\})/).map((part, index) => {
@@ -160,6 +162,69 @@ function TeamPanel({
     );
 }
 
+/** The rules that broke, each with what broke in it. Avoids go without names with privacy mode. */
+function BrokenRules({ broken, privacyMode, t }: { broken: RuleStatus[]; privacyMode: boolean; t: Dict }) {
+    const issuesText = (status: RuleStatus) =>
+        privacyMode && status.rule === 'avoids'
+            ? t.result.avoidsBrokenPrivate(status.issues.length)
+            : status.issues.map((issue) => t.result.issue(issue)).join(' ');
+
+    return (
+        <ul className="fallback-broken">
+            {broken.map((status) => (
+                <li key={status.rule}>
+                    <span className="fallback-mark" aria-hidden="true">
+                        <Icon name="x" size={13} />
+                    </span>
+                    <span>
+                        <strong>{t.result.rule[status.rule]}.</strong>{' '}
+                        <TeamText text={issuesText(status)} t={t} />
+                    </span>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+function KeptRules({ kept, t }: { kept: RuleStatus[]; t: Dict }) {
+    return (
+        <ul className="fallback-kept">
+            {kept.map((status) => (
+                <li key={status.rule}>
+                    <Icon name="check" size={13} />
+                    {t.result.rule[status.rule]}
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+/**
+ * The hard rules a split built by hand breaks (Sprint 9): what broke and with whom, then what held.
+ * Nothing when it keeps them all. With privacy mode, an avoid that held is not mentioned.
+ */
+export function RulesBlock({ rules, privacyMode, t }: { rules: RuleStatus[]; privacyMode: boolean; t: Dict }) {
+    const broken = rules.filter((status) => !status.kept);
+    if (broken.length === 0) return null;
+    const kept = rules.filter((status) => status.kept && !(privacyMode && status.rule === 'avoids'));
+
+    return (
+        <div className="fallback-block fallback-block--no-cause rules-block" role="status">
+            <div className="fallback-title">{t.matches.brokenTitle(broken.length)}</div>
+            <div className="fallback-group">
+                <div className="fallback-label">{t.result.broken}</div>
+                <BrokenRules broken={broken} privacyMode={privacyMode} t={t} />
+            </div>
+            {kept.length > 0 && (
+                <div className="fallback-group">
+                    <div className="fallback-label">{t.result.kept}</div>
+                    <KeptRules kept={kept} t={t} />
+                </div>
+            )}
+        </div>
+    );
+}
+
 // With privacy mode nobody sees who avoids whom (Sprint 8): an avoid that broke shows without
 // names, and one that held is not mentioned at all.
 function FallbackBlock({ fallback, privacyMode, t }: { fallback: FallbackReport; privacyMode: boolean; t: Dict }) {
@@ -170,10 +235,6 @@ function FallbackBlock({ fallback, privacyMode, t }: { fallback: FallbackReport;
     const hasCause = fallback.causes.length > 0;
     const causeText = (cause: FallbackReport['causes'][number]) =>
         privacyMode && cause.kind === 'avoidInChain' ? t.result.avoidInChainPrivate : t.result.cause(cause);
-    const issuesText = (status: FallbackReport['rules'][number]) =>
-        privacyMode && status.rule === 'avoids'
-            ? t.result.avoidsBrokenPrivate(status.issues.length)
-            : status.issues.map((issue) => t.result.issue(issue)).join(' ');
 
     return (
         <div className={`fallback-block ${hasCause ? '' : 'fallback-block--no-cause'}`} role="status">
@@ -192,33 +253,14 @@ function FallbackBlock({ fallback, privacyMode, t }: { fallback: FallbackReport;
 
             <div className="fallback-group">
                 <div className="fallback-label">{t.result.broken}</div>
-                <ul className="fallback-broken">
-                    {broken.map((status) => (
-                        <li key={status.rule}>
-                            <span className="fallback-mark" aria-hidden="true">
-                                <Icon name="x" size={13} />
-                            </span>
-                            <span>
-                                <strong>{t.result.rule[status.rule]}.</strong>{' '}
-                                <TeamText text={issuesText(status)} t={t} />
-                            </span>
-                        </li>
-                    ))}
-                </ul>
+                <BrokenRules broken={broken} privacyMode={privacyMode} t={t} />
                 {!hasCause && <p className="fallback-note">{t.result.noSingleCause}</p>}
             </div>
 
             {kept.length > 0 && (
                 <div className="fallback-group">
                     <div className="fallback-label">{t.result.kept}</div>
-                    <ul className="fallback-kept">
-                        {kept.map((status) => (
-                            <li key={status.rule}>
-                                <Icon name="check" size={13} />
-                                {t.result.rule[status.rule]}
-                            </li>
-                        ))}
-                    </ul>
+                    <KeptRules kept={kept} t={t} />
                 </div>
             )}
 
@@ -232,9 +274,35 @@ function FallbackBlock({ fallback, privacyMode, t }: { fallback: FallbackReport;
     );
 }
 
-function Summary({ report, privacyMode, t }: { report: AnalysisReport; privacyMode: boolean; t: Dict }) {
+/**
+ * Three numbers: how even, how social, and the rules. A split built by hand (Sprint 9) passes its
+ * `rules`, since it has no fallback: they all hold, or it says how many it breaks.
+ */
+export function Summary({
+    report,
+    privacyMode,
+    t,
+    rules,
+}: {
+    report: AnalysisReport;
+    privacyMode: boolean;
+    t: Dict;
+    rules?: RuleStatus[];
+}) {
     const { social, fallback } = report;
-    const brokenRules = fallback ? fallback.rules.filter((status) => !status.kept).length : 0;
+    const brokenRules = rules
+        ? rules.filter((status) => !status.kept).length
+        : fallback
+          ? fallback.rules.filter((status) => !status.kept).length
+          : 0;
+    const anyBroken = rules ? brokenRules > 0 : Boolean(fallback);
+    const rulesNote = rules
+        ? brokenRules > 0
+            ? t.matches.manualBrokenNote
+            : t.result.strictNote
+        : fallback
+          ? t.result.fallbackNote
+          : t.result.strictNote;
     // Privacy mode leaves the avoids out (Sprint 8).
     const linkNotes = [
         social.wantsTotal > 0 ? t.result.wantsKept(social.wantsMet, social.wantsTotal) : null,
@@ -264,10 +332,10 @@ function Summary({ report, privacyMode, t }: { report: AnalysisReport; privacyMo
                     {linkNotes.length > 0 ? linkNotes.join(' · ') : privacyMode ? t.result.noWants : t.result.noLinks}
                 </dd>
             </div>
-            <div className={`summary-cell ${fallback ? 'summary-cell--broken' : 'summary-cell--ok'}`}>
+            <div className={`summary-cell ${anyBroken ? 'summary-cell--broken' : 'summary-cell--ok'}`}>
                 <dt>{t.result.rules}</dt>
-                <dd className="summary-value">{fallback ? t.result.brokenCount(brokenRules) : t.result.allKept}</dd>
-                <dd className="summary-note">{fallback ? t.result.fallbackNote : t.result.strictNote}</dd>
+                <dd className="summary-value">{anyBroken ? t.result.brokenCount(brokenRules) : t.result.allKept}</dd>
+                <dd className="summary-note">{rulesNote}</dd>
             </div>
         </dl>
     );
@@ -320,9 +388,17 @@ type ScoreTerm = { short: keyof Dict['result']['scoreShort']; name: string; deta
 
 /**
  * The full analysis: first in words, then the comparison as bars and the score explained line
- * by line. Numbers only where they say something on their own.
+ * by line. Numbers only where they say something on their own. Also for a split built by hand.
  */
-function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; privacyMode: boolean; t: Dict }) {
+export function Analysis({
+    option,
+    privacyMode,
+    t,
+}: {
+    option: Pick<GeneratedTeamOption, 'report' | 'team1' | 'team2'>;
+    privacyMode: boolean;
+    t: Dict;
+}) {
     const { report } = option;
     const { formula, keepers, att, social } = report;
     const attributeName = (key: keyof Attributes) => t.common.attributes[key].toLocaleLowerCase();
@@ -514,6 +590,10 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
 
 export function TeamResult({ result }: TeamResultProps) {
     const privacyMode = useAppStore((state) => state.privacyMode);
+    const matchesSupported = useAppStore((state) => state.matchesSupported);
+    const loggedMatch = useAppStore((state) => state.loggedMatch);
+    const navigate = useNavigate();
+    const location = useLocation();
     const t = useT();
     const [copied, setCopied] = useState<'primary' | 'secondary' | null>(null);
     const [showAnalysis, setShowAnalysis] = useState(false);
@@ -522,6 +602,13 @@ export function TeamResult({ result }: TeamResultProps) {
     const { primary, secondary, comparison } = result;
     const { report } = primary;
     const moved = comparison ? new Set([...comparison.movedToTeam1, ...comparison.movedToTeam2]) : undefined;
+    // Logging these teams as a match (Sprint 9) opens it over this screen; once saved, the same
+    // button opens that match instead of starting another one.
+    const loggedId = loggedMatch?.result === result ? loggedMatch.matchId : null;
+    const handleLogMatch = () =>
+        navigate(loggedId ? `/matches/${loggedId}` : '/matches/new', {
+            state: { background: location, fromResult: !loggedId },
+        });
 
     const handleCopy = async (option: GeneratedTeamOption, which: 'primary' | 'secondary') => {
         if (await copyText(buildCopyText(option))) {
@@ -548,7 +635,7 @@ export function TeamResult({ result }: TeamResultProps) {
 
             <Summary report={report} privacyMode={privacyMode} t={t} />
 
-            <div className="result-actions">
+            <div className={`result-actions ${matchesSupported ? 'result-actions--log' : ''}`}>
                 <button
                     type="button"
                     className={`result-btn result-btn--primary copy-btn ${copied === 'primary' ? 'is-copied' : ''}`}
@@ -557,6 +644,16 @@ export function TeamResult({ result }: TeamResultProps) {
                     {copied === 'primary' && <Icon name="check" size={15} />}
                     {copied === 'primary' ? t.result.copied : t.result.copy}
                 </button>
+                {matchesSupported && (
+                    <button
+                        type="button"
+                        className={`result-btn log-match-btn ${loggedId ? 'is-logged' : ''}`}
+                        onClick={handleLogMatch}
+                    >
+                        {loggedId && <Icon name="check" size={15} />}
+                        {loggedId ? t.matches.viewMatch : t.matches.logMatch}
+                    </button>
+                )}
                 <button
                     type="button"
                     className="result-btn analysis-toggle-btn"

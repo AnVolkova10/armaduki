@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  analyzeSplit,
   calculateTeamPower,
   compareSplitsByBalance,
   COVER_PENALTY,
@@ -437,4 +438,84 @@ test('without second positions there is no cover preference at all', () => {
   assert.equal(result.primary.report.cover, null);
   assert.equal(result.primary.report.formula.coverPref, null);
   assert.doesNotMatch(result.primary.explanation ?? '', /coverPref|cover \(second positions/);
+});
+
+// ---------------------------------------------------------------------------
+// Sprint 9: how even two teams built by hand are (analyzeSplit).
+// ---------------------------------------------------------------------------
+
+test('a split built by hand is measured only 5 against 5, with each player once', () => {
+  const pool = basePool();
+  assert.equal(analyzeSplit(pool.slice(0, 4), pool.slice(4)), null);
+  assert.equal(analyzeSplit(pool.slice(0, 6), pool.slice(6)), null);
+  assert.equal(analyzeSplit(pool.slice(0, 5), [...pool.slice(5, 9), pool[0]]), null);
+  assert.ok(analyzeSplit(pool.slice(0, 5), pool.slice(5)));
+});
+
+test('the generated split, measured as it came out, gives the same numbers as the generator', () => {
+  const pool = basePool();
+  const primary = generateTeams(pool)!.primary;
+
+  const analysis = analyzeSplit(primary.team1.players, primary.team2.players)!;
+
+  assert.equal(analysis.score, primary.score);
+  assert.equal(analysis.socialSatisfactionPct, primary.socialSatisfactionPct);
+  assert.deepEqual(analysis.report, primary.report);
+  assert.ok(analysis.rules.every((status) => status.kept), 'a strict split keeps every rule');
+  assert.equal(analysis.report.fallback, null);
+});
+
+test('the sides stay as they were built: swapping them swaps who is favoured, never the score', () => {
+  const pool = basePool();
+  // The four strongest on one side: 6, 7, 8 and 8 against 3, 4, 5 and 3.
+  const strong = [1, 3, 4, 5, 11].map((id) => byId(pool, id));
+  const weak = [2, 6, 7, 8, 9].map((id) => byId(pool, id));
+
+  const asBuilt = analyzeSplit(strong, weak)!;
+  const swapped = analyzeSplit(weak, strong)!;
+
+  assert.deepEqual(asBuilt.team1.players.map((p) => p.id), strong.map((p) => p.id), 'ROJO stays ROJO');
+  assert.equal(asBuilt.report.rating.favors, 'T1');
+  assert.equal(swapped.report.rating.favors, 'T2');
+  assert.deepEqual([asBuilt.report.rating.team1, asBuilt.report.rating.team2], [swapped.report.rating.team2, swapped.report.rating.team1]);
+  assert.equal(asBuilt.score, swapped.score);
+  assert.deepEqual(
+    asBuilt.report.attributes.map((attribute) => attribute.favors),
+    swapped.report.attributes.map((attribute) => (attribute.favors === 'T1' ? 'T2' : attribute.favors === 'T2' ? 'T1' : 'Even')),
+  );
+});
+
+test('a split built by hand says which rules it breaks, on the side where they break', () => {
+  const pool = basePool();
+  // Both GK (P1 and P6) on ROJO.
+  const bothKeepers = [1, 6, 2, 3, 4].map((id) => byId(pool, id));
+  const rest = [5, 7, 8, 9, 11].map((id) => byId(pool, id));
+
+  const rules = (team1: Person[], team2: Person[]) => analyzeSplit(team1, team2)!.rules;
+  const limits = (team1: Person[], team2: Person[]) => rules(team1, team2).find((status) => status.rule === 'roleLimits')!;
+
+  assert.equal(limits(bothKeepers, rest).kept, false);
+  assert.deepEqual(limits(bothKeepers, rest).issues, [{ kind: 'tooManyGK', team: 'T1', count: 2, max: 1 }]);
+  assert.deepEqual(limits(rest, bothKeepers).issues, [{ kind: 'tooManyGK', team: 'T2', count: 2, max: 1 }]);
+  assert.deepEqual(
+    rules(bothKeepers, rest).filter((status) => status.kept).map((status) => status.rule),
+    ['avoids', 'wants', 'roleSpread'],
+    'every other rule that applies is listed as kept',
+  );
+});
+
+test('a split built by hand reports avoids together and the owner on the stronger team', () => {
+  const pool = basePool().map((p) => (p.id === '11' ? { ...p, id: '10', rating: 9 } : p));
+  const avoider = { ...byId(pool, 4), avoidsWith: ['3'] };
+  const withOwner = pool.map((p) => (p.id === '4' ? avoider : p));
+  // 3 + 9 + 7 + 6 + 5 = 30 against 8 + 4 + 3 + 4 + 5 = 24, and the owner (10) on the 30.
+  const strongWithOwner = [1, 10, 5, 4, 3].map((id) => byId(withOwner, id));
+  const other = [6, 2, 7, 8, 9].map((id) => byId(withOwner, id));
+
+  const statuses = Object.fromEntries(analyzeSplit(strongWithOwner, other)!.rules.map((status) => [status.rule, status]));
+
+  assert.equal(statuses.avoids.kept, false);
+  assert.deepEqual(statuses.avoids.issues, [{ kind: 'avoidTogether', link: { from: 'P4', to: 'P3', mutual: false } }]);
+  assert.equal(statuses.ownerBias.kept, false);
+  assert.deepEqual(statuses.ownerBias.issues, [{ kind: 'ownerOnStronger', nickname: 'P11' }]);
 });

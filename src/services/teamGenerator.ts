@@ -17,6 +17,7 @@ import type {
   Role,
   RuleIssue,
   RuleStatus,
+  SplitAnalysis,
   TeamKeeperReport,
   TeamOptionComparison,
 } from '../types';
@@ -611,7 +612,16 @@ function canonicalizeTeams(
   };
 }
 
-function evaluateSplit(teamAPlayers: Person[], teamBPlayers: Person[], context: SplitContext): SplitEvaluation {
+/**
+ * Scores one split. The generator lets the order of the ids decide which team is Team 1, so the
+ * same split always reads the same; a split someone built by hand keeps its sides (keepSides).
+ */
+function evaluateSplit(
+  teamAPlayers: Person[],
+  teamBPlayers: Person[],
+  context: SplitContext,
+  keepSides = false,
+): SplitEvaluation {
   const statsA = calculateTeamStats(teamAPlayers);
   const statsB = calculateTeamStats(teamBPlayers);
   const ownerBiasValid = isOwnerBiasValid(
@@ -622,7 +632,15 @@ function evaluateSplit(teamAPlayers: Person[], teamBPlayers: Person[], context: 
     context.owner,
   );
 
-  const canonical = canonicalizeTeams(teamAPlayers, teamBPlayers, statsA, statsB);
+  const canonical = keepSides
+    ? {
+        team1Players: teamAPlayers,
+        team2Players: teamBPlayers,
+        stats1: statsA,
+        stats2: statsB,
+        displayKey: `${getSortedTeamKey(teamAPlayers)}|${getSortedTeamKey(teamBPlayers)}`,
+      }
+    : canonicalizeTeams(teamAPlayers, teamBPlayers, statsA, statsB);
   const team1Ids = new Set(canonical.team1Players.map((player) => player.id));
   const team1GKProfile = getTeamGKProfile(canonical.team1Players);
   const team2GKProfile = getTeamGKProfile(canonical.team2Players);
@@ -666,15 +684,20 @@ function evaluateSplit(teamAPlayers: Person[], teamBPlayers: Person[], context: 
   };
 }
 
-/** Evaluates every 5v5 split once (126 splits for 10 players). */
-function evaluateAllSplits(players: Person[]): SplitEvaluation[] {
-  const [anchor, ...rest] = players;
-  const context: SplitContext = {
+/** What every split of these players is measured against. */
+function buildSplitContext(players: Person[]): SplitContext {
+  return {
     owner: players.find((player) => player.id === OWNER_ID),
     totalDefCount: countRole(players, 'DEF'),
     wantLinks: classifyWantLinks(players),
     cover: getCoverContext(players),
   };
+}
+
+/** Evaluates every 5v5 split once (126 splits for 10 players). */
+function evaluateAllSplits(players: Person[]): SplitEvaluation[] {
+  const [anchor, ...rest] = players;
+  const context = buildSplitContext(players);
 
   return getCombinations(rest, TEAM_SIZE - 1).map((partners) => {
     const teamAIds = new Set([anchor.id, ...partners.map((player) => player.id)]);
@@ -1462,6 +1485,27 @@ function buildComparison(
     socialDelta: secondary.socialSatisfactionPct - primary.socialSatisfactionPct,
     movedToTeam1,
     movedToTeam2,
+  };
+}
+
+/**
+ * How even two teams built by hand are (Sprint 9): the same analysis as a generated result, with
+ * the sides as they are (ROJO stays ROJO) and every hard rule, kept or broken. Only 5 against 5,
+ * like the generator: any other size has no analysis (null).
+ */
+export function analyzeSplit(team1: Person[], team2: Person[]): SplitAnalysis | null {
+  if (team1.length !== TEAM_SIZE || team2.length !== TEAM_SIZE) return null;
+  const players = [...team1, ...team2];
+  if (new Set(players.map((player) => player.id)).size !== players.length) return null;
+
+  const evaluation = evaluateSplit(team1, team2, buildSplitContext(players), true);
+  return {
+    team1: { players: team1, totalRating: evaluation.stats1.rating },
+    team2: { players: team2, totalRating: evaluation.stats2.rating },
+    report: buildAnalysisReport(evaluation, null),
+    rules: getRuleStatuses(players, evaluation),
+    score: evaluation.score,
+    socialSatisfactionPct: evaluation.socialPct,
   };
 }
 

@@ -1,0 +1,239 @@
+/* The list of matches (Sprint 9): one row per match, newest first. The day in the shirt letters,
+   the group and the place, and the result in words, with the winning side's tag. */
+
+.matches-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.matches-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.matches-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.match-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.match-row {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  transition: border-color var(--t-press) ease;
+}
+
+.match-row:hover {
+  border-color: var(--line-strong);
+}
+
+.match-row-open {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.match-row-open:active {
+  background: var(--surface-2);
+}
+
+.match-row-day {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.match-row-where {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.92rem;
+  color: var(--text-2);
+}
+
+.match-row-outcome {
+  white-space: nowrap;
+}
+
+.match-outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.match-outcome--none {
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.team-tag.team-tag--small {
+  min-height: 20px;
+  padding: 1px 6px 0;
+  font-size: 0.92rem;
+}
+
+.match-row-delete {
+  flex: 0 0 auto;
+  width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: transparent;
+  color: var(--text-3);
+  cursor: pointer;
+  transition: color var(--t-press) ease, background var(--t-press) ease;
+}
+
+.match-row-delete:hover {
+  color: var(--red-text);
+  background: var(--red-soft);
+}
+
+.matches-count {
+  font-size: 0.82rem;
+  color: var(--text-3);
+  text-align: right;
+}
+
+.matches-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40vh;
+}
+
+.matches-empty {
+  padding: 64px 32px;
+  text-align: center;
+  color: var(--text-2);
+}
+
+.matches-empty p {
+  margin: 0;
+}
+
+.matches-empty .hint {
+  margin-top: 8px;
+  font-size: 0.875rem;
+  color: var(--text-3);
+}
+
+.matches-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--red);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+  font-size: 0.9rem;
+}
+
+.matches-error-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.matches-error-btn {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 4px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.matches-error-btn:hover {
+  border-color: var(--text-3);
+  background: var(--surface-2);
+}
+
+@media (max-width: 640px) {
+  .matches-page {
+    gap: 16px;
+  }
+
+  /* The day and the result on top, the group and the place under them. */
+  .match-row-open {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'day outcome'
+      'where where';
+    gap: 6px 12px;
+    padding: 10px 12px;
+  }
+
+  .match-row-day {
+    grid-area: day;
+  }
+
+  .match-row-outcome {
+    grid-area: outcome;
+  }
+
+  .match-row-where {
+    grid-area: where;
+  }
+
+  .match-row-where:empty {
+    display: none;
+  }
+
+  .match-row-delete {
+    width: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-row,
+  .match-row-delete {
+    transition: none;
+  }
+}

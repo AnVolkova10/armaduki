@@ -9,6 +9,7 @@ Team generator for 5v5 matches with social constraints, role balancing, and Goog
 - Access key: when the backend has one, a device without it sees a penalty instead of the app. Typing the key takes the shot: the right key scores and the app opens, a wrong key is saved by the keeper, and no answer hits the post.
 - Show analysis with balance metrics and social satisfaction.
 - Copy team output in one click.
+- Matches as they were played (Sprint 9): a second screen, «Matches», lists them with the day, the group, the place and the result. A match is logged from the generated teams («Log Match») or built by hand (someone else made the teams, or they changed): the day, the group and its place, the result and, per player, goals, goals let in (only when a side rotates in goal; a fixed keeper gets the other side's goals) and errors (hidden with privacy mode). Any two teams of 5 get the same analysis as a generated result, with the rules they break.
 
 ## Core generation rules
 
@@ -60,20 +61,20 @@ A plain-language walkthrough in Spanish, including how the fallback worked befor
 
 - React 19 + TypeScript + Vite
 - Zustand for app state
-- React Router: one screen at `/`; `/match` and any other path redirect there
+- React Router: the players at `/` and the matches at `/matches`; a match opens at `/matches/<id>` (or `/matches/new`) over the screen it came from, so back closes it. `/match` and any other path redirect to `/`
 - Google Apps Script endpoint for read/write to Sheets
 
 ## Project structure
 
 ```text
 src/
-  components/   # UI pieces (cards, form, result, buttons, modal, list controls)
-  hooks/        # usePlayerListing: search, filters and sort of a player list
-  pages/        # PlayersPage, the only screen (players + match setup + result)
-  services/     # team generation logic
+  components/   # UI pieces (cards, form, result, match editor, buttons, modal, list controls)
+  hooks/        # usePlayerListing (search, filters and sort), useRosterLoad (the first read)
+  pages/        # PlayersPage (players + match setup + result) and MatchesPage (the matches)
+  services/     # team generation logic, and the analysis of a split built by hand
   store/        # Zustand store + Sheets integration
   types/        # shared TypeScript types
-  utils/        # search, list filtering/sorting, selection, rating suggestion
+  utils/        # search, list filtering/sorting, selection, rating suggestion, matches, player fields
 tests/          # npm test (see Scripts)
 scripts/        # backend-release.ts (npm run backend:release)
 apps-script/    # versioned Google Apps Script backend
@@ -115,11 +116,13 @@ npm run dev
 - With a key set, every request must carry it: `&key=` on reads and `"key"` in the body of saves. Anything else answers `unauthorized` before the spreadsheet is opened.
 - A device keeps the key (in `localStorage`) only after the backend accepted it, and keeps a copy of the last read so the app opens at once. With that copy on screen picking players works right away; adding, editing, deleting and clearing links wait until the sheet has answered.
 - If the backend refuses the key (it changed, or was never typed), the device forgets the key and the copy, and the gate comes back.
-- Privacy mode hides ratings: the numbers on the cards, the score filter and sort, each team's Power and rating total, and the rating difference in the result header. It also hides the notes, the age and, from Sprint 8, who avoids whom: the form shows no Avoids list (saving keeps the avoids) and the result names no avoid and counts none. The teams come out the same. Each device remembers whether it was left on or off (`localStorage`, like the language); a new device starts with it on.
+- Privacy mode hides ratings: the numbers on the cards, the score filter and sort, each team's Power and rating total, and the rating difference in the result header. It also hides the notes, the age and, from Sprint 8, who avoids whom: the form shows no Avoids list (saving keeps the avoids) and the result names no avoid and counts none. The teams come out the same. From Sprint 9 it also hides each player's errors in a match (saving keeps them) and the ratings there; a match's analysis hides what the result's does. Each device remembers whether it was left on or off (`localStorage`, like the language); a new device starts with it on.
 
 ## Data contract (Sheets/App Script)
 
-On open the app makes one request, `action=readAll`, which answers `{ players, teams, groups, relationshipHistory }`, plus `teamsError`, `groupsError` or `relationshipHistoryError` when only that tab failed (players still load). `groups` comes from Sprint 6 on and `relationshipHistory` (how many times each player marked each other one, for the order of the form's lists) from Sprint 8 on; see `apps-script/README.md`. A backend without `readAll` answers `{ error: 'Action unknown' }`, and the app then uses `action=read` and `action=readTeams`, so an older backend version keeps working.
+On open the app makes one request, `action=readAll`, which answers `{ players, teams, groups, relationshipHistory }`, plus `teamsError`, `groupsError` or `relationshipHistoryError` when only that tab failed (players still load). `groups` comes from Sprint 6 on and `relationshipHistory` (how many times each player marked each other one, for the order of the form's lists) from Sprint 8 on; see `apps-script/README.md`. From Sprint 9 on it also answers `capabilities: ['matches']` (without it the app hides «Matches») and `highestPlayerId`, the highest player id ever used, deleted players included, which new ids go above. A backend without `readAll` answers `{ error: 'Action unknown' }`, and the app then uses `action=read` and `action=readTeams`, so an older backend version keeps working.
+
+Matches are not part of `readAll`: the app asks for them with `action=readMatches` when «Matches» (or a match) opens, after the saves it has already sent. They live in two tabs, `MatchHistory` (one row per match) and `MatchPlayers` (one row per player per match, with how each one was that day, so an old match measures the same later); see `apps-script/README.md`. They are never kept on the device.
 
 Expected player fields (`players` in `readAll`, or the `action=read` response):
 
@@ -139,15 +142,18 @@ Write actions used by the app:
 - `add`
 - `update`
 - `delete`
+- `addTeam` and `addGroup` (Sprint 6)
+- `saveMatch` and `deleteMatch` (Sprint 9)
 
 Sync behavior:
 
-- Writes are sent as `text/plain` POSTs (no CORS preflight) and the Apps Script answer is checked: `Added`, `Updated` and `Deleted` are success; `ID not found` on delete counts as already deleted. Any other answer, HTTP error, network error or 60s timeout is shown as a sync error with `Retry`.
+- Writes are sent as `text/plain` POSTs (no CORS preflight) and the Apps Script answer is checked: `Added`, `Updated`, `Deleted` and `Saved` are success; `ID not found` and `Match not found` on delete count as already deleted. Any other answer, HTTP error, network error or 60s timeout is shown as a sync error with `Retry`.
 - Writes run one at a time, in order. A retry rebuilds its payload from the current local data, so it never resends stale values.
 - `update` only sends the fields that changed in the app; the Apps Script keeps every other cell, so manual Sheet edits are not overwritten.
 - Clearing links only updates players that had links, 4 requests at a time.
 - Deleting a player also removes their id from every other player's `wantsWith` / `avoidsWith`.
-- New player ids are the highest numeric id found in ids and links + 1, so a new player never inherits links meant for a deleted one.
+- New player ids are the highest numeric id found in ids and links, or the backend's `highestPlayerId` (deleted players included), + 1, so a new player never inherits the links, the history or the matches of a deleted one.
+- A match is saved whole (`saveMatch` replaces its row and its player rows), so a retry sends the match as it is then, and nothing once it was deleted.
 - Rows with a duplicate `id` (only the first is shown) or without `id` show a warning after loading.
 - Closing the tab while a write is pending or failed asks for confirmation.
 
