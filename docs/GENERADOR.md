@@ -82,6 +82,16 @@ Desde el Sprint 2 (19/11/2026), los wants de un solo lado no traban: una cadena 
 
 Este orden lo propuso Claude en la revisión y Ángela lo aprobó el 19/11/2026.
 
+## Medir equipos armados a mano (Sprint 9)
+
+`analyzeSplit` mide dos equipos que no armó la app (los de otra persona, o los de la app cambiados a mano) con el mismo score y el mismo análisis que un resultado. No elige nada: el generador sigue igual. Tres diferencias:
+
+- Los lados quedan como están. El generador ordena los equipos por los ids, para que el mismo reparto se lea siempre igual; acá ROJO sigue siendo ROJO, y la diferencia de rating o un GK de más se dicen del lado donde están.
+- Devuelve todas las reglas fuertes que aplican, cumplidas o rotas, con los mismos detalles que el fallback, y la app dice cuáles rompe ese armado. Un armado a mano no es un fallback: no tiene causas ni orden en que ceden las reglas.
+- Solo mide 5 contra 5, como el generador. Con otro tamaño no hay análisis.
+
+Un partido guardado se mide con lxs jugadorxs como estaban ese día (la foto en la pestaña `MatchPlayers`), así no cambia cuando después cambian los ratings.
+
 ## Ideas para mejorarlo
 
 Charladas con Ángela el 19/11/2026. Lo que se hace está en el Sprint 2 del TODO; lo que espera decisión, en «Cosas por cerrar».

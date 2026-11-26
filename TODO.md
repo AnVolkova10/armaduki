@@ -379,7 +379,7 @@ Objetivo: que lxs que juegan juntxs en un equipo real tiendan a caer juntxs, sin
 - [ ] Multi-grupo o multi-liga (F2-12.5).
 - [ ] Variedad en el generador: «otro reparto» entre los casi iguales, o no repetir los equipos de la última fecha (con el historial del Sprint 9).
 - [ ] Fotos más livianas: las fotos guardadas en la planilla son casi todo lo que baja al abrir la app (medido el 19/11). Achicarlas al guardarlas, o traerlas aparte de la lectura inicial. Se complementa con abrir con la última lectura guardada (Sprint 4). **Propuesta.**
-- [ ] Navegación en la URL: el botón atrás cierra el modal y vuelve de pantalla, como en VolkosFood. Puede entrar en el rediseño. **Propuesta.**
+- [ ] Navegación en la URL: el botón atrás cierra el modal y vuelve de pantalla, como en VolkosFood. Puede entrar en el rediseño. **Propuesta.** Desde el Sprint 9 ya pasa con los partidos (la pantalla y el partido abierto); falta el modal de jugadorx.
 - [ ] Pedir confirmación al cerrar el modal con cambios sin guardar. **Propuesta.**
 - [ ] Borrar desde el modal de edición en vez de la tarjeta. Por ahora no: Ángela prefiere borrar rápido desde la tarjeta (19/11). **Propuesta.**
 - [ ] Que «Copy Teams» no se confunda con apodos de más de una palabra. **Propuesta.**
