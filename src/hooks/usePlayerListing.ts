@@ -1,11 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { Person } from '../types';
 import {
+    applyCatalogs,
     applyPrivacyMode,
     DEFAULT_LISTING_CONTROLS,
     filterAndSortPeople,
     hasActiveFilters,
     sortAfterSelectionChange,
+    type ListingCatalogs,
     type ListingControls,
     type SortMode,
 } from '../utils/playerListing';
@@ -23,14 +25,16 @@ interface ListingState {
 }
 
 /**
- * Search, filters and sort for the player list. `controls` already has privacy mode applied.
- * With `matchSize` picks the list sorts itself to "selected" (see sortAfterSelectionChange).
+ * Search, filters and sort for the player list. `controls` already has privacy mode and the
+ * catalogs applied (see applyCatalogs). With `matchSize` picks the list sorts itself to
+ * "selected" (see sortAfterSelectionChange). `catalogs` should keep its identity between renders.
  */
 export function usePlayerListing(
     people: Person[],
     selectedIds: ReadonlySet<string>,
     privacyMode: boolean,
     matchSize: number,
+    catalogs: ListingCatalogs,
 ) {
     const [listing, setListing] = useState<ListingState>(() => ({
         controls: DEFAULT_LISTING_CONTROLS,
@@ -55,11 +59,14 @@ export function usePlayerListing(
     }
 
     const chosenControls = current.controls;
-    const controls = useMemo(() => applyPrivacyMode(chosenControls, privacyMode), [chosenControls, privacyMode]);
+    const controls = useMemo(
+        () => applyCatalogs(applyPrivacyMode(chosenControls, privacyMode), catalogs),
+        [chosenControls, privacyMode, catalogs],
+    );
 
     const visiblePeople = useMemo(
-        () => filterAndSortPeople(people, controls, selectedIds),
-        [people, controls, selectedIds],
+        () => filterAndSortPeople(people, controls, selectedIds, catalogs),
+        [people, controls, selectedIds, catalogs],
     );
 
     const updateControls = useCallback((update: ListingControlsUpdate) => {

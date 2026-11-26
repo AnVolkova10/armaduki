@@ -228,13 +228,35 @@ Prueba (en https://armaduki.vercel.app):
 10. Pasá a castellano: «Activx», «Segundo puesto», «Nacimiento», «Grupos», «+ Nuevo» e «Inactivxs».
 11. Si algo no te cierra, decime qué.
 
-## Sprint 7 - Filtros y orden
+## Sprint 7 - Filtros y orden (hecho, falta tu prueba)
 
-Objetivo: encontrar rápido a quién elegir. Usa la búsqueda unificada del Sprint 3.
+Objetivo: encontrar rápido a quién elegir. Usa la búsqueda unificada del Sprint 3. Decidido con Ángela el 25/11: los equipos y los grupos se cargan de a unx en el modal, y los filtros no se recuerdan al recargar. Solo frontend: no toca la planilla ni el backend.
 
-- [ ] Filtro por equipo (F2-06.1, F2-06.3).
-- [ ] Filtro por grupo (F2-06.2). El de día/lugar (F2-06.4) espera a los días (backlog).
-- [ ] Orden por camiseta, equipo o grupo donde sume (F2-06.5).
+- [x] **Filtro por equipo** (F2-06.1, F2-06.3): un menú «Team» («Equipo») con cada equipo por nombre y sus dos colores. Aparece todx quien tenga ese equipo, sea o no su principal. Al final, «No team» («Sin equipo»): quienes no tienen ninguno, para ver a quién falta cargarle (un equipo borrado de la planilla cuenta como ninguno).
+- [x] **Filtro por grupo** (F2-06.2): un menú «Group» («Grupo»), igual, con «No group» («Sin grupo») al final. El de día/lugar (F2-06.4) espera a los días (backlog).
+- [x] Un equipo y un grupo por vez; se combinan entre sí, con el rol, el score, la búsqueda e «Inactive». Cuentan como filtros para «Clear Filters» y para «Showing X of Y players» («X de Y jugadorxs»). Se ven también con privacy mode. Sin equipos o sin grupos en la planilla, ese menú no aparece.
+- [x] **El filtro de rol suma el segundo puesto:** «DEF» muestra primero a lxs DEF y después a quienes tienen DEF de segundo puesto (la pill chiquita dice quién es quién), con cualquier orden; solo «Selected» pone antes a lxs elegidxs. Lo mismo con GK, MID y ATT.
+- [x] **Orden por camiseta** (F2-06.5): de menor a mayor; el 7 y el 007 empatan y desempata el apodo; sin número, al final.
+- [x] **Orden por equipo** (F2-06.5): por el equipo principal, el de los colores de la esquina, en orden alfabético; sin equipo, al final; dentro de cada equipo, por apodo. Si alguien tiene equipos pero ninguno marcado como principal (una fila editada en la planilla), cuenta el primero, como en el modal, y su tarjeta muestra esos colores.
+- [x] Sin orden por grupo: quien está en varios grupos no tiene un solo lugar, y el filtro ya lxs junta.
+- [x] Dónde van: en el teléfono, rol, score y orden en una fila, y equipo y grupo debajo, a media fila (entra «Segurola 20hs…»); el menú de la derecha abre hacia la izquierda, así un nombre largo no se sale de la pantalla. Desde 960 px de ancho, todo en la fila de la búsqueda. Detalle en `docs/DESIGN_DIRECTION.md`.
+- [x] Arreglo que apareció al probar: en un teléfono angosto, con el orden por score, el menú de orden quedaba en «S…» al lado de la flecha de dirección. Pasaba desde antes y no se veía porque con privacy mode no hay orden por score. Ahora dice «Score».
+- [ ] **Ángela:** probar el sprint (abajo).
+- [x] Verificado: lint, tipos, 145 tests, build y pruebas en Edge contra una API local que corre `Code.gs` sobre planillas en memoria (nada tocó la planilla real), en tamaño computadora (también a 1100 y 820 de ancho) y teléfono (también a 360), en los dos idiomas y con privacy mode prendido y apagado:
+  - El Sprint 7: 33 chequeos en la compu y 35 en el teléfono, entre ellos que los menús abiertos no se salgan de la pantalla a 360 px y que sin grupos no aparezca su menú.
+  - Las suites de los sprints 3b, 4, 5 y 6 siguen pasando, también la de escala real (61 jugadorxs, 7 equipos y 5 grupos).
+
+Prueba (en https://armaduki.vercel.app):
+
+1. Debajo de la búsqueda hay dos menús nuevos, «Team» y «Group» («Equipo» y «Grupo» en castellano). En el teléfono van en una segunda fila; en la compu, en la misma fila que la búsqueda.
+2. Abrí «Team»: tus equipos por nombre, cada uno con sus dos colores, y al final «No team». Elegí uno: aparece todx quien lo tiene, sea o no su equipo principal. Debajo de la lista dice cuántxs se ven de cuántxs.
+3. Abrí «Group» y elegí un grupo: quedan sus jugadorxs. Combinalo con un equipo o con un rol.
+4. Elegí «No group»: son quienes no tienen grupo todavía. Abrí a unx con el lápiz, marcale un grupo y guardá: sale de esa lista. Lo mismo con «No team».
+5. En «Role», elegí DEF: primero lxs DEF y después quienes tienen DEF de segundo puesto, con la pill chiquita.
+6. En «Sort», probá «Shirt» (por número de camiseta, sin número al final) y «Team» (agrupadxs por equipo principal, con los colores de la esquina juntos).
+7. «Clear» → «Clear Filters» deja todo como al principio. Recargá la página: los filtros vuelven a «All».
+8. Con privacy mode prendido, «Team» y «Group» siguen; «Score» no.
+9. Si algo no te cierra, decime qué.
 
 ## Sprint 8 - Wants y avoids con historial
 

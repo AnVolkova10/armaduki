@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Icon } from './Icon';
 import './DropdownMenuSelect.css';
 
 export interface DropdownMenuOption {
     label: string;
     value: string;
+    /** A team's two colours, shown before its name as on the card's corner. */
+    colors?: readonly [string, string];
 }
 
 interface DropdownMenuSelectProps {
@@ -15,6 +17,13 @@ interface DropdownMenuSelectProps {
     /** The small name over the value: what this menu chooses. */
     caption?: string;
     disabled?: boolean;
+    className?: string;
+}
+
+function Swatch({ colors }: { colors?: readonly [string, string] }) {
+    if (!colors) return null;
+    const style = { '--swatch-1': colors[0], '--swatch-2': colors[1] } as CSSProperties;
+    return <span className="dropdown-select-swatch" style={style} aria-hidden="true" />;
 }
 
 export function DropdownMenuSelect({
@@ -24,6 +33,7 @@ export function DropdownMenuSelect({
     ariaLabel,
     caption,
     disabled = false,
+    className,
 }: DropdownMenuSelectProps) {
     const [open, setOpen] = useState(false);
     const rootRef = useRef<HTMLDivElement | null>(null);
@@ -62,7 +72,7 @@ export function DropdownMenuSelect({
     };
 
     return (
-        <div className={`dropdown-select ${open ? 'is-open' : ''}`} ref={rootRef}>
+        <div className={['dropdown-select', open ? 'is-open' : '', className ?? ''].filter(Boolean).join(' ')} ref={rootRef}>
             <button
                 type="button"
                 className="dropdown-select-trigger"
@@ -74,7 +84,10 @@ export function DropdownMenuSelect({
             >
                 <span className="dropdown-select-text">
                     {caption && <span className="dropdown-select-caption">{caption}</span>}
-                    <span className="dropdown-select-label">{selected?.label || ''}</span>
+                    <span className="dropdown-select-label">
+                        <Swatch colors={selected?.colors} />
+                        {selected?.label || ''}
+                    </span>
                 </span>
                 <span className="dropdown-select-caret" aria-hidden="true">
                     <Icon name="chevronDown" size={14} />
@@ -92,6 +105,7 @@ export function DropdownMenuSelect({
                             }`}
                             onClick={() => handleSelect(option.value)}
                         >
+                            <Swatch colors={option.colors} />
                             {option.label}
                         </button>
                     ))}

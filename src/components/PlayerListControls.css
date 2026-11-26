@@ -4,14 +4,47 @@
   width: 100%;
 }
 
+/*
+ * Phone and narrow windows: the search on its own row, then role, score and sort in thirds
+ * (halves with privacy mode, which hides the score), and the team and group menus under them,
+ * half and half so a long name fits (Sprint 7). Six columns make both splits.
+ */
 .list-controls .list-controls-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
 
-.list-controls .list-controls-grid--privacy {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 959px) {
+  .list-controls .list-control {
+    grid-column: span 2;
+  }
+
+  .list-controls .list-controls-grid--privacy .list-control {
+    grid-column: span 3;
+  }
+
+  .list-controls .list-control--catalog {
+    grid-column: span 3;
+    order: 1;
+  }
+
+  .list-controls .list-controls-grid--one-catalog .list-control--catalog {
+    grid-column: 1 / -1;
+  }
+
+  /* The menu on the right half opens towards the left, so a long name stays on screen. */
+  .list-controls .list-control--catalog + .list-control--catalog .dropdown-select-menu {
+    left: auto;
+    right: 0;
+  }
+}
+
+/* Wide windows: the search on the left and every menu in the same row. Kept after the base rules. */
+@media (min-width: 960px) {
+  .list-controls .list-controls-grid {
+    grid-template-columns: minmax(180px, 1fr) repeat(var(--menus, 3), minmax(0, 150px));
+  }
 }
 
 .list-controls .list-sort-group {
@@ -42,10 +75,31 @@
   border-color: var(--text-3);
 }
 
+/* Narrow phones: next to the arrow, the sort menu drops its own caret so "Score" fits. */
+@media (max-width: 480px) {
+  .list-controls .list-sort-group--with-toggle {
+    gap: 4px;
+  }
+
+  .list-controls .list-sort-group--with-toggle .list-sort-direction-toggle {
+    width: 34px;
+  }
+
+  .list-controls .list-sort-group--with-toggle .dropdown-select-caret {
+    display: none;
+  }
+}
+
 .list-controls .list-search-field {
   grid-column: 1 / -1;
   position: relative;
   width: 100%;
+}
+
+@media (min-width: 960px) {
+  .list-controls .list-search-field {
+    grid-column: auto;
+  }
 }
 
 .list-controls .list-search-icon {
@@ -84,19 +138,4 @@
 .list-controls .list-search-input:focus-visible {
   outline: none;
   border-color: var(--text);
-}
-
-/* Wider screens: search on the left, the menus in one row. Kept after the base rules. */
-@media (min-width: 640px) {
-  .list-controls .list-controls-grid {
-    grid-template-columns: minmax(0, 1fr) repeat(3, minmax(0, 150px));
-  }
-
-  .list-controls .list-controls-grid--privacy {
-    grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 150px));
-  }
-
-  .list-controls .list-search-field {
-    grid-column: auto;
-  }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useAppStore from '../store/useAppStore';
 import { ActionButton } from '../components/ActionButton';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -14,6 +14,7 @@ import { useT } from '../i18n';
 import { generateTeams } from '../services/teamGenerator';
 import type { Person } from '../types';
 import { scrollBehavior } from '../utils/motion';
+import type { ListingCatalogs } from '../utils/playerListing';
 import './PlayersPage.css';
 
 const MATCH_SIZE = 10;
@@ -56,6 +57,8 @@ export function PlayersPage() {
         access,
         isFresh,
         isReading,
+        teamsCatalog,
+        groupsCatalog,
     } = useAppStore();
     const t = useT();
     const isLoading = peopleStatus === 'loading';
@@ -75,11 +78,20 @@ export function PlayersPage() {
     const resultRef = useRef<HTMLDivElement | null>(null);
     const gridRef = useRef<HTMLDivElement | null>(null);
     const shouldScrollToResultRef = useRef(false);
+    // Team and group names for the filters and the team sort (Sprint 7).
+    const catalogs = useMemo<ListingCatalogs>(
+        () => ({
+            teams: new Map(teamsCatalog.map((team) => [team.teamId, team.name])),
+            groups: new Map((groupsCatalog ?? []).map((group) => [group.groupId, group.name])),
+        }),
+        [teamsCatalog, groupsCatalog],
+    );
     const { controls, updateControls, resetControls, visiblePeople, isFiltered } = usePlayerListing(
         people,
         selectedIds,
         privacyMode,
         MATCH_SIZE,
+        catalogs,
     );
     // The same cards in another order travel to their new place (the picks going to the top).
     useFlipList(gridRef, visiblePeople.map((person) => person.id).join(','));
@@ -345,7 +357,13 @@ export function PlayersPage() {
                 </div>
             </div>
 
-            <PlayerListControls controls={controls} onChange={updateControls} privacyMode={privacyMode} />
+            <PlayerListControls
+                controls={controls}
+                onChange={updateControls}
+                privacyMode={privacyMode}
+                teams={teamsCatalog}
+                groups={groupsCatalog}
+            />
 
             {error && (
                 <div className="error">

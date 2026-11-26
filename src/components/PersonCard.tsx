@@ -2,6 +2,7 @@ import type { Person } from '../types';
 import { useT } from '../i18n';
 import useAppStore from '../store/useAppStore';
 import { ageOn } from '../utils/birthDate';
+import { mainTeamId } from '../utils/mainTeam';
 import { Icon } from './Icon';
 import { NoteTip } from './NoteTip';
 import './PersonCard.css';
@@ -31,8 +32,9 @@ export function PersonCard({
     const t = useT();
     const privacyMode = useAppStore((state) => state.privacyMode);
     const teamsCatalog = useAppStore((state) => state.teamsCatalog);
-    const mainTeamId = person.primaryTeam;
-    const mainTeam = mainTeamId ? teamsCatalog.find((team) => team.teamId === mainTeamId) : undefined;
+    // The main team, or the first one when none is marked (a row edited in the sheet), as the form shows it.
+    const mainId = mainTeamId(person, (teamId) => teamsCatalog.some((team) => team.teamId === teamId));
+    const mainTeam = mainId ? teamsCatalog.find((team) => team.teamId === mainId) : undefined;
     // Team colours come from the sheet; a team without them gets the neutral pair.
     const teamMarkerStyle = mainTeam ? {
         '--team-color-1': mainTeam.color1 || 'var(--team-default-1)',

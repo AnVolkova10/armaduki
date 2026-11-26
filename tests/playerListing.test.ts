@@ -2,13 +2,18 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { Person, Role } from '../src/types/index.ts';
 import {
+  applyCatalogs,
   applyPrivacyMode,
+  catalogFilter,
   DEFAULT_LISTING_CONTROLS,
   filterAndSortPeople,
   hasActiveFilters,
+  NO_CATALOGS,
   sortAfterSelectionChange,
+  type ListingCatalogs,
   type ListingControls,
 } from '../src/utils/playerListing.ts';
+import { mainTeamId } from '../src/utils/mainTeam.ts';
 
 function person(id: string, nickname: string, role: Role, rating: number, name = ''): Person {
   return {
@@ -174,4 +179,106 @@ test('inactive players only show under their own filter, which still takes searc
   assert.deepEqual(listOf({ role: 'inactive', query: 'fi' }), ['Fio']);
   assert.deepEqual(listOf({ role: 'inactive', sort: 'score' }), ['Fio', 'Eli']);
   assert.equal(hasActiveFilters(controls({ role: 'inactive' })), true);
+});
+
+// ---------------------------------------------------------------------------
+// Team and group filters, the second position in the role filter, and the shirt and team
+// sorts (Sprint 7).
+// ---------------------------------------------------------------------------
+
+const catalogs: ListingCatalogs = {
+  teams: new Map([['halcones', 'Halcones'], ['armaduki', 'Armaduki']]),
+  groups: new Map([['segurola', 'Segurola 20hs Jueves'], ['amigxs', 'Amigxs']]),
+};
+
+const club: Person[] = [
+  { ...person('1', 'Rana', 'ATT', 7), primaryTeam: 'armaduki', teams: ['armaduki', 'halcones'], groups: ['segurola'], shirtNumber: '9' },
+  { ...person('2', 'Inés', 'MID', 5), secondaryRole: 'DEF', primaryTeam: 'halcones', teams: ['halcones'], groups: ['segurola', 'amigxs'], shirtNumber: '007' },
+  // Only ids the tabs no longer have: a team and a group deleted in the sheet.
+  { ...person('3', 'Ana', 'GK', 7), teams: ['viejo'], groups: ['borrado'], shirtNumber: '1' },
+  // Teams but none marked as main, as a row edited in the sheet can be.
+  { ...person('4', 'Bea', 'MID', 5), teams: ['halcones'], shirtNumber: '7' },
+  { ...person('5', 'Caro', 'DEF', 9), groups: ['amigxs'] },
+  { ...person('6', 'Dani', 'FLEX', 5), secondaryRole: 'DEF', shirtNumber: 'X' },
+];
+
+const clubList = (patch: Partial<ListingControls>, selected: string[] = []) =>
+  nicknames(filterAndSortPeople(club, controls(patch), new Set(selected), catalogs));
+
+test('team filter: anyone with that team, main or not', () => {
+  assert.deepEqual(clubList({ team: catalogFilter('halcones') }), ['Rana', 'Inés', 'Bea']);
+  assert.deepEqual(clubList({ team: catalogFilter('armaduki') }), ['Rana']);
+});
+
+test('group filter, combined with the team filter, the role and the search', () => {
+  assert.deepEqual(clubList({ group: catalogFilter('segurola') }), ['Rana', 'Inés']);
+  assert.deepEqual(clubList({ group: catalogFilter('amigxs') }), ['Inés', 'Caro']);
+  assert.deepEqual(clubList({ group: catalogFilter('segurola'), team: catalogFilter('armaduki') }), ['Rana']);
+  assert.deepEqual(clubList({ group: catalogFilter('amigxs'), role: 'MID' }), ['Inés']);
+  assert.deepEqual(clubList({ group: catalogFilter('amigxs'), query: 'ca' }), ['Caro']);
+});
+
+test('"No team" and "No group": none the tabs know, so an id left by a deleted one counts as none', () => {
+  assert.deepEqual(clubList({ team: 'none' }), ['Ana', 'Caro', 'Dani']);
+  assert.deepEqual(clubList({ group: 'none' }), ['Ana', 'Bea', 'Dani']);
+  assert.deepEqual(clubList({ team: 'none', group: 'none' }), ['Ana', 'Dani']);
+});
+
+test('a team whose id is "none" or "all" is still that team', () => {
+  const odd: ListingCatalogs = { teams: new Map([['none', 'None FC'], ['all', 'All Stars']]), groups: new Map() };
+  const players = [
+    { ...person('1', 'Uno', 'MID', 5), teams: ['none'] },
+    { ...person('2', 'Dos', 'MID', 5), teams: ['all'] },
+    person('3', 'Tres', 'MID', 5),
+  ];
+  const of = (patch: Partial<ListingControls>) => nicknames(filterAndSortPeople(players, controls(patch), new Set(), odd));
+  assert.deepEqual(of({ team: catalogFilter('none') }), ['Uno']);
+  assert.deepEqual(of({ team: catalogFilter('all') }), ['Dos']);
+  assert.deepEqual(of({ team: 'none' }), ['Tres']);
+});
+
+test('a role also brings who has it as second position, after the ones who play it as main', () => {
+  assert.deepEqual(clubList({ role: 'DEF' }), ['Caro', 'Inés', 'Dani']);
+  // Also when a second-position one would sort first.
+  assert.deepEqual(clubList({ role: 'DEF', sort: 'score', scoreDirection: 'asc' }), ['Caro', 'Dani', 'Inés']);
+  assert.deepEqual(clubList({ role: 'MID' }), ['Inés', 'Bea'], 'nobody has MID as second position');
+  // The selected sort is the one exception: the picks go first.
+  assert.deepEqual(clubList({ role: 'DEF', sort: 'selected' }, ['6']), ['Dani', 'Caro', 'Inés']);
+});
+
+test('shirt sort: numbers as numbers (007 ties with 7), other text after them, no number last', () => {
+  assert.deepEqual(clubList({ sort: 'shirt' }), ['Ana', 'Bea', 'Inés', 'Rana', 'Dani', 'Caro']);
+});
+
+test('team sort: by the name of the main team, or the first team when none is marked; no team last', () => {
+  assert.deepEqual(clubList({ sort: 'team' }), ['Rana', 'Bea', 'Inés', 'Ana', 'Caro', 'Dani']);
+});
+
+test('the main team is the marked one, or else the first one the Teams tab knows', () => {
+  const known = (id: string) => catalogs.teams.has(id);
+  assert.equal(mainTeamId({ primaryTeam: 'armaduki', teams: ['halcones', 'armaduki'] }, known), 'armaduki');
+  assert.equal(mainTeamId({ teams: ['viejo', 'halcones'] }, known), 'halcones');
+  assert.equal(mainTeamId({ primaryTeam: 'viejo', teams: ['armaduki'] }, known), 'armaduki', 'a main team the tab lost');
+  assert.equal(mainTeamId({ teams: ['viejo'] }, known), undefined);
+});
+
+test('without teams or groups there is no such filter or team sort; a team or group that left stops filtering', () => {
+  const chosen = controls({ team: catalogFilter('halcones'), group: catalogFilter('segurola'), sort: 'team' });
+  assert.equal(applyCatalogs(chosen, catalogs), chosen, 'all offered: the same object comes back');
+  assert.deepEqual(applyCatalogs(chosen, NO_CATALOGS), controls({}));
+  assert.deepEqual(applyCatalogs(controls({ team: catalogFilter('viejo'), group: 'none' }), catalogs), controls({ group: 'none' }));
+  assert.deepEqual(
+    applyCatalogs(controls({ team: 'none', group: 'none' }), { teams: catalogs.teams, groups: new Map() }),
+    controls({ team: 'none' }),
+  );
+});
+
+test('team and group filters count as active, and the inactive filter still works with them', () => {
+  assert.equal(hasActiveFilters(controls({ team: catalogFilter('halcones') })), true);
+  assert.equal(hasActiveFilters(controls({ group: 'none' })), true);
+  const withInactive = [...club, { ...person('7', 'Eli', 'MID', 4), active: false, groups: ['segurola'] }];
+  const of = (patch: Partial<ListingControls>) =>
+    nicknames(filterAndSortPeople(withInactive, controls(patch), new Set(), catalogs));
+  assert.deepEqual(of({ group: catalogFilter('segurola') }), ['Rana', 'Inés']);
+  assert.deepEqual(of({ group: catalogFilter('segurola'), role: 'inactive' }), ['Eli']);
 });
