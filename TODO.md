@@ -51,11 +51,11 @@ Objetivo: que lo que ya existe funcione bien antes de sumar cosas. El detalle es
 - [x] Arreglos del modal, el avatar y la vista en el teléfono (RV-07, RV-08).
 - [x] Apps Script: candado en las escrituras, rechazo de IDs repetidos, chequeo de esquema cacheado e ID de la planilla en propiedades (RV-09). Publicado con `clasp` en la versión 19 y probado en una implementación temporal y en producción (RV-10).
 - [x] Implementaciones viejas del backend borradas (RV-17).
-- [x] De los criterios de cierre de la Fase 2 ya se cumplían lint, build, el scroll al resultado (F2-09), el footer abajo (F2-00.7) y Escape en los modales (F2-00.8). Los demás son objetivo de los Sprints 6, 8 y 10.
+- [x] De los criterios de cierre de la Fase 2 ya se cumplían lint, build, el scroll al resultado (F2-09), el footer abajo (F2-00.7) y Escape en los modales (F2-00.8). Los demás son objetivo de los Sprints 6, 8 y 11.
 
 ## Sprint 1 - Lo que anotaste en Notion (hecho)
 
-Objetivo: los pedidos chicos que anotaste en Notion. Solo frontend. El tercero, «Terminar Fase 2», quedó repartido en los Sprints 6 a 10.
+Objetivo: los pedidos chicos que anotaste en Notion. Solo frontend. El tercero, «Terminar Fase 2», quedó repartido en los Sprints 6 a 11.
 
 - [x] **Ángela:** probarlo con los pasos de abajo.
 - [x] «sort selected»: orden «Sort: selected» en Match y en Players, que deja arriba a lxs elegidxs y mantiene el orden de siempre dentro de cada grupo (19/11).
