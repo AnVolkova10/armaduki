@@ -365,12 +365,32 @@ function readGroups() {
   return groups;
 }
 
+// How many times each player marked each other one (Sprint 8), for the order of the form's
+// lists. Rows without both ids, or with nothing counted, are left out.
+function readRelationshipHistory() {
+  ensureSchemaForRead();
+  const sheet = getOrCreateSheet(getSpreadsheet(), RELATIONSHIP_HISTORY_SHEET_NAME, RELATIONSHIP_HISTORY_HEADERS);
+  const history = [];
+
+  readSheetObjects(sheet).forEach(row => {
+    const sourceId = getRowString(row, 'sourceId');
+    const targetId = getRowString(row, 'targetId');
+    const wantsCount = toCount(row.wantscount);
+    const avoidsCount = toCount(row.avoidscount);
+    if (!sourceId || !targetId || sourceId === targetId || wantsCount + avoidsCount === 0) return;
+    history.push({ sourceId: sourceId, targetId: targetId, wantsCount: wantsCount, avoidsCount: avoidsCount });
+  });
+
+  return history;
+}
+
 // Everything the app needs when it opens, in one request (one Apps Script execution).
-// A Teams or Groups problem does not block the players: it comes back as `teamsError` or
-// `groupsError`. The `groups` key is always there from Sprint 6 on: the app reads it as the
-// sign that this backend saves groups, birth dates and new teams and groups.
+// A Teams, Groups or RelationshipHistory problem does not block the players: it comes back as
+// `teamsError`, `groupsError` or `relationshipHistoryError`. The `groups` key is always there
+// from Sprint 6 on, and `relationshipHistory` from Sprint 8 on: the app reads them as the sign
+// of what this backend saves.
 function readAll() {
-  const result = { players: readPlayers(), teams: [], groups: [] };
+  const result = { players: readPlayers(), teams: [], groups: [], relationshipHistory: [] };
   try {
     result.teams = readTeams();
   } catch (err) {
@@ -380,6 +400,11 @@ function readAll() {
     result.groups = readGroups();
   } catch (err) {
     result.groupsError = err.toString();
+  }
+  try {
+    result.relationshipHistory = readRelationshipHistory();
+  } catch (err) {
+    result.relationshipHistoryError = err.toString();
   }
   return result;
 }
@@ -399,6 +424,97 @@ function migrateSchema() {
     ok: true,
     action: 'migrateSchema',
   });
+}
+
+// Wants and avoids are ids joined by "|" ("12|31"), each one once; an array works too.
+function parseIdList(value) {
+  const ids = Array.isArray(value)
+    ? value.map(normalizeId)
+    : value === undefined || value === null ? [] : String(value).split('|').map(normalizeId);
+  return ids.filter((id, index) => id && ids.indexOf(id) === index);
+}
+
+function toCount(value) {
+  const count = parseInt(value, 10);
+  return isFinite(count) && count > 0 ? count : 0;
+}
+
+// The wants and avoids a player row holds now.
+function linksOfRow(headers, row) {
+  const wantsColumn = getColumnIndex(headers, 'wantsWith');
+  const avoidsColumn = getColumnIndex(headers, 'avoidsWith');
+  return {
+    wants: wantsColumn === -1 ? [] : parseIdList(row[wantsColumn]),
+    avoids: avoidsColumn === -1 ? [] : parseIdList(row[avoidsColumn]),
+  };
+}
+
+// The wants and avoids a save leaves: what it sends, or what was there when it sends nothing.
+function linksAfterSave(lowerBody, before) {
+  return {
+    wants: lowerBody.wantswith === undefined ? before.wants : parseIdList(lowerBody.wantswith),
+    avoids: lowerBody.avoidswith === undefined ? before.avoids : parseIdList(lowerBody.avoidswith),
+  };
+}
+
+// The RelationshipHistory tab (Sprint 8): how many times each player marked each other one as a
+// want or an avoid. A save adds 1 for every link it brings that the player did not have, also
+// when one cleared earlier is marked again; nothing ever takes one away, so clearing the links
+// keeps the history. One row per pair, in the direction it was marked. Ids and the time go as
+// text (see asText): a timestamp could turn into a date.
+function recordNewLinks(sourceId, before, after) {
+  const added = {
+    wantscount: after.wants.filter(id => id !== sourceId && before.wants.indexOf(id) === -1),
+    avoidscount: after.avoids.filter(id => id !== sourceId && before.avoids.indexOf(id) === -1),
+  };
+  if (added.wantscount.length === 0 && added.avoidscount.length === 0) return;
+
+  const sheet = getOrCreateSheet(getSpreadsheet(), RELATIONSHIP_HISTORY_SHEET_NAME, RELATIONSHIP_HISTORY_HEADERS);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const column = {};
+  RELATIONSHIP_HISTORY_HEADERS.forEach(header => {
+    column[normalizeKey(header)] = getColumnIndex(headers, header);
+  });
+  const pairKey = (from, to) => from + '|' + to;
+  const rowOfPair = {};
+  data.forEach((row, index) => {
+    const key = pairKey(normalizeId(row[column.sourceid]), normalizeId(row[column.targetid]));
+    if (index > 0 && !(key in rowOfPair)) rowOfPair[key] = index;
+  });
+  const now = asText(new Date().toISOString());
+
+  Object.keys(added).forEach(countKey => {
+    added[countKey].forEach(targetId => {
+      const key = pairKey(sourceId, targetId);
+      const index = rowOfPair[key];
+      if (index !== undefined) {
+        data[index][column[countKey]] = toCount(data[index][column[countKey]]) + 1;
+        sheet.getRange(index + 1, column[countKey] + 1, 1, 1).setValues([[data[index][column[countKey]]]]);
+        sheet.getRange(index + 1, column.updatedat + 1, 1, 1).setValues([[now]]);
+        return;
+      }
+      const row = headers.map(() => '');
+      row[column.sourceid] = asText(sourceId);
+      row[column.targetid] = asText(targetId);
+      row[column.wantscount] = countKey === 'wantscount' ? 1 : 0;
+      row[column.avoidscount] = countKey === 'avoidscount' ? 1 : 0;
+      row[column.updatedat] = now;
+      sheet.appendRow(row);
+      rowOfPair[key] = data.length;
+      data.push(row);
+    });
+  });
+}
+
+// The player row is already written: a problem with the history never undoes the save, it only
+// leaves that save uncounted.
+function recordNewLinksSafely(sourceId, before, after) {
+  try {
+    recordNewLinks(sourceId, before, after);
+  } catch (err) {
+    // Nothing else to do here.
+  }
 }
 
 // Runs add/update/delete. Returns the plain-text answer the frontend checks:
@@ -436,6 +552,8 @@ function handlePlayerWrite(body) {
     if (!id) return 'Error: missing id';
     if (rowIndex !== -1) return 'Error: id ' + id + ' already exists';
     sheet.appendRow(buildRowFromPayload(headers, lowerBody, null));
+    const none = { wants: [], avoids: [] };
+    recordNewLinksSafely(id, none, linksAfterSave(lowerBody, none));
     return 'Added';
   }
 
@@ -443,12 +561,14 @@ function handlePlayerWrite(body) {
     if (rowIndex === -1) return 'ID not found for update';
     // Only the cells it receives. Writing the rest of the row back would make Sheets read their
     // text again: a birth date kept as "1994-03" would turn into 1 March 1994.
+    const before = linksOfRow(headers, data[rowIndex]);
     const newRow = buildRowFromPayload(headers, lowerBody, data[rowIndex]);
     headers.forEach((header, index) => {
       const key = normalizeKey(header);
       if (key === 'id' || lowerBody[key] === undefined) return;
       sheet.getRange(rowIndex + 1, index + 1, 1, 1).setValues([[newRow[index]]]);
     });
+    recordNewLinksSafely(id, before, linksAfterSave(lowerBody, before));
     return 'Updated';
   }
 

@@ -1,9 +1,28 @@
 import { create } from 'zustand';
 import { tr } from '../i18n/index.ts';
-import { clearSavedRead, readAccessKey, readSavedRead, saveAccessKey, saveRead } from '../services/deviceStorage';
-import type { Attributes, AttributeLevel, GeneratedTeams, GKWillingness, GroupCatalog, Person, Role, TeamCatalog } from '../types';
+import {
+  clearSavedRead,
+  readAccessKey,
+  readPrivacyMode,
+  readSavedRead,
+  saveAccessKey,
+  savePrivacyMode,
+  saveRead,
+} from '../services/deviceStorage';
+import type {
+  Attributes,
+  AttributeLevel,
+  GeneratedTeams,
+  GKWillingness,
+  GroupCatalog,
+  LinkHistoryEntry,
+  Person,
+  Role,
+  TeamCatalog,
+} from '../types';
 import { normalizeBirthDate } from '../utils/birthDate';
 import { uniqueCatalogId } from '../utils/catalogIds';
+import { parseLinkHistory, recordNewLinks } from '../utils/linkHistory';
 
 // Google Apps Script Web App URL
 const APPS_SCRIPT_URL = import.meta.env.VITE_APPS_SCRIPT_URL || '';
@@ -502,13 +521,18 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** Answer of `action=readAll`: players, teams and (from Sprint 6) groups in one request. */
+/**
+ * Answer of `action=readAll`: players, teams, (from Sprint 6) groups and (from Sprint 8) the
+ * wants and avoids history in one request.
+ */
 interface ReadAllPayload {
   players: unknown[];
   teams?: unknown;
   teamsError?: unknown;
   groups?: unknown;
   groupsError?: unknown;
+  relationshipHistory?: unknown;
+  relationshipHistoryError?: unknown;
 }
 
 function isReadAllPayload(value: unknown): value is ReadAllPayload {
@@ -574,6 +598,25 @@ function readGroupsAnswer(payload: ReadAllPayload): { groups: GroupCatalog[] | n
   }
 }
 
+/**
+ * The wants and avoids history of a readAll answer (Sprint 8). A backend that counts links always
+ * sends the key; an older one does not (null). A failure only costs the order of the form's lists,
+ * so it is an empty history and a console warning, not a message.
+ */
+function readLinkHistoryAnswer(payload: ReadAllPayload): LinkHistoryEntry[] | null {
+  if (!('relationshipHistory' in payload)) return null;
+  if (payload.relationshipHistoryError) {
+    console.warn('The RelationshipHistory tab failed:', payload.relationshipHistoryError);
+    return [];
+  }
+  try {
+    return parseLinkHistory(payload.relationshipHistory);
+  } catch (historyError) {
+    console.warn('Error reading the relationship history:', historyError);
+    return [];
+  }
+}
+
 /** The selected players as text, to tell whether a fresh read changed any of them. */
 function describeSelection(state: { people: Person[]; selectedIds: Set<string> }): string {
   return JSON.stringify(state.people.filter((person) => state.selectedIds.has(person.id)));
@@ -591,6 +634,11 @@ interface AppStore {
    */
   groupsCatalog: GroupCatalog[] | null;
   groupsCatalogError: string | null;
+  /**
+   * The RelationshipHistory tab (Sprint 8): how many times each player marked each other one. Null
+   * while the backend is older and does not count; the form's lists then skip that part of the order.
+   */
+  linkHistory: LinkHistoryEntry[] | null;
   selectedIds: Set<string>;
   generatedTeams: GeneratedTeams | null;
 
@@ -674,6 +722,7 @@ const useAppStore = create<AppStore>()((set, get) => {
       teamsCatalogError: null,
       groupsCatalog: null,
       groupsCatalogError: null,
+      linkHistory: null,
       selectedIds: new Set(),
       generatedTeams: null,
       peopleStatus: 'idle',
@@ -846,7 +895,11 @@ const useAppStore = create<AppStore>()((set, get) => {
             }
           }
           const groupsAnswer = readGroupsAnswer(rawData);
-          set({ groupsCatalog: groupsAnswer.groups, groupsCatalogError: groupsAnswer.error });
+          set({
+            groupsCatalog: groupsAnswer.groups,
+            groupsCatalogError: groupsAnswer.error,
+            linkHistory: readLinkHistoryAnswer(rawData),
+          });
           saveRead({
             players: rawData.players,
             teams: Array.isArray(rawData.teams) ? rawData.teams : [],
@@ -874,7 +927,7 @@ const useAppStore = create<AppStore>()((set, get) => {
           loadTeamsCatalog(),
         ]);
         if (peopleResult.status === 'rejected') throw peopleResult.reason;
-        set({ access: 'open', isFresh: true, groupsCatalog: null, groupsCatalogError: null });
+        set({ access: 'open', isFresh: true, groupsCatalog: null, groupsCatalogError: null, linkHistory: null });
         return 'ok';
       } catch (fetchError) {
         console.error('Error fetching people data:', fetchError);
@@ -923,6 +976,8 @@ const useAppStore = create<AppStore>()((set, get) => {
     teamsCatalog: savedTeams,
     groupsCatalog: savedGroups,
     groupsCatalogError: null,
+    // Editing waits for a fresh read, which brings the history.
+    linkHistory: null,
     selectedIds: new Set(),
     generatedTeams: null,
     // A device with no key and nothing saved waits at the gate for the first answer.
@@ -937,9 +992,15 @@ const useAppStore = create<AppStore>()((set, get) => {
     teamsCatalogLoaded: hasSavedCopy,
     pendingSyncCount: 0,
     syncErrors: [],
-    privacyMode: true,
+    // As this device left it last time (Sprint 8); on until it is ever switched off.
+    privacyMode: readPrivacyMode() ?? true,
 
-    togglePrivacyMode: () => set((state) => ({ privacyMode: !state.privacyMode })),
+    togglePrivacyMode: () =>
+      set((state) => {
+        const privacyMode = !state.privacyMode;
+        savePrivacyMode(privacyMode);
+        return { privacyMode };
+      }),
 
     fetchPeople: async () => {
       await load();
@@ -979,9 +1040,10 @@ const useAppStore = create<AppStore>()((set, get) => {
       const id = person.id || getNextId(get().people);
       const personWithId = { ...person, id };
 
-      // Optimistic update first
+      // Optimistic update first. The history counts the new links as the backend will.
       set((state) => ({
         people: [...state.people, personWithId],
+        linkHistory: state.linkHistory && recordNewLinks(state.linkHistory, id, undefined, personWithId),
       }));
 
       await runSyncOperation({
@@ -1011,6 +1073,7 @@ const useAppStore = create<AppStore>()((set, get) => {
           people: state.people.map((existing) => (existing.id === person.id ? person : existing)),
           selectedIds,
           generatedTeams: wasSelected ? null : state.generatedTeams,
+          linkHistory: state.linkHistory && recordNewLinks(state.linkHistory, person.id, previousPerson, person),
         };
       });
 

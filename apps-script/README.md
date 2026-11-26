@@ -56,7 +56,8 @@ Current migration status:
 - `action=migratePlayersSheet` remains available as a focused legacy rename action.
 - `action=readTeams` returns the `Teams` catalog for the frontend with safe defaults.
 - Every action checks `ACCESS_KEY` first (see above): reads, saves and migrations.
-- `action=readAll` returns `{ players, teams, groups }` in one execution; the app uses it on open. A `Teams` or `Groups` failure comes back as `teamsError` or `groupsError` and does not block the players. The `groups` key is always there from Sprint 6 on: the app reads it as the sign that the backend saves groups, birth dates and new teams and groups, and hides them with an older backend. An unknown action answers `{ error: 'Action unknown' }`, which the app uses to fall back to `read` + `readTeams` on older versions.
+- `action=readAll` returns `{ players, teams, groups, relationshipHistory }` in one execution; the app uses it on open. A `Teams`, `Groups` or `RelationshipHistory` failure comes back as `teamsError`, `groupsError` or `relationshipHistoryError` and does not block the players. The `groups` key is always there from Sprint 6 on: the app reads it as the sign that the backend saves groups, birth dates and new teams and groups, and hides them with an older backend. The `relationshipHistory` key is always there from Sprint 8 on (version 23); without it the form's lists skip the history in their order.
+- `add` and `update` count new links in `RelationshipHistory` (Sprint 8): 1 more for each want or avoid the player did not have before, in the direction it was marked (`sourceId` marked `targetId`), also when one cleared earlier is marked again. Removing a link or clearing them never takes anything away, and a player never counts for themselves. One row per pair; a typed row is picked up and counted on. Ids and `updatedAt` go as text (with the apostrophe), so a timestamp never turns into a date. The player row is written first: a problem with the history never undoes a save, it only leaves that save uncounted. An unknown action answers `{ error: 'Action unknown' }`, which the app uses to fall back to `read` + `readTeams` on older versions.
 - `update` writes only the cells it receives. Writing the rest of the row back would make Sheets parse its text again (a birth date kept as `1994-03` would become 1 March 1994, a shirt number `007` would become `7`).
 - `birthDate`, `notes` and `shirtNumber` are written with a leading apostrophe, which keeps the cell as text and is not part of its value; so are the ids and names of new teams and groups. A date typed by hand in `birthDate` is read back as `yyyy-MM-dd` in the spreadsheet's time zone.
 - `addTeam` (`teamId`, `name`, `color1`, `color2`) and `addGroup` (`groupId`, `name`) append a row to `Teams` or `Groups`; the app picks the id from the name. The same id with the same name again (a retry) answers `Added` without a second row; the same id with another name is an error. Renaming and deleting stay in the sheet.
@@ -132,7 +133,9 @@ Safety note: `update` payloads only contain the fields that changed in the app (
 - `targetId`: required target `Players.id`.
 - `wantsCount`: historical count, default `0`.
 - `avoidsCount`: historical count, default `0`.
-- `updatedAt`: timestamp of the last counter increment.
+- `updatedAt`: timestamp of the last counter increment, as text (ISO 8601, UTC).
+
+`readAll` returns `relationshipHistory` as `{ sourceId, targetId, wantsCount, avoidsCount }`, skipping rows without both ids, rows of a player with themselves and rows with nothing counted. The history is not the current links: those live in `Players.wantsWith` and `Players.avoidsWith`. To start it again, delete its rows by hand.
 
 ### MatchHistory
 

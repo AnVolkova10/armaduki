@@ -55,6 +55,17 @@ export interface GroupCatalog {
   place: string;
 }
 
+/**
+ * One pair of the RelationshipHistory tab (Sprint 8): how many times `sourceId` marked `targetId`
+ * as a want and as an avoid. Saves only add to it; clearing the links keeps it.
+ */
+export interface LinkHistoryEntry {
+  sourceId: string;
+  targetId: string;
+  wantsCount: number;
+  avoidsCount: number;
+}
+
 export interface Team {
   players: Person[];
   totalRating: number;

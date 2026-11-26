@@ -77,3 +77,26 @@ export function saveLanguage(lang: string): void {
     /* storage unavailable: the choice lasts for this visit */
   }
 }
+
+const PRIVACY_STORAGE = 'armaduki-privacy';
+
+/**
+ * Whether privacy mode was on when this device last left it (Sprint 8); null when it never
+ * changed it. Like the language, it outlives the key.
+ */
+export function readPrivacyMode(): boolean | null {
+  try {
+    const saved = localStorage.getItem(PRIVACY_STORAGE);
+    return saved === 'on' ? true : saved === 'off' ? false : null;
+  } catch {
+    return null;
+  }
+}
+
+export function savePrivacyMode(on: boolean): void {
+  try {
+    localStorage.setItem(PRIVACY_STORAGE, on ? 'on' : 'off');
+  } catch {
+    /* storage unavailable: the choice lasts for this visit */
+  }
+}

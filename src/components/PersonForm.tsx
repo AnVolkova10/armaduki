@@ -4,6 +4,7 @@ import useAppStore from '../store/useAppStore';
 import type { Person, Role, GKWillingness, AttributeLevel, Attributes, TeamCatalog } from '../types';
 import { ageOn, birthDateParts, readBirthDateInput, type BirthDateParts } from '../utils/birthDate';
 import { sameCatalogName } from '../utils/catalogIds';
+import { linkScores, matchesLinkSearch, orderLinkCandidates, type LinkKind } from '../utils/linkHistory';
 import { getSuggestedRating } from '../utils/ratingSuggestion';
 import { ActionButton } from './ActionButton';
 import { Icon } from './Icon';
@@ -181,6 +182,7 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         teamsCatalogError,
         groupsCatalog,
         groupsCatalogError,
+        linkHistory,
         createTeam,
         createGroup,
     } = useAppStore();
@@ -242,13 +244,24 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
     const age = birthInput.kind === 'date' ? ageOn(birthInput.value, new Date()) : null;
 
     const otherPeople = useMemo(() => people.filter((p) => p.id !== personId), [people, personId]);
-    // Inactive players leave the lists, unless they were already marked.
-    const markedFirst = (marked: ReadonlySet<string>) =>
-        otherPeople
-            .filter((p) => p.active !== false || marked.has(p.id))
-            .sort((a, b) => Number(marked.has(b.id)) - Number(marked.has(a.id)));
-    const wantsOrder = markedFirst(linkedAtOpen.wants);
-    const avoidsOrder = markedFirst(linkedAtOpen.avoids);
+    // The lists' order is set when the form opens (Sprint 8): who is marked, who marks this player
+    // now, the usual ones (the history, both ways), the most linked, and the rest by nickname (see
+    // orderLinkCandidates). Marking or searching never moves a button. Inactive players leave the
+    // lists, unless they were already marked.
+    const [linkOrders] = useState(() => {
+        const others = people.filter((p) => p.id !== personId);
+        const listFor = (kind: LinkKind, marked: ReadonlySet<string>) =>
+            orderLinkCandidates(
+                others.filter((p) => p.active !== false || marked.has(p.id)),
+                personId,
+                marked,
+                kind,
+                linkScores(linkHistory, kind),
+            );
+        return { wants: listFor('wants', linkedAtOpen.wants), avoids: listFor('avoids', linkedAtOpen.avoids) };
+    });
+    // One search for both lists: a player shows in each one, to mark where they go.
+    const [linkQuery, setLinkQuery] = useState('');
     const selectedTeamIdSet = useMemo(() => new Set(selectedTeamIds), [selectedTeamIds]);
     const teamsById = useMemo(() => {
         return new Map(teamsCatalog.map((team) => [team.teamId, team]));
@@ -366,6 +379,17 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         setWantsWith(prev => prev.filter(i => i !== id));
     };
 
+    // Enter would send the form. Escape clears the search first, and closes the form only once
+    // the search is empty.
+    const handleLinkSearchKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') event.preventDefault();
+        if (event.key === 'Escape' && linkQuery) {
+            event.preventDefault();
+            event.stopPropagation();
+            setLinkQuery('');
+        }
+    };
+
     const handleRoleChange = (nextRole: Role) => {
         setRole(nextRole);
         if (nextRole === 'GK') {
@@ -480,28 +504,32 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
         marked: string[],
         inverse: ReadonlySet<string>,
         toggle: (id: string) => void,
-    ) => (
-        <div className={`relationship-column relationship-column--${kind}`}>
-            <div className="relationship-title">
-                <span className="form-label">{kind === 'wants' ? t.form.wants : t.form.avoids}</span>
-                <span className="relationship-count">{marked.length}</span>
+    ) => {
+        const shown = order.filter((p) => matchesLinkSearch(p, linkQuery));
+        return (
+            <div className={`relationship-column relationship-column--${kind}`}>
+                <div className="relationship-title">
+                    <span className="form-label">{kind === 'wants' ? t.form.wants : t.form.avoids}</span>
+                    <span className="relationship-count">{marked.length}</span>
+                </div>
+                <div className="relationship-grid">
+                    {shown.length === 0 && <p className="relationship-empty">{t.form.linksNoMatch}</p>}
+                    {shown.map((p) => (
+                        <button
+                            key={p.id}
+                            type="button"
+                            className={`relationship-btn ${kind} ${marked.includes(p.id) ? 'active' : ''} ${inverse.has(p.id) ? `inverse-hint-${kind}` : ''}`}
+                            aria-pressed={marked.includes(p.id)}
+                            title={inverse.has(p.id) ? (kind === 'wants' ? t.form.wantsYou(p.nickname) : t.form.avoidsYou(p.nickname)) : undefined}
+                            onClick={() => toggle(p.id)}
+                        >
+                            {p.nickname}
+                        </button>
+                    ))}
+                </div>
             </div>
-            <div className="relationship-grid">
-                {order.map((p) => (
-                    <button
-                        key={p.id}
-                        type="button"
-                        className={`relationship-btn ${kind} ${marked.includes(p.id) ? 'active' : ''} ${inverse.has(p.id) ? `inverse-hint-${kind}` : ''}`}
-                        aria-pressed={marked.includes(p.id)}
-                        title={inverse.has(p.id) ? (kind === 'wants' ? t.form.wantsYou(p.nickname) : t.form.avoidsYou(p.nickname)) : undefined}
-                        onClick={() => toggle(p.id)}
-                    >
-                        {p.nickname}
-                    </button>
-                ))}
-            </div>
-        </div>
-    );
+        );
+    };
 
     const renderNewChip = (kind: 'team' | 'group') =>
         creating === kind ? (
@@ -902,9 +930,26 @@ export function PersonForm({ person, onSave, onCancel }: PersonFormProps) {
 
                         {hasLinks && (
                             <section className="form-links">
-                                <div className="form-links-inner">
-                                    {renderLinks('wants', wantsOrder, wantsWith, inverseWants, toggleWantsWith)}
-                                    {renderLinks('avoids', avoidsOrder, avoidsWith, inverseAvoids, toggleAvoidsWith)}
+                                <div className={`form-links-inner ${privacyMode ? 'form-links-inner--solo' : ''}`}>
+                                    <div className="links-search">
+                                        <span className="links-search-icon" aria-hidden="true">
+                                            <Icon name="search" size={14} />
+                                        </span>
+                                        <input
+                                            type="text"
+                                            className="links-search-input"
+                                            value={linkQuery}
+                                            onChange={(e) => setLinkQuery(e.target.value)}
+                                            onKeyDown={handleLinkSearchKey}
+                                            placeholder={t.form.linksSearch}
+                                            aria-label={t.form.linksSearch}
+                                            autoComplete="off"
+                                        />
+                                    </div>
+                                    {renderLinks('wants', linkOrders.wants, wantsWith, inverseWants, toggleWantsWith)}
+                                    {/* Who avoids whom never shows with privacy mode (Sprint 8); saving keeps the avoids. */}
+                                    {!privacyMode &&
+                                        renderLinks('avoids', linkOrders.avoids, avoidsWith, inverseAvoids, toggleAvoidsWith)}
                                 </div>
                             </section>
                         )}

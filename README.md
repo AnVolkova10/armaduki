@@ -115,11 +115,11 @@ npm run dev
 - With a key set, every request must carry it: `&key=` on reads and `"key"` in the body of saves. Anything else answers `unauthorized` before the spreadsheet is opened.
 - A device keeps the key (in `localStorage`) only after the backend accepted it, and keeps a copy of the last read so the app opens at once. With that copy on screen picking players works right away; adding, editing, deleting and clearing links wait until the sheet has answered.
 - If the backend refuses the key (it changed, or was never typed), the device forgets the key and the copy, and the gate comes back.
-- Privacy mode hides ratings: the numbers on the cards, the score filter and sort, each team's Power and rating total, and the rating difference in the result header.
+- Privacy mode hides ratings: the numbers on the cards, the score filter and sort, each team's Power and rating total, and the rating difference in the result header. It also hides the notes, the age and, from Sprint 8, who avoids whom: the form shows no Avoids list (saving keeps the avoids) and the result names no avoid and counts none. The teams come out the same. Each device remembers whether it was left on or off (`localStorage`, like the language); a new device starts with it on.
 
 ## Data contract (Sheets/App Script)
 
-On open the app makes one request, `action=readAll`, which answers `{ players, teams }`, plus `teamsError` when only the `Teams` tab failed (players still load). A backend without `readAll` answers `{ error: 'Action unknown' }`, and the app then uses `action=read` and `action=readTeams`, so an older backend version keeps working.
+On open the app makes one request, `action=readAll`, which answers `{ players, teams, groups, relationshipHistory }`, plus `teamsError`, `groupsError` or `relationshipHistoryError` when only that tab failed (players still load). `groups` comes from Sprint 6 on and `relationshipHistory` (how many times each player marked each other one, for the order of the form's lists) from Sprint 8 on; see `apps-script/README.md`. A backend without `readAll` answers `{ error: 'Action unknown' }`, and the app then uses `action=read` and `action=readTeams`, so an older backend version keeps working.
 
 Expected player fields (`players` in `readAll`, or the `action=read` response):
 

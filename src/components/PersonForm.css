@@ -928,6 +928,63 @@
   padding: 18px 16px 20px;
 }
 
+/* With privacy mode only the wants show (Sprint 8): they take the whole width. */
+.form-links-inner--solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* One search for both lists (Sprint 8), across the top. */
+.form-links-inner {
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.links-search {
+  grid-column: 1 / -1;
+  position: relative;
+}
+
+.links-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  color: var(--text-3);
+  pointer-events: none;
+}
+
+.links-search-input {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px 0 30px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.88rem;
+  transition: border-color var(--t-press) ease;
+}
+
+.links-search-input::placeholder {
+  color: var(--text-3);
+}
+
+.links-search-input:hover {
+  border-color: var(--text-3);
+}
+
+.links-search-input:focus-visible {
+  outline: none;
+  border-color: var(--text);
+}
+
+.relationship-empty {
+  grid-column: 1 / -1;
+  margin: 4px 2px;
+  font-size: 0.82rem;
+  color: var(--text-3);
+}
+
 .relationship-column {
   min-width: 0;
   min-height: 0;
@@ -1174,7 +1231,8 @@
   /* iOS Safari zooms the page when an input under 16px gets focus. */
   .form-group input[type='text'],
   .field-notes textarea,
-  .catalog-new-name {
+  .catalog-new-name,
+  .links-search-input {
     min-height: 42px;
     font-size: 16px;
   }

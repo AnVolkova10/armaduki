@@ -58,6 +58,8 @@ let failNextPosts: ('network' | 'error-text')[] = [];
 let answerReadAllLikeOldBackend = false;
 /** Answers readAll without groups, like a backend from before Sprint 6. */
 let answerReadAllWithoutGroups = false;
+/** Answers readAll without the wants and avoids history, like a backend from before Sprint 8. */
+let answerReadAllWithoutHistory = false;
 
 globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}) => {
   const url = new URL(input instanceof Request ? input.url : String(input));
@@ -77,6 +79,12 @@ globalThis.fetch = (async (input: string | URL | Request, init: RequestInit = {}
       const all = JSON.parse(backend.doGet({ parameter: Object.fromEntries(url.searchParams) }).content);
       delete all.groups;
       delete all.groupsError;
+      delete all.relationshipHistory;
+      return new Response(JSON.stringify(all));
+    }
+    if (answerReadAllWithoutHistory && action === 'readAll') {
+      const all = JSON.parse(backend.doGet({ parameter: Object.fromEntries(url.searchParams) }).content);
+      delete all.relationshipHistory;
       return new Response(JSON.stringify(all));
     }
     return new Response(backend.doGet({ parameter: Object.fromEntries(url.searchParams) }).content);
@@ -401,6 +409,87 @@ test('the Sprint 6 tests leave the sheet as they found it', async () => {
   assert.deepEqual(S().teamsCatalog.map((team) => team.teamId), ['armaduki']);
   assert.deepEqual(S().groupsCatalog, []);
   assert.equal(findPerson('Bea').birthDate, undefined);
+});
+
+// ---------------------------------------------------------------------------
+// the wants and avoids history, and privacy mode kept on the device (Sprint 8)
+// ---------------------------------------------------------------------------
+// These tests also put the sheet back as they found it.
+const sprint8Snapshot: Record<string, Cell[][]> = {};
+const sprint8Sheets = () => ({ Players: players, RelationshipHistory: backend.sheet('RelationshipHistory') });
+let historyAtStart: unknown = null;
+
+test('readAll brings the wants and avoids history from Sprint 8 on; with an older backend it stays null', async () => {
+  resetStore();
+  await S().fetchPeople();
+  for (const [name, sheet] of Object.entries(sprint8Sheets())) sprint8Snapshot[name] = (sheet?.data() ?? []).map((r) => [...r]);
+  historyAtStart = S().linkHistory;
+  assert.deepEqual(
+    S().linkHistory,
+    [{ sourceId: '8', targetId: '1', wantsCount: 1, avoidsCount: 0 }],
+    'Eli, added above with a want for Ana, was counted',
+  );
+
+  resetStore();
+  answerReadAllWithoutHistory = true;
+  try {
+    await S().fetchPeople();
+  } finally {
+    answerReadAllWithoutHistory = false;
+  }
+  assert.equal(S().linkHistory, null);
+  assert.deepEqual(S().groupsCatalog, [], 'the rest of the read is as usual');
+
+  resetStore();
+  await S().fetchPeople();
+});
+
+test('a new want counts at once in the app and once in the sheet, also when marked again after clearing', async () => {
+  const anaId = findPerson('Ana').id;
+  const beaId = findPerson('Bea').id;
+  const count = () => S().linkHistory?.find((entry) => entry.sourceId === anaId && entry.targetId === beaId)?.wantsCount ?? 0;
+  await S().updatePerson({ ...findPerson('Ana'), wantsWith: [] });
+  await settle();
+  const before = count();
+
+  await S().updatePerson({ ...findPerson('Ana'), wantsWith: [beaId] });
+  assert.equal(count(), before + 1, 'the app counts it before the save ends');
+  await settle();
+  await S().clearWantsRelationships();
+  await settle();
+  assert.equal(count(), before + 1, 'clearing keeps the count');
+  await S().updatePerson({ ...findPerson('Ana'), wantsWith: [beaId] });
+  await settle();
+  assert.equal(count(), before + 2);
+  assert.equal(S().syncErrors.length, 0);
+
+  resetStore();
+  await S().fetchPeople();
+  assert.equal(count(), before + 2, 'the sheet counted the same');
+});
+
+test('privacy mode stays as this device left it', async () => {
+  assert.equal(S().privacyMode, true, 'on until it is ever switched off');
+  S().togglePrivacyMode();
+  assert.equal(storage.get('armaduki-privacy'), 'off');
+
+  server.moduleGraph.invalidateAll();
+  const reopened = (await server.ssrLoadModule('/src/store/useAppStore.ts')).default as typeof useAppStore;
+  assert.equal(reopened.getState().privacyMode, false, 'a reload keeps it off');
+  reopened.getState().togglePrivacyMode();
+  assert.equal(storage.get('armaduki-privacy'), 'on');
+
+  S().togglePrivacyMode();
+  storage.delete('armaduki-privacy');
+});
+
+test('the Sprint 8 tests leave the sheet as they found it', async () => {
+  for (const [name, sheet] of Object.entries(sprint8Sheets())) {
+    if (sheet) sheet.data().splice(0, Infinity, ...sprint8Snapshot[name].map((r) => [...r]));
+  }
+  resetStore();
+  await S().fetchPeople();
+  assert.deepEqual(S().linkHistory, historyAtStart);
 });
 
 // ---------------------------------------------------------------------------

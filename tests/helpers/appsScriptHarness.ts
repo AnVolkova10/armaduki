@@ -9,12 +9,15 @@ export type Row = Cell[];
 
 // Like Google Sheets: text that looks like a date is stored as a date ("1994-03" becomes 1 March
 // 1994), unless it starts with an apostrophe, which keeps it as text and is not stored. The
-// date is noon UTC, so any time zone reads the same day back.
+// date is noon UTC, so any time zone reads the same day back. A date with a time, like the
+// timestamps the backend writes, is taken to become a date too (Sprint 8).
 const DATE_LIKE = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?$|^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?$/;
+const DATE_TIME = /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:?\d{2})?$/;
 
 export function storeCell(value: Cell): Cell {
   if (typeof value !== 'string') return value;
   if (value.startsWith("'")) return value.slice(1);
+  if (DATE_TIME.test(value.trim())) return new Date(value.trim());
   const match = DATE_LIKE.exec(value.trim());
   if (!match) return value;
   const [, isoYear, isoMonth, isoDay, day, month, year] = match;

@@ -259,7 +259,15 @@ test('setting the key later locks requests that were open before', () => {
 // ---------------------------------------------------------------------------
 
 const GROUP_HEADERS = ['groupId', 'name', 'place', 'notes'];
-type ReadAll = { players: Rows; teams: Rows; groups: Rows; teamsError?: string; groupsError?: string };
+type ReadAll = {
+  players: Rows;
+  teams: Rows;
+  groups: Rows;
+  relationshipHistory: Rows;
+  teamsError?: string;
+  groupsError?: string;
+  relationshipHistoryError?: string;
+};
 
 test('the sheet stand-in turns date-like text into dates, like Sheets, unless it starts with an apostrophe', () => {
   assert.ok(storeCell('1994-03') instanceof Date);
@@ -396,4 +404,108 @@ test('an update writes only the cells it receives, so the others keep their text
   assert.equal(row.birthdate, '1994-03', 'still year and month, not 1 March');
   assert.equal(row.shirtnumber, '007', 'the leading zeros stay');
   assert.equal(row.rating, 4);
+});
+
+// ---------------------------------------------------------------------------
+// The wants and avoids history (Sprint 8).
+// ---------------------------------------------------------------------------
+
+const HISTORY_HEADERS = ['sourceId', 'targetId', 'wantsCount', 'avoidsCount', 'updatedAt'];
+const cami: Row = [3, '', 'Cami', 'DEF', 6, '', 'no', '', '', ''];
+const historyOf = (env: ReturnType<typeof loadAppsScript>) => (get(env, 'readAll') as ReadAll).relationshipHistory;
+
+test('a new want or avoid adds 1 to its pair; clearing takes nothing away, and marking it again adds 1 again', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana, bea, cami])]);
+
+  assert.equal(post(env, { action: 'update', id: '1', wantsWith: '2|3' }), 'Updated');
+  assert.deepEqual(historyOf(env), [{ sourceId: '1', targetId: '3', wantsCount: 1, avoidsCount: 0 }], 'Bea was already a want');
+
+  assert.equal(post(env, { action: 'update', id: '1', wantsWith: '' }), 'Updated');
+  assert.deepEqual(historyOf(env), [{ sourceId: '1', targetId: '3', wantsCount: 1, avoidsCount: 0 }], 'clearing keeps the count');
+
+  post(env, { action: 'update', id: '1', wantsWith: '3' });
+  post(env, { action: 'update', id: '1', wantsWith: '3', avoidsWith: '2' });
+  assert.deepEqual(historyOf(env), [
+    { sourceId: '1', targetId: '3', wantsCount: 2, avoidsCount: 0 },
+    { sourceId: '1', targetId: '2', wantsCount: 0, avoidsCount: 1 },
+  ]);
+});
+
+test('a new player counts each of their wants and avoids once, never themselves', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana, bea])]);
+
+  assert.equal(post(env, { action: 'add', id: '9', nickname: 'Nueva', wantsWith: '1|1|9', avoidsWith: '2' }), 'Added');
+
+  assert.deepEqual(historyOf(env), [
+    { sourceId: '9', targetId: '1', wantsCount: 1, avoidsCount: 0 },
+    { sourceId: '9', targetId: '2', wantsCount: 0, avoidsCount: 1 },
+  ]);
+});
+
+test('a save without new links leaves the history alone', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana, bea])]);
+
+  post(env, { action: 'update', id: '1', rating: 4 });
+  post(env, { action: 'update', id: '1', wantsWith: '2' });
+  post(env, { action: 'delete', id: '2' });
+
+  assert.deepEqual(historyOf(env), []);
+});
+
+test('the history keeps its ids and its time as text, so Sheets never turns them into dates', () => {
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana, bea, cami])]);
+  post(env, { action: 'update', id: '2', wantsWith: '3' });
+  post(env, { action: 'update', id: '2', wantsWith: '' });
+  post(env, { action: 'update', id: '2', wantsWith: '3' });
+
+  const [record] = env.sheet('RelationshipHistory')!.records();
+  assert.equal(record.sourceId, '2');
+  assert.equal(record.targetId, '3');
+  assert.equal(record.wantsCount, 2);
+  assert.equal(typeof record.updatedAt, 'string', 'a timestamp left as plain text would become a date');
+  assert.match(String(record.updatedAt), /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
+});
+
+test('rows typed by hand count, and rows without both ids or with nothing counted are left out', () => {
+  const history = createSheet('RelationshipHistory', [
+    HISTORY_HEADERS,
+    [1, 2, 3, '', ''],
+    ['', '2', 1, 0, ''],
+    ['3', '3', 1, 0, ''],
+    ['4', '5', 0, 0, ''],
+    ['5', '6', '2', 'x', ''],
+  ]);
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana, bea]), history]);
+
+  assert.deepEqual(historyOf(env), [
+    { sourceId: '1', targetId: '2', wantsCount: 3, avoidsCount: 0 },
+    { sourceId: '5', targetId: '6', wantsCount: 2, avoidsCount: 0 },
+  ]);
+
+  // Counting goes on from the typed row.
+  post(env, { action: 'update', id: '1', wantsWith: '' });
+  post(env, { action: 'update', id: '1', wantsWith: '2' });
+  assert.equal(historyOf(env)[0].wantsCount, 4);
+});
+
+test('a broken history never undoes a save, and readAll still returns the players', () => {
+  const history = createSheet('RelationshipHistory', [HISTORY_HEADERS]);
+  const env = loadAppsScript([createSheet('Players', [HEADERS, ana, bea, cami]), history]);
+  get(env, 'read'); // schema ready
+  history.getDataRange = () => {
+    throw new Error('RelationshipHistory is broken');
+  };
+
+  assert.equal(post(env, { action: 'update', id: '1', wantsWith: '2|3' }), 'Updated');
+  assert.equal((get(env, 'read') as Rows)[0].wantswith, '2|3', 'the player row is saved');
+
+  const all = get(env, 'readAll') as ReadAll;
+  assert.equal(all.players.length, 3);
+  assert.deepEqual(all.relationshipHistory, []);
+  assert.match(all.relationshipHistoryError ?? '', /RelationshipHistory is broken/);
+});
+
+test('readAll always answers the history: the app reads the key as a backend that counts links', () => {
+  const fresh = get(loadAppsScript([createSheet('Players', [HEADERS, ana])]), 'readAll') as ReadAll;
+  assert.deepEqual(fresh.relationshipHistory, [], 'no tab yet: an empty list');
 });

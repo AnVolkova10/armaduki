@@ -205,6 +205,8 @@ export const es: Dict = {
         avoids: 'Evita jugar con',
         wantsYou: (nickname) => `${nickname} quiere jugar con ellx`,
         avoidsYou: (nickname) => `${nickname} lx evita`,
+        linksSearch: 'Buscar',
+        linksNoMatch: 'Nadie con ese nombre',
         extraInfo: 'Más datos',
         save: 'Guardar cambios',
         add: 'Sumar jugadorx',
@@ -247,6 +249,7 @@ export const es: Dict = {
         wantsKept: (met, total) => `Wants ${met}/${total}`,
         avoidsKept: (met, total) => `Avoids ${met}/${total}`,
         noLinks: 'No hay links entre ellxs',
+        noWants: 'No hay wants entre ellxs',
         rules: 'Reglas',
         allKept: 'Todas se cumplen',
         brokenCount: (count) => (count === 1 ? 'Se rompió 1' : `Se rompieron ${count}`),
@@ -354,6 +357,11 @@ export const es: Dict = {
             if (avoidsTotal > 0) parts.push(`Avoids cumplidos: ${avoidsMet} de ${avoidsTotal}, juegan separadxs.`);
             return parts.length > 0 ? parts.join(' ') : 'No hay wants ni avoids entre estxs diez.';
         },
+        wantsSentence: (wantsMet, wantsTotal) =>
+            wantsTotal > 0 ? `Wants cumplidos: ${wantsMet} de ${wantsTotal}, juegan juntxs.` : 'No hay wants entre estxs diez.',
+        avoidInChainPrivate: 'Un avoid choca con los wants mutuos, que ponen a esas dos personas en el mismo equipo.',
+        avoidsBrokenPrivate: (count) =>
+            count === 1 ? 'Un avoid no se pudo cumplir.' : `${count} avoids no se pudieron cumplir.`,
         oneWaySplit: (penalty) =>
             `Para emparejar, se separaron estos wants de un solo lado (${penalty} puntos menos cada uno):`,
         wantsTogether: 'Juntxs',

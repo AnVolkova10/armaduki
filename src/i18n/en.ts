@@ -203,6 +203,8 @@ export const en = {
         avoids: 'Avoids playing with',
         wantsYou: (nickname: string) => `${nickname} wants to play with them`,
         avoidsYou: (nickname: string) => `${nickname} avoids them`,
+        linksSearch: 'Search',
+        linksNoMatch: 'Nobody by that name',
         extraInfo: 'Extra info',
         save: 'Save Changes',
         add: 'Add Player',
@@ -245,6 +247,7 @@ export const en = {
         wantsKept: (met: number, total: number) => `Wants ${met}/${total}`,
         avoidsKept: (met: number, total: number) => `Avoids ${met}/${total}`,
         noLinks: 'No links between them',
+        noWants: 'No wants between them',
         rules: 'Rules',
         allKept: 'All kept',
         brokenCount: (count: number) => `${count} broken`,
@@ -353,6 +356,12 @@ export const en = {
             if (avoidsTotal > 0) parts.push(`Avoids kept: ${avoidsMet} of ${avoidsTotal}, playing apart.`);
             return parts.length > 0 ? parts.join(' ') : 'No wants or avoids between these ten.';
         },
+        // With privacy mode the avoids stay out of sight (Sprint 8).
+        wantsSentence: (wantsMet: number, wantsTotal: number): string =>
+            wantsTotal > 0 ? `Wants kept: ${wantsMet} of ${wantsTotal}, playing together.` : 'No wants between these ten.',
+        avoidInChainPrivate: 'An avoid clashes with the mutual wants, which put both players in the same team.',
+        avoidsBrokenPrivate: (count: number): string =>
+            count === 1 ? 'An avoid could not be kept.' : `${count} avoids could not be kept.`,
         oneWaySplit: (penalty: number): string =>
             `To even the teams, these one-way wants were split (${penalty} points off each):`,
         wantsTogether: 'Together',

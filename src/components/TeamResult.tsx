@@ -160,11 +160,20 @@ function TeamPanel({
     );
 }
 
-function FallbackBlock({ fallback, t }: { fallback: FallbackReport; t: Dict }) {
+// With privacy mode nobody sees who avoids whom (Sprint 8): an avoid that broke shows without
+// names, and one that held is not mentioned at all.
+function FallbackBlock({ fallback, privacyMode, t }: { fallback: FallbackReport; privacyMode: boolean; t: Dict }) {
+    const hidden = (status: { rule: string; kept: boolean }) => privacyMode && status.rule === 'avoids' && status.kept;
     const broken = fallback.rules.filter((status) => !status.kept);
-    const kept = fallback.rules.filter((status) => status.kept);
-    const applies = new Set(fallback.rules.map((status) => status.rule));
+    const kept = fallback.rules.filter((status) => status.kept && !hidden(status));
+    const applies = new Set(fallback.rules.filter((status) => !hidden(status)).map((status) => status.rule));
     const hasCause = fallback.causes.length > 0;
+    const causeText = (cause: FallbackReport['causes'][number]) =>
+        privacyMode && cause.kind === 'avoidInChain' ? t.result.avoidInChainPrivate : t.result.cause(cause);
+    const issuesText = (status: FallbackReport['rules'][number]) =>
+        privacyMode && status.rule === 'avoids'
+            ? t.result.avoidsBrokenPrivate(status.issues.length)
+            : status.issues.map((issue) => t.result.issue(issue)).join(' ');
 
     return (
         <div className={`fallback-block ${hasCause ? '' : 'fallback-block--no-cause'}`} role="status">
@@ -175,7 +184,7 @@ function FallbackBlock({ fallback, t }: { fallback: FallbackReport; t: Dict }) {
                     <div className="fallback-label">{t.result.why}</div>
                     <ul className="fallback-why">
                         {fallback.causes.map((cause, index) => (
-                            <li key={index}>{t.result.cause(cause)}</li>
+                            <li key={index}>{causeText(cause)}</li>
                         ))}
                     </ul>
                 </div>
@@ -191,7 +200,7 @@ function FallbackBlock({ fallback, t }: { fallback: FallbackReport; t: Dict }) {
                             </span>
                             <span>
                                 <strong>{t.result.rule[status.rule]}.</strong>{' '}
-                                <TeamText text={status.issues.map((issue) => t.result.issue(issue)).join(' ')} t={t} />
+                                <TeamText text={issuesText(status)} t={t} />
                             </span>
                         </li>
                     ))}
@@ -226,7 +235,11 @@ function FallbackBlock({ fallback, t }: { fallback: FallbackReport; t: Dict }) {
 function Summary({ report, privacyMode, t }: { report: AnalysisReport; privacyMode: boolean; t: Dict }) {
     const { social, fallback } = report;
     const brokenRules = fallback ? fallback.rules.filter((status) => !status.kept).length : 0;
-    const hasLinks = social.wantsTotal + social.avoidsTotal > 0;
+    // Privacy mode leaves the avoids out (Sprint 8).
+    const linkNotes = [
+        social.wantsTotal > 0 ? t.result.wantsKept(social.wantsMet, social.wantsTotal) : null,
+        !privacyMode && social.avoidsTotal > 0 ? t.result.avoidsKept(social.avoidsMet, social.avoidsTotal) : null,
+    ].filter(Boolean);
     // Privacy mode: the label and the score say how even it is, with no rating numbers.
     const ratingNote = privacyMode
         ? null
@@ -248,14 +261,7 @@ function Summary({ report, privacyMode, t }: { report: AnalysisReport; privacyMo
                 <dt>{t.result.social}</dt>
                 <dd className="summary-value">{social.pct}%</dd>
                 <dd className="summary-note">
-                    {hasLinks
-                        ? [
-                              social.wantsTotal > 0 ? t.result.wantsKept(social.wantsMet, social.wantsTotal) : null,
-                              social.avoidsTotal > 0 ? t.result.avoidsKept(social.avoidsMet, social.avoidsTotal) : null,
-                          ]
-                              .filter(Boolean)
-                              .join(' · ')
-                        : t.result.noLinks}
+                    {linkNotes.length > 0 ? linkNotes.join(' · ') : privacyMode ? t.result.noWants : t.result.noLinks}
                 </dd>
             </div>
             <div className={`summary-cell ${fallback ? 'summary-cell--broken' : 'summary-cell--ok'}`}>
@@ -413,8 +419,10 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
                     )}
                     <li>
                         <strong>{t.result.lead.links}.</strong>{' '}
-                        {t.result.linksSentence(social.wantsMet, social.wantsTotal, social.avoidsMet, social.avoidsTotal)}
-                        {(social.metWants.length > 0 || social.metAvoids.length > 0) && (
+                        {privacyMode
+                            ? t.result.wantsSentence(social.wantsMet, social.wantsTotal)
+                            : t.result.linksSentence(social.wantsMet, social.wantsTotal, social.avoidsMet, social.avoidsTotal)}
+                        {(social.metWants.length > 0 || (!privacyMode && social.metAvoids.length > 0)) && (
                             <div className="link-groups">
                                 {social.metWants.length > 0 && (
                                     <div className="link-group">
@@ -422,7 +430,7 @@ function Analysis({ option, privacyMode, t }: { option: GeneratedTeamOption; pri
                                         <LinkList links={social.metWants} kind="want" />
                                     </div>
                                 )}
-                                {social.metAvoids.length > 0 && (
+                                {!privacyMode && social.metAvoids.length > 0 && (
                                     <div className="link-group">
                                         <span className="link-group-name">{t.result.avoidsApart}</span>
                                         <LinkList links={social.metAvoids} kind="avoid" />
@@ -531,7 +539,7 @@ export function TeamResult({ result }: TeamResultProps) {
                 </span>
             </header>
 
-            {report.fallback && <FallbackBlock fallback={report.fallback} t={t} />}
+            {report.fallback && <FallbackBlock fallback={report.fallback} privacyMode={privacyMode} t={t} />}
 
             <div className="teams-container">
                 <TeamPanel label="T1" players={primary.team1.players} privacyMode={privacyMode} t={t} />
