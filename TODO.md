@@ -21,7 +21,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 
 ## Decisiones cerradas
 
-- [x] Backend: Google Sheets + Apps Script, publicado con `clasp` (`npm run backend:release`). Producción usa la versión 22 (25/11/2026); la 21 queda para volver atrás.
+- [x] Backend: Google Sheets + Apps Script, publicado con `clasp` (`npm run backend:release`). Producción usa la versión 23 (26/11/2026); la 22 queda para volver atrás.
 - [x] El ID de la planilla vive en las propiedades del script, no en el código; el Script ID, en `apps-script/.clasp.json`, que git ignora.
 - [x] Una sola implementación del backend en producción, más `@HEAD`; las viejas se borraron (18/11). Las versiones quedan en el historial del script.
 - [x] `main` publica en Vercel. El repo es público: ningún ID, clave ni dato de la planilla entra al repo.
@@ -260,10 +260,10 @@ Prueba (en https://armaduki.vercel.app):
 
 ## Sprint 8 - Wants y avoids con historial (hecho, falta tu prueba)
 
-Objetivo: elegir relaciones más rápido, empezando por las de siempre. Decidido con Ángela el 25/11; el 26/11 sumó ocultar los avoids con privacy mode y que cada dispositivo recuerde privacy mode.
+Objetivo: elegir relaciones más rápido, empezando por las de siempre. Decidido con Ángela el 25/11, cuando también sumó ocultar los avoids con privacy mode y que cada dispositivo recuerde privacy mode.
 
 - [x] **Historial** (F2-07.1, F2-07.3, F2-07.5): la pestaña `RelationshipHistory`, con el contrato de la v1 (`sourceId`, `targetId`, `wantsCount`, `avoidsCount`, `updatedAt`). El backend suma 1 cada vez que un guardado trae un want o un avoid que esa persona no tenía, también al volver a marcarlo después de limpiarlo. Guarda quién marcó a quién, nunca resta y arranca vacío. «Clear Wants», «Clear Avoids» y «Clear Links» no lo borran: para empezar de cero se borran filas a mano en la pestaña. Un «no quiero» es un avoid. Los ids y la hora se guardan como texto, y si la pestaña fallara, el guardado de lx jugadorx igual queda.
-- [ ] Publicar el backend con `npm run backend:release` (versión 23).
+- [x] Backend publicado con `npm run backend:release` (26/11): producción pasó de la versión 22 a la 23, y las pruebas del pase dieron bien antes y después. Desde ahí, cada guardado con un want o un avoid nuevo suma en la pestaña `RelationshipHistory`. Con la versión 22 la app anda igual, sin el historial en el orden.
 - [x] **Lectura** (F2-07.2, F2-07.4, F2-07.6): el historial llega en `readAll`, con su propia clave. Vacío, o con un backend anterior, las listas andan igual. La app suma en su copia lo que guarda, así el orden ya lo tiene en cuenta sin recargar.
 - [x] **Buscador** (F2-08.1, F2-08.2): uno solo, arriba de las dos listas. Filtra Wants y Avoids a la vez, por apodo o nombre y sin acentos, como el de la lista principal. Si no queda nadie, cada lista dice «Nadie con ese nombre». Escape limpia la búsqueda sin cerrar el modal, y Enter no guarda.
 - [x] **Orden de cada lista** (F2-08.3 a F2-08.6), fijo al abrir el modal (buscar o tocar un botón no mueve a los demás):
@@ -273,8 +273,8 @@ Objetivo: elegir relaciones más rápido, empezando por las de siempre. Decidido
   4. La popularidad general: en Wants, lxs que más veces estuvieron en un want, de cualquier lado; en Avoids, lo mismo con los avoids.
   5. El resto, por apodo (antes iban en el orden de la planilla).
 - [x] Se nota solo en el orden, sin números ni marcas. Siguen las pistas de quién lx quiere o lx evita (F2-08.7), y lxs inactivxs afuera salvo que ya estén marcadxs.
-- [x] **Privacy mode oculta los avoids** (pedido de Ángela, 26/11): en el modal no aparece la lista de avoids y los wants ocupan todo el ancho; guardar deja los avoids como estaban. En el resultado no hay nombres ni cantidades de avoids: el resumen y el análisis hablan solo de wants, y si el reparto rompió o chocó con un avoid, dice «un avoid no se pudo cumplir» o «un avoid choca con los wants mutuos», sin nombres. Los equipos salen iguales: el generador sigue usando los avoids. El porcentaje social los sigue contando, sin decir quién. Si con privacy mode se marca un want con alguien que esa persona evita, el avoid se borra, como siempre.
-- [x] **Privacy mode se recuerda** (pedido de Ángela, 26/11): cada dispositivo guarda si lo dejó prendido o apagado, como el idioma, y lo recupera al volver. Un dispositivo nuevo arranca con privacy mode prendido.
+- [x] **Privacy mode oculta los avoids** (pedido de Ángela, 25/11): en el modal no aparece la lista de avoids y los wants ocupan todo el ancho; guardar deja los avoids como estaban. En el resultado no hay nombres ni cantidades de avoids: el resumen y el análisis hablan solo de wants, y si el reparto rompió o chocó con un avoid, dice «un avoid no se pudo cumplir» o «un avoid choca con los wants mutuos», sin nombres. Los equipos salen iguales: el generador sigue usando los avoids. El porcentaje social los sigue contando, sin decir quién. Si con privacy mode se marca un want con alguien que esa persona evita, el avoid se borra, como siempre.
+- [x] **Privacy mode se recuerda** (pedido de Ángela, 25/11): cada dispositivo guarda si lo dejó prendido o apagado, como el idioma, y lo recupera al volver. Un dispositivo nuevo arranca con privacy mode prendido.
 - [x] Validado en el teléfono: el buscador a todo el ancho y a 16 px (el iPhone no hace zoom), las listas con scroll y nada se sale de costado (F2-08.8).
 - [ ] **Ángela:** probar el sprint (abajo).
 - [x] Al cerrar: los selectores buscan y ordenan por historial cuando existe (criterio de cierre de la Fase 2).
@@ -287,8 +287,8 @@ Prueba (en https://armaduki.vercel.app, mejor primero en el teléfono):
 1. Apagá privacy mode (tres toques en el ojo del pie) y recargá la página: sigue apagado. Prendelo y recargá: sigue prendido. Dejalo apagado para lo que sigue.
 2. Abrí a alguien con el lápiz. Arriba de las listas de wants y avoids hay un buscador: escribí el comienzo de un apodo y las dos listas quedan con esa persona. En la compu, Escape limpia la búsqueda sin cerrar el modal, y Enter no guarda.
 3. Mirá el orden: primero lxs que esa persona ya tiene marcadxs, después quienes la marcan a ella (con el puntito verde o rojo), después los de siempre y el resto por apodo. El historial arranca vacío, así que los de siempre aparecen a medida que marcás.
-4. En A, marcá a B como want y guardá. En la planilla, la pestaña `RelationshipHistory` tiene una fila de A a B con un 1 y la hora. Abrí a B: A aparece arriba en sus Wants, porque A lx quiere.
-5. «Clear» → «Clear Wants» y abrí a B otra vez: A sigue arriba, ahora por el historial.
+4. En A, marcá a B como want y guardá; mejor un par de los de siempre, porque el conteo queda. En la planilla, la pestaña `RelationshipHistory` tiene una fila con los ids de A y de B (no los apodos), un 1 y la hora; en la barra de fórmulas se ve un apóstrofo antes del id y de la hora, y es lo esperado. Abrí a B: A aparece arriba en sus Wants, porque A lx quiere.
+5. Volvé a A, desmarcá a B y guardá. Abrí a B otra vez: A sigue arriba, ahora por el historial. Si el par no era de los de siempre, borrá esa fila en la pestaña.
 6. Prendé privacy mode y abrí a alguien: no está la lista de avoids y los wants ocupan todo el ancho. Guardá un cambio: sus avoids quedan como estaban (se ven al apagar privacy mode).
 7. Elegí 10 con algún avoid entre ellxs y armá equipos con privacy mode prendido: ni el resumen ni el análisis nombran avoids. Apagalo: aparecen («Avoids 1/1», «Separadxs»).
 8. Si algo no te cierra, decime qué.
