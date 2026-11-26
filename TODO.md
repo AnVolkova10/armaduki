@@ -228,7 +228,7 @@ Prueba (en https://armaduki.vercel.app):
 10. Pasá a castellano: «Activx», «Segundo puesto», «Nacimiento», «Grupos», «+ Nuevo» e «Inactivxs».
 11. Si algo no te cierra, decime qué.
 
-## Sprint 7 - Filtros y orden (hecho, falta tu prueba)
+## Sprint 7 - Filtros y orden (hecho)
 
 Objetivo: encontrar rápido a quién elegir. Usa la búsqueda unificada del Sprint 3. Decidido con Ángela el 25/11: los equipos y los grupos se cargan de a unx en el modal, y los filtros no se recuerdan al recargar. Solo frontend: no toca la planilla ni el backend.
 
@@ -241,7 +241,7 @@ Objetivo: encontrar rápido a quién elegir. Usa la búsqueda unificada del Spri
 - [x] Sin orden por grupo: quien está en varios grupos no tiene un solo lugar, y el filtro ya lxs junta.
 - [x] Dónde van: en el teléfono, rol, score y orden en una fila, y equipo y grupo debajo, a media fila (entra «Segurola 20hs…»); el menú de la derecha abre hacia la izquierda, así un nombre largo no se sale de la pantalla. Desde 960 px de ancho, todo en la fila de la búsqueda. Detalle en `docs/DESIGN_DIRECTION.md`.
 - [x] Arreglo que apareció al probar: en un teléfono angosto, con el orden por score, el menú de orden quedaba en «S…» al lado de la flecha de dirección. Pasaba desde antes y no se veía porque con privacy mode no hay orden por score. Ahora dice «Score».
-- [ ] **Ángela:** probar el sprint (abajo).
+- [x] **Ángela:** probó el sprint y anduvo todo bien (25/11).
 - [x] Verificado: lint, tipos, 145 tests, build y pruebas en Edge contra una API local que corre `Code.gs` sobre planillas en memoria (nada tocó la planilla real), en tamaño computadora (también a 1100 y 820 de ancho) y teléfono (también a 360), en los dos idiomas y con privacy mode prendido y apagado:
   - El Sprint 7: 33 chequeos en la compu y 35 en el teléfono, entre ellos que los menús abiertos no se salgan de la pantalla a 360 px y que sin grupos no aparezca su menú.
   - Las suites de los sprints 3b, 4, 5 y 6 siguen pasando, también la de escala real (61 jugadorxs, 7 equipos y 5 grupos).
