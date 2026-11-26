@@ -21,7 +21,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 
 ## Decisiones cerradas
 
-- [x] Backend: Google Sheets + Apps Script, publicado con `clasp` (`npm run backend:release`). Producción usa la versión 23 (26/11/2026); la 22 queda para volver atrás.
+- [x] Backend: Google Sheets + Apps Script, publicado con `clasp` (`npm run backend:release`). Producción usa la versión 24 (26/11/2026); la 23 queda para volver atrás.
 - [x] El ID de la planilla vive en las propiedades del script, no en el código; el Script ID, en `apps-script/.clasp.json`, que git ignora.
 - [x] Una sola implementación del backend en producción, más `@HEAD`; las viejas se borraron (18/11). Las versiones quedan en el historial del script.
 - [x] `main` publica en Vercel. El repo es público: ningún ID, clave ni dato de la planilla entra al repo.
@@ -313,7 +313,7 @@ Objetivo: anotar los partidos como se jugaron de verdad, con su resultado, sin i
 - [x] **Privacy mode:** en el partido no se ven los ratings ni los errores, y guardar los deja como estaban; el análisis oculta lo mismo que en el resultado.
 - [x] **El resultado se puede cargar después** (la propuesta): el partido se anota al armarlo y, cuando termina, se suman los goles; mientras tanto, la lista dice «Sin resultado».
 - [x] **El botón atrás** (la propuesta): de «Partidos» vuelve a lxs jugadorxs, y con un partido abierto, lo cierra. Un link a un partido lo abre encima de la lista.
-- [ ] Publicar el backend como versión 24 con `npm run backend:release`: el primer pedido después del pase le suma a `MatchHistory` las columnas nuevas y crea `MatchPlayers`. Con la versión 23 la app anda igual, sin «Partidos».
+- [x] Backend publicado con `npm run backend:release` (26/11): producción pasó de la versión 23 a la 24, y las pruebas del pase dieron bien antes y después. El primer pedido después del pase le sumó a `MatchHistory` las columnas nuevas y creó `MatchPlayers`; después, una lectura de control confirmó que producción avisa que guarda partidos y que `readMatches` responde (sin partidos todavía). Con la versión 23 la app anda igual, sin «Partidos».
 - [x] Verificado: lint, tipos, 202 tests, build y pruebas en Edge contra una API local que corre `Code.gs` sobre planillas en memoria (nada tocó la planilla real), en tamaño computadora y teléfono, también a 360 px, en los dos idiomas y con privacy mode prendido y apagado:
   - El Sprint 9: 74 chequeos en la compu y 77 en el teléfono. Entre ellos, «Anotar partido» y la vuelta al resultado como estaba, el lugar del grupo, arquerx fijx y rotan con los goles que les hicieron, privacy mode sin errores ni nombres de avoids, Escape con un menú abierto, armar a mano con el buscador, las reglas que rompe, app, editado y a mano, borrar, atrás, un link a un partido, y /matches en un dispositivo que todavía necesita la clave.
   - A escala real (61 jugadorxs con fotos y apodos largos), en tu ventana, a 390 y a 360 px: un nombre largo en el buscador ensanchaba el partido en el teléfono, y quedó arreglado.
