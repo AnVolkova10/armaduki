@@ -260,7 +260,7 @@ Prueba (en https://armaduki.vercel.app):
 
 ## Sprint 8 - Wants y avoids con historial
 
-Objetivo: elegir relaciones más rápido, empezando por las de siempre. Decidido con Ángela el 25/11 (falta una respuesta, en «Cosas por cerrar»).
+Objetivo: elegir relaciones más rápido, empezando por las de siempre. Decidido con Ángela el 25/11.
 
 - [ ] **Historial** (F2-07.1, F2-07.3, F2-07.5): la pestaña `RelationshipHistory`, con el contrato de la v1 (`sourceId`, `targetId`, `wantsCount`, `avoidsCount`, `updatedAt`). El backend suma 1 cada vez que un guardado trae un want o un avoid que esa persona no tenía, también al volver a marcarlo después de limpiarlo. Guarda quién marcó a quién, nunca resta y arranca vacío. «Clear Wants», «Clear Avoids» y «Clear Links» no lo borran: para empezar de cero se borran filas a mano en la pestaña. Un «no quiero» es un avoid.
 - [ ] Publicar el backend con `npm run backend:release` (versión 23).
@@ -270,7 +270,7 @@ Objetivo: elegir relaciones más rápido, empezando por las de siempre. Decidido
   1. Lxs que esa persona ya tiene marcadxs, como hoy.
   2. Lxs que hoy la marcan a ella: al abrir a B, si A quiere a B, A aparece arriba en los Wants de B; lo mismo con los avoids. Pedido de Ángela: a veces el want se carga del lado que es más rápido, y en realidad era al revés.
   3. Los de siempre, contando las dos direcciones: que A haya querido a B suma en la lista de A y en la de B. Más veces, más arriba.
-  4. La popularidad general: en Wants, lxs que más veces estuvieron en un want, de cualquier lado; en Avoids, lo mismo con los avoids. Ver «Cosas por cerrar».
+  4. La popularidad general: en Wants, lxs que más veces estuvieron en un want, de cualquier lado; en Avoids, lo mismo con los avoids.
   5. El resto, por apodo (hoy van en el orden de la planilla).
 - [ ] Se nota solo en el orden, sin números ni marcas. Siguen las pistas de quién lx quiere o lx evita (F2-08.7), y lxs inactivxs afuera salvo que ya estén marcadxs.
 - [ ] Validar en el teléfono: el buscador, las listas con scroll y los botones legibles (F2-08.8).
@@ -309,7 +309,7 @@ Objetivo: que lxs que juegan juntxs en un equipo real tiendan a caer juntxs, sin
 - [x] **Default de arquerx (`gkWillingness`).** `no` en los dos (25/11): el modal crea jugadorxs con `no`, igual que una fila de la planilla sin el dato (RV-14), así lo desconocido no cuenta como arquerx de emergencia. Se hace en el Sprint 6.
 - [x] **Qué oculta privacy mode** (RV-12). Se aplicó el default (20/11): oculta también el total de rating de cada equipo en el análisis. La diferencia entre equipos se sigue viendo, porque el score la necesita para entenderse.
 - [x] **Wants y avoids: ¿para cada partido o fijos?** Para cada partido: Ángela casi siempre los borra antes de marcar uno nuevo (25/11). El historial sirve, así que el Sprint 8 va completo.
-- [ ] **Popularidad general en Avoids.** Arriba de la lista de Avoids de cualquiera quedarían lxs que más evita todo el mundo. Sirve para marcar rápido los choques de siempre; la contra es que la lista deja ver quién es más evitadx. Decide: Ángela. Default: igual que en Wants.
+- [x] **Popularidad general en Avoids.** Igual que en Wants (25/11): arriba de la lista de Avoids quedan lxs que más evita todo el mundo, y así se marcan rápido los choques de siempre.
 - [ ] **Guardar partidos: automático o con botón** (F2-11.4). Decide: Ángela. Default: botón explícito, con «prueba» o «partido real».
 - [ ] **Alcance** (F2-12.6): uso personal o abrir a más grupos. Cambia cuánto pesan la clave, los roles y el multi-grupo. Decide: Ángela. Default: uso personal.
 - [ ] **Requisitos dudosos de la v1:** «sugerencia #1 no entendida» (F2-12.7) y «pregunta #10 no entendida» (F2-12.8). Decide: Ángela. Default: se descartan si nadie los recuerda.
