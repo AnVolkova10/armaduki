@@ -7,7 +7,7 @@ Tablero vivo de la app (v2): qué se hizo, qué sigue y en qué orden. La v1 (Fa
 - [x] Se lee y se ejecuta de arriba hacia abajo, de a un ítem por vez. Un ítem no toca otros módulos salvo lo que necesita.
 - [x] Los sprints son por objetivo, no por fecha. Al cerrar cada uno, Ángela lo revisa antes de seguir.
 - [x] Cuando Ángela dice «hacé el Sprint N», Claude lo implementa, lo verifica (lint, tests, build y una prueba en navegador contra una API local), hace commit y push a `main`, que publica en Vercel, y le pasa dónde y cómo probarlo. El sprint se cierra cuando ella lo prueba. El rediseño (Sprint 5) fue la excepción: se hizo en la rama `sprint-5` y pasó a `main` cuando Ángela lo aprobó (25/11).
-- [x] Primero la base (Sprints 1 a 5), después las funciones nuevas (Sprints 6 a 10).
+- [x] Primero la base (Sprints 1 a 5), después las funciones nuevas (Sprints 6 a 11).
 - [x] En cada sprint va solo lo que se puede hacer ya. Lo que espera una decisión va en «Cosas por cerrar», con quién decide y un default para seguir.
 - [x] Un ítem nuevo se conversa antes de construirlo. Lo que sugiere Claude está marcado como **Propuesta**: Ángela lo acepta o lo descarta.
 - [x] Lo que Ángela anota en Notion (Personal / Projects / armaduki) se pasa acá antes de hacerlo.
@@ -293,16 +293,39 @@ Prueba (en https://armaduki.vercel.app, mejor primero en el teléfono):
 7. Elegí 10 con algún avoid entre ellxs y armá equipos con privacy mode prendido: ni el resumen ni el análisis nombran avoids. Apagalo: aparecen («Avoids 1/1», «Separadxs»).
 8. Si algo no te cierra, decime qué.
 
-## Sprint 9 - Historial de partidos
+## Sprint 9 - Partidos: armarlos y anotarlos
 
-Objetivo: guardar los partidos que se jugaron.
+Objetivo: anotar los partidos como se jugaron de verdad, con su resultado, sin importar si los armó la app, Ángela u otra persona. Pedido de Ángela (26/11): muchas veces los equipos no salen de la app, porque los arma otra persona (por ejemplo, por el color de las camisetas) o ella los cambia a mano, y quiere llevar los partidos por grupo, fecha y lugar, ver cuánto mide cada equipo y anotar los goles. Lo charlamos el 26/11: Ángela decidió lo de lxs arquerxs y le dio el «dale» al resto de lo propuesto. Las estadísticas van en el Sprint 10.
 
-- [ ] Confirmar el contrato de la pestaña `MatchHistory` (F2-11.1), separado de `RelationshipHistory` (F2-11.5).
-- [ ] Acción del Apps Script para guardar un partido (F2-11.3): fecha e id, seleccionadxs, Team 1, Team 2, score, etapa y social satisfaction (F2-11.2).
-- [ ] Guardar desde el resultado. Ver «Cosas por cerrar» (F2-11.4).
-- [ ] Guardar también el resultado de cada partido (quién ganó y por cuánto), para ajustar los pesos del score y probar la propuesta de rating y atributos (Sprint 2).
+- [ ] **Contrato de los datos** (F2-11.1, F2-11.2). **Propuesta**, se confirma al empezar el sprint; la planilla solo suma columnas:
+  - `MatchHistory`, una fila por partido: siguen las columnas de la v1 (`matchId`, `createdAt`, `selectedIds`, `team1Ids`, `team2Ids`, `score`, `stage`, `socialSatisfactionPct`, `isTest`) y se suman `date`, `groupId`, `place`, `team1Goals`, `team2Goals`, `team1KeeperId`, `team2KeeperId`, `origin` y `updatedAt`.
+  - `score`, `stage` y `socialSatisfactionPct` guardan lo que medía el partido al anotarlo, y quedan vacíos si no hubo análisis. `stage` se llena solo si los equipos son los que armó la app, sin cambios.
+  - `origin` dice de dónde salieron los equipos: `app` (tal cual los armó la app), `edited` (de la app, con cambios) o `manual`. Sirve para comparar en el Sprint 10.
+  - `isTest` queda siempre en `false`: no hay partidos de prueba. Un `team1KeeperId` o `team2KeeperId` vacío quiere decir que en ese equipo rotan.
+  - `MatchPlayers`, una pestaña nueva con una fila por jugadorx y partido: `matchId`, `playerId`, `nickname`, `team` (1 o 2), `goals`, `conceded` (los que le hicieron), `errors` y una foto de cuando se anota (puesto, segundo puesto, rating, atributos, si ataja, y sus wants y avoids con lxs del partido). Con la foto, un partido viejo mide lo mismo aunque después cambien los ratings, y si se borra a alguien de la lista, el partido lx sigue mostrando con su apodo.
+  - Las dos pestañas van aparte de `RelationshipHistory` (F2-11.5). La fecha, los ids y la hora se guardan como texto, como en el Sprint 8.
+- [ ] **Backend** (F2-11.3): guardar un partido (nuevo o corregido) y borrarlo, con sus filas de `MatchPlayers`. Con un backend anterior, el botón «Partidos» no aparece. Se publica como versión 24. **Propuesta:** los partidos se leen al abrir «Partidos», no al abrir la app, así la carga inicial no crece con el historial.
+- [ ] **La lista «Partidos»** («Matches» en inglés), con un botón arriba: del más nuevo al más viejo, cada partido con fecha, grupo, lugar y resultado, y «+ Nuevo partido» para empezar uno. Tocar un partido lo abre para corregirlo (equipos, resultado, contadores); borrarlo pide confirmación.
+- [ ] **Armar a mano:** se busca a cada unx por apodo o nombre, sin acentos, como en las listas de wants, y se lx suma a ROJO o a NEGRO; un toque lx pasa al otro equipo. Lxs jugadorxs tienen que estar en la lista: si viene alguien nuevx, se lx suma antes con «+ Add Player».
+- [ ] **Desde el resultado de la app** (F2-11.4): el botón «Anotar partido» abre un partido nuevo con los dos equipos del armado, y ahí se pueden cambiar.
+- [ ] **Fecha, grupo y lugar:** la fecha arranca en hoy y el grupo se elige de la pestaña `Groups`. El lugar arranca con el del grupo (su columna `place`) y se puede cambiar en cada partido.
+- [ ] **Arquerxs** (Ángela, 26/11: van fijxs y, si no hay arquerx, rotan): cada equipo marca a su arquerx fijx o «rotan». Con arquerx fijx, los goles que le hicieron salen solos del resultado: son los del otro equipo. Si rotan, cada unx de ese equipo tiene su contador de «le hicieron».
+- [ ] **Cuánto mide:** el mismo análisis que da hoy el armado de la app, para cualquier par de equipos, también los que armó otra persona: si quedó parejo, la diferencia de rating, los atributos, lxs arquerxs, los links y qué reglas rompe. Cambia al mover a alguien de equipo. Anda con 5 contra 5, como el generador: un partido de otro tamaño se guarda sin análisis (otros tamaños: F2-12.2, en el backlog).
+- [ ] **El resultado:** los goles de cada equipo y, por jugadorx, sus goles, sus errores y, si su equipo rota, los que le hicieron, con contadores (ver «Cosas por cerrar»). Si los goles de cada unx no suman el resultado (en contra, o nadie se acuerda de quién), se guarda igual.
+- [ ] **Privacy mode:** oculta lo mismo que en el resultado (los ratings, el total de cada equipo y los avoids), más los errores: no se ven ni se cargan, y guardar los deja como estaban.
+- [ ] **Propuesta:** el resultado se puede cargar después. El partido se anota al armarlo y, cuando termina, se suman los goles; mientras tanto, en la lista dice «sin resultado».
+- [ ] **Propuesta:** el botón atrás del teléfono vuelve de «Partidos» a la lista principal, en vez de salir de la app (una parte de «Navegación en la URL», en el backlog).
+- [ ] **Ángela:** la primera prueba real es el partido del martes, que armó otra persona: lo carga en la app y ve cuánto medía.
 
-## Sprint 10 - Bonus por mismo equipo
+## Sprint 10 - Estadísticas
+
+Objetivo: ver cómo van lxs jugadorxs, los grupos y los lugares con los partidos anotados en el Sprint 9. Los detalles se charlan antes de empezar.
+
+- [ ] Por jugadorx: partidos jugados, ganados, empatados y perdidos, goles, los que le hicieron como arquerx y errores (estos, solo sin privacy mode).
+- [ ] Lo mismo por grupo, por lugar y entre dos fechas.
+- [ ] Cruzar lo que medía cada partido con cómo terminó, y comparar los equipos de la app con los armados a mano. Con varios partidos anotados, eso sirve para ajustar los pesos del score y probar la propuesta de rating y atributos (Sprint 2 y «Cosas por cerrar»).
+
+## Sprint 11 - Bonus por mismo equipo
 
 Objetivo: que lxs que juegan juntxs en un equipo real tiendan a caer juntxs, sin romper reglas. Empieza cuando `teams` esté cargado y probado con datos reales (F2-10.0).
 
@@ -327,7 +350,8 @@ Objetivo: que lxs que juegan juntxs en un equipo real tiendan a caer juntxs, sin
 - [x] **Qué oculta privacy mode** (RV-12). Se aplicó el default (20/11): oculta también el total de rating de cada equipo en el análisis. La diferencia entre equipos se sigue viendo, porque el score la necesita para entenderse.
 - [x] **Wants y avoids: ¿para cada partido o fijos?** Para cada partido: Ángela casi siempre los borra antes de marcar uno nuevo (25/11). El historial sirve, así que el Sprint 8 va completo.
 - [x] **Popularidad general en Avoids.** Igual que en Wants (25/11): arriba de la lista de Avoids quedan lxs que más evita todo el mundo, y así se marcan rápido los choques de siempre.
-- [ ] **Guardar partidos: automático o con botón** (F2-11.4). Decide: Ángela. Default: botón explícito, con «prueba» o «partido real».
+- [x] **Guardar partidos: automático o con botón** (F2-11.4). Con botón (26/11): «Anotar partido» en el resultado de la app y «+ Nuevo partido» en la lista «Partidos». No hay «prueba» ni «partido real»: cuenta todo lo que se guarda, y un partido que no se jugó se borra.
+- [ ] **Goles: uno por uno o con contadores** (Sprint 9). Con contadores, al lado de cada nombre hay un «+» para goles, otro para errores y, si su equipo rota, otro para «le hicieron»: después del partido, en el teléfono, es mucho más rápido. Uno por uno, cada gol se anota con quién lo hizo, a quién se lo hicieron y de quién fue el error: lleva más tiempo, pero dice qué error terminó en qué gol. Para las estadísticas da casi lo mismo. Decide: Ángela. Default: contadores.
 - [ ] **Alcance** (F2-12.6): uso personal o abrir a más grupos. Cambia cuánto pesan la clave, los roles y el multi-grupo. Decide: Ángela. Default: uso personal.
 - [ ] **Requisitos dudosos de la v1:** «sugerencia #1 no entendida» (F2-12.7) y «pregunta #10 no entendida» (F2-12.8). Decide: Ángela. Default: se descartan si nadie los recuerda.
 

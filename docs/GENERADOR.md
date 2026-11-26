@@ -89,11 +89,11 @@ Charladas con Ángela el 19/11/2026. Lo que se hace está en el Sprint 2 del TOD
 - **Wants de un solo lado: hecho (Sprint 2).** Antes pesaban igual que los mutuos, así que una cadena de 6 (A quiere a B, B a C…) obligaba al fallback. Ahora los mutuos siguen estrictos y los de un solo lado restan 15 puntos si se rompen. El 15 se puede ajustar.
 - **Social satisfaction como desempate: hecho (Sprint 2).** Con los wants de un solo lado ya en el score, cambia pocos resultados.
 - **Owner bias: sigue como está,** como regla fuerte y con Power.
-- **Pesos del score: con resultados.** Están elegidos a mano; se ajustan cuando el historial guarde quién ganó cada partido (Sprint 9).
+- **Pesos del score: con resultados.** Están elegidos a mano; se ajustan con los resultados de los partidos, que se anotan desde el Sprint 9 y se cruzan en las estadísticas del Sprint 10.
 - **Rating y atributos: propuesta pendiente.** Los ratings coinciden con el sugerido por los atributos, así que el nivel cuenta dos veces: en el rating y en los atributos. La propuesta es esperar los resultados y entonces probar que los atributos midan solo el estilo (que la velocidad o la defensa no queden todas del mismo lado). Sin resultados se pueden comparar fórmulas, pero no saber cuál arma mejores partidos.
 - **Posiciones.** FLEX es comodín: defiende, ataca y a veces ataja. MID juega en el medio, más defensiva que ofensiva. Lo ideal por equipo suele ser GK, DEF, 2 MID y ATT.
   - **Formación ideal: no se agrega (19/11).** Con los roles de hoy no sería un buen criterio. Se puede repensar con el segundo puesto.
   - **Segundo puesto: hecho (Sprint 6).** Las reglas miran solo el puesto principal; el segundo suma la cobertura de DEF y ATT al score (arriba). Quedan para más adelante qué hacer con FLEX y que el generador decida en qué puesto juega cada unx dentro de su equipo (ver «Cosas por cerrar» en el TODO).
 - **Variedad: más adelante** (backlog): «otro reparto» entre los casi iguales, o no repetir los equipos de la última fecha.
-- **Bonus por mismo equipo:** Sprint 10.
+- **Bonus por mismo equipo:** Sprint 11.
 - **Suplentes y otros tamaños** (backlog): con 12 o 14 jugadorxs hay más repartos para probar, pero sigue siendo rápido.
