@@ -258,7 +258,7 @@ Prueba (en https://armaduki.vercel.app):
 8. Con privacy mode prendido, «Team» y «Group» siguen; «Score» no.
 9. Si algo no te cierra, decime qué.
 
-## Sprint 8 - Wants y avoids con historial (hecho, falta tu prueba)
+## Sprint 8 - Wants y avoids con historial (hecho)
 
 Objetivo: elegir relaciones más rápido, empezando por las de siempre. Decidido con Ángela el 25/11, cuando también sumó ocultar los avoids con privacy mode y que cada dispositivo recuerde privacy mode.
 
@@ -276,7 +276,7 @@ Objetivo: elegir relaciones más rápido, empezando por las de siempre. Decidido
 - [x] **Privacy mode oculta los avoids** (pedido de Ángela, 25/11): en el modal no aparece la lista de avoids y los wants ocupan todo el ancho; guardar deja los avoids como estaban. En el resultado no hay nombres ni cantidades de avoids: el resumen y el análisis hablan solo de wants, y si el reparto rompió o chocó con un avoid, dice «un avoid no se pudo cumplir» o «un avoid choca con los wants mutuos», sin nombres. Los equipos salen iguales: el generador sigue usando los avoids. El porcentaje social los sigue contando, sin decir quién. Si con privacy mode se marca un want con alguien que esa persona evita, el avoid se borra, como siempre.
 - [x] **Privacy mode se recuerda** (pedido de Ángela, 25/11): cada dispositivo guarda si lo dejó prendido o apagado, como el idioma, y lo recupera al volver. Un dispositivo nuevo arranca con privacy mode prendido.
 - [x] Validado en el teléfono: el buscador a todo el ancho y a 16 px (el iPhone no hace zoom), las listas con scroll y nada se sale de costado (F2-08.8).
-- [ ] **Ángela:** probar el sprint (abajo).
+- [x] **Ángela:** probó el sprint (26/11).
 - [x] Al cerrar: los selectores buscan y ordenan por historial cuando existe (criterio de cierre de la Fase 2).
 - [x] Verificado: lint, tipos, 163 tests, build y pruebas en Edge contra una API local que corre `Code.gs` sobre planillas en memoria, que ahora también convierten en fecha un texto con fecha y hora (nada tocó la planilla real), en tamaño computadora (también a 1100 de ancho) y teléfono, en los dos idiomas y con privacy mode prendido y apagado:
   - El Sprint 8: 28 chequeos en la compu y 27 en el teléfono. Entre ellos, que Enter en el buscador no guarde (y, de control, que en el apodo sí), que el historial siga después de «Clear Wants» y que con un backend anterior las listas anden.
