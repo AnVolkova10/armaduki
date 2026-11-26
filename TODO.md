@@ -190,7 +190,7 @@ Prueba (desde el 25/11, en https://armaduki.vercel.app; antes, en local con la r
 8. Privacy mode (tres toques en el ojo del pie): prendido, no se ven ratings, Power ni la diferencia de rating del resumen.
 9. Si algo no te cierra, decime qué.
 
-## Sprint 6 - Campos de jugadorx (hecho, falta tu prueba)
+## Sprint 6 - Campos de jugadorx (hecho)
 
 Objetivo: cargar desde el modal los datos que la planilla ya tiene lugar para guardar (resto de la Fase 2) y crear equipos y grupos sin ir a la planilla. Decidido con Ángela el 25/11. Los esquemas están en `apps-script/README.md`; el modal, en `docs/DESIGN_DIRECTION.md`; la cobertura, en `docs/GENERADOR.md`.
 
@@ -207,7 +207,7 @@ Objetivo: cargar desde el modal los datos que la planilla ya tiene lugar para gu
 - [x] Al cerrar: los campos nuevos leen y escriben sin romper a lxs jugadorxs existentes (criterio de cierre de la Fase 2). Una fila sin las columnas nuevas, o editada a mano (un segundo puesto igual al principal, FLEX como segundo puesto, una fecha escrita como fecha), se lee sin problemas.
 - [x] Arreglo que apareció al probar: al guardar un cambio, el backend volvía a escribir la fila entera, y la planilla volvía a leer su texto: «1994-03» pasaba a ser el 1/3/1994 y una camiseta «007», un 7. Ahora escribe solo las celdas que cambian, y la fecha, las notas y la camiseta se guardan como texto.
 - [x] Backend publicado con `npm run backend:release` (25/11): producción pasó de la versión 21 a la 22, y las pruebas del pase dieron bien antes y después. Su primera lectura sumó la columna `birthDate` al final de la pestaña Players. Con un backend anterior, la app no ofrece fecha, grupos ni «+ New» (los perdería). El publicador se corre desde PowerShell: desde Bash, clasp lee la unidad `c:` en minúscula y frena con un falso «symlink».
-- [ ] **Ángela:** probar el sprint (abajo).
+- [x] **Ángela:** probó el sprint y anduvo todo bien (25/11).
 - [x] Verificado: lint, tipos, 135 tests, build y pruebas en Edge contra una API local que corre `Code.gs` sobre planillas en memoria que, como Google Sheets, convierten en fecha el texto que parece una fecha. Nada tocó la planilla real. En tamaño computadora y teléfono (no en un teléfono real), en los dos idiomas y con privacy mode prendido y apagado:
   - El Sprint 6: unos 35 chequeos en cada tamaño.
   - La app nueva contra el backend de hoy (versión 21): sin fecha, grupos ni «+ New»; el segundo puesto, activx y las notas se guardan.
