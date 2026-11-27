@@ -293,7 +293,7 @@ Prueba (en https://armaduki.vercel.app, mejor primero en el teléfono):
 7. Elegí 10 con algún avoid entre ellxs y armá equipos con privacy mode prendido: ni el resumen ni el análisis nombran avoids. Apagalo: aparecen («Avoids 1/1», «Separadxs»).
 8. Si algo no te cierra, decime qué.
 
-## Sprint 9 - Partidos: armarlos y anotarlos (hecho, falta tu prueba)
+## Sprint 9 - Partidos: armarlos y anotarlos (hecho y probado, falta mirar un ajuste)
 
 Objetivo: anotar los partidos como se jugaron de verdad, con su resultado, sin importar si los armó la app, Ángela u otra persona. Pedido de Ángela (26/11): muchas veces los equipos no salen de la app, porque los arma otra persona (por ejemplo, por el color de las camisetas) o ella los cambia a mano, y quiere llevar los partidos por grupo, fecha y lugar, ver cuánto mide cada equipo y anotar los goles. Lo charlamos el 26/11: Ángela decidió lo de lxs arquerxs y los contadores, y le dio el «dale» al resto de lo propuesto. Las estadísticas van en el Sprint 10.
 
@@ -318,7 +318,18 @@ Objetivo: anotar los partidos como se jugaron de verdad, con su resultado, sin i
   - El Sprint 9: 74 chequeos en la compu y 77 en el teléfono. Entre ellos, «Anotar partido» y la vuelta al resultado como estaba, el lugar del grupo, arquerx fijx y rotan con los goles que les hicieron, privacy mode sin errores ni nombres de avoids, Escape con un menú abierto, armar a mano con el buscador, las reglas que rompe, app, editado y a mano, borrar, atrás, un link a un partido, y /matches en un dispositivo que todavía necesita la clave.
   - A escala real (61 jugadorxs con fotos y apodos largos), en tu ventana, a 390 y a 360 px: un nombre largo en el buscador ensanchaba el partido en el teléfono, y quedó arreglado.
   - Las suites de los sprints 3b a 8 siguen pasando. Dos chequeos del penal leían la pantalla después de una captura y a veces llegaban tarde, también con la versión anterior; ahora leen antes.
-- [ ] **Ángela:** probar el sprint. La primera prueba real es el partido del martes, que armó otra persona: lo cargás en la app y ves cuánto medía.
+- [x] **Ángela:** probar el sprint (26/11): salió bien. Lo único: al buscar jugadorxs, el partido se agrandaba y se achicaba, y molestaba verlo (el ajuste, abajo).
+- [x] **El partido no cambia de tamaño** (Ángela, 26/11, al probarlo). En la compu, el partido tomaba el alto de lo que tenía adentro y quedaba centrado, así que cada búsqueda, cada jugadorx que entraba, los contadores y el análisis lo agrandaban o lo achicaban, y lo movían. Ahora:
+  - En la compu tiene siempre el mismo alto (880 px, o lo que entre en la ventana) y lo de adentro se desplaza, como en el teléfono. También mientras carga, así no salta cuando llega el partido. Un aviso corto (un partido que ya no está, sin conexión) tiene un marco a su medida.
+  - Los resultados de la búsqueda flotan debajo del buscador, encima de los equipos, como un menú: nada se corre mientras buscás. Tocar afuera los cierra y deja el texto; al volver al buscador, aparecen de nuevo. Escape, también desde un botón ROJO o NEGRO, limpia la búsqueda sin cerrar el partido.
+  - El renglón de «Equipos armados a mano», debajo del título, está desde el principio, así la cabecera no crece cuando entra lx primerx.
+  - El lugar de la barra de scroll queda reservado, así nada se corre de costado cuando el partido empieza a desplazarse.
+  - Un partido nuevo arranca con lugar vacío abajo, que se llena a medida que sumás jugadorxs. Si molesta, la otra opción es que arranque a su medida y crezca solo hacia abajo, sin moverse arriba.
+  - Verificado con 15 chequeos nuevos en la compu y 14 en el teléfono, con clicks y toques de verdad; contra la versión anterior fallaban. Cubren tres cosas:
+    - El marco y los equipos quedan quietos al buscar, cuando entra lx primerx, con los contadores, con lxs diez y el análisis, y mientras carga el partido.
+    - Los resultados flotan encima de los equipos, y tocar afuera los cierra y deja el texto.
+    - Escape desde un botón ROJO o NEGRO no cierra el partido.
+- [ ] **Ángela:** mirar el ajuste (pasos abajo, después de la prueba del sprint).
 
 Prueba (en https://armaduki.vercel.app, mejor primero en el teléfono):
 
@@ -330,6 +341,13 @@ Prueba (en https://armaduki.vercel.app, mejor primero en el teléfono):
 6. «+ Nuevo partido»: buscá a cada unx y sumalx con ROJO o NEGRO; ⇄ lx pasa al otro equipo. Con 5 y 5 aparece «Cuánto mide»; si el armado rompe una regla (por ejemplo, dos GK en un equipo), lo dice.
 7. El partido del martes: cargalo así, con su resultado y los goles, y mirá cuánto medía. Los partidos que hayas creado solo para probar, borralos con el tacho de la lista (pide confirmación).
 8. Si algo no te cierra, decime qué.
+
+Prueba del ajuste (26/11, en https://armaduki.vercel.app):
+
+1. En la compu, «Partidos» → «+ Nuevo partido»: el partido ya abre con todo su alto, con lugar vacío abajo. Buscá y sumá a varixs: los resultados aparecen flotando encima de los equipos y el partido no se mueve.
+2. Con los resultados a la vista, tocá afuera (por ejemplo, en el título): se cierran y el texto queda. Tocá el buscador: vuelven.
+3. En el teléfono, lo mismo: mientras buscás, los resultados tapan los equipos, y al sumar a alguien se cierran.
+4. Si el lugar vacío del partido nuevo te molesta, decime y lo cambio para que arranque a su medida y crezca solo hacia abajo.
 
 ## Sprint 10 - Estadísticas
 

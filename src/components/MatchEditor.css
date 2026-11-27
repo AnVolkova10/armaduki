@@ -1,10 +1,21 @@
 /* A match built or changed by hand (Sprint 9). The same modal as the player form (its frame comes
    from PersonForm.css): the day, the group and the place on top; the result and the search side by
    side; the two sides with who keeps goal and, once there is a result, each one's counts; and how
-   even they are, like the result. On the phone, a full-screen sheet, one part under the other. */
+   even they are, like the result. On the phone, a full-screen sheet, one part under the other.
+
+   On a computer the frame keeps one height whatever it holds (the search, the players coming in,
+   the counts, the analysis) and the body scrolls inside, like the sheet on the phone. Sized to the
+   content, it grew and shrank, and moved, with every search (Ángela, 26/11). */
 
 .modal--match {
   width: min(920px, 100%);
+  height: min(880px, calc(100vh - 32px));
+  height: min(880px, calc(100dvh - 32px));
+}
+
+/* A message (a match that is gone, no connection) is short: its frame fits it. */
+.modal--match.modal--message {
+  height: auto;
 }
 
 .match-form {
@@ -22,17 +33,21 @@
   padding: 8px 0;
 }
 
+/* Its line is there even before it says anything: the header never grows under the title. */
 .match-origin {
+  min-height: 1.2em;
   font-size: 0.82rem;
   line-height: 1.2;
   color: var(--text-3);
 }
 
+/* The scrollbar's room is kept, so nothing shifts sideways when the body starts to scroll. */
 .match-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   display: grid;
   align-content: start;
   gap: 20px;
@@ -173,6 +188,33 @@
   padding-left: 36px;
 }
 
+/* The results float under the search, over the sides, like a menu: nothing moves while she
+   searches. As wide as the search, so a long name is cut, never wider. */
+.match-add {
+  position: relative;
+}
+
+.match-search-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  box-shadow: var(--shadow-float);
+  animation: match-pop-in 0.14s var(--ease-out);
+}
+
+@keyframes match-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
 .match-search-results {
   min-width: 0;
   margin: 0;
@@ -180,7 +222,6 @@
   list-style: none;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
 }
 
 .match-search-result {
@@ -188,10 +229,11 @@
   align-items: center;
   gap: 8px;
   min-height: 44px;
-  padding: 4px 6px 4px 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface-1);
+  padding: 4px 4px 4px 10px;
+}
+
+.match-search-result + .match-search-result {
+  border-top: 1px solid var(--line);
 }
 
 .match-search-result.is-inactive .match-search-name {
@@ -250,6 +292,7 @@
 
 .match-search-empty {
   margin: 0;
+  padding: 8px 10px;
   font-size: 0.88rem;
   color: var(--text-3);
 }
@@ -528,6 +571,11 @@
 }
 
 @media (max-width: 640px) {
+  /* The sheet already fills the screen. */
+  .modal--match {
+    height: auto;
+  }
+
   .match-body {
     gap: 18px;
     padding: 16px;
@@ -574,5 +622,9 @@
   .counter-btn,
   .icon-btn {
     transition: none;
+  }
+
+  .match-search-pop {
+    animation: none;
   }
 }

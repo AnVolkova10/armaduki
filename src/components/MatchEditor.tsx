@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent, type ReactNode } from 'react';
 import { matchPath, useLocation, useNavigate, type Location } from 'react-router-dom';
 import { useT, type Dict } from '../i18n';
 import useAppStore from '../store/useAppStore';
@@ -81,8 +81,26 @@ export function MatchEditorHost() {
     );
 }
 
-/** The modal frame, also for the moments before a match can be shown. */
-function MatchModal({ title, caption, onClose, children }: { title: string; caption?: string; onClose: () => void; children: ReactNode }) {
+/**
+ * The modal frame, also for the moments before a match can be shown. On a computer it keeps one
+ * size, loading or full, so it never grows or shrinks while the match fills up; only a message
+ * (a match that is gone, no connection) gets a frame as short as it is.
+ */
+function MatchModal({
+    title,
+    caption,
+    message = false,
+    onClose,
+    children,
+}: {
+    title: string;
+    /** Where the teams came from, under the title. An empty one keeps its line, so the header
+     *  does not grow when the first player comes in. */
+    caption?: string;
+    message?: boolean;
+    onClose: () => void;
+    children: ReactNode;
+}) {
     const t = useT();
     const pointerDownOnOverlayRef = useRef(false);
 
@@ -107,12 +125,12 @@ function MatchModal({ title, caption, onClose, children }: { title: string; capt
                 if (startedOnOverlay && event.target === event.currentTarget) onClose();
             }}
         >
-            <div className="modal modal--match" role="dialog" aria-modal="true" aria-label={title}>
+            <div className={`modal modal--match${message ? ' modal--message' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
                 <div className="match-form">
                     <header className="modal-top">
                         <div className="match-top-text">
                             <h3 className="modal-title">{title}</h3>
-                            {caption && <span className="match-origin">{caption}</span>}
+                            {caption !== undefined && <span className="match-origin">{caption}</span>}
                         </div>
                         <button type="button" className="modal-close" onClick={onClose} aria-label={t.common.close}>
                             <Icon name="x" size={18} />
@@ -128,7 +146,7 @@ function MatchModal({ title, caption, onClose, children }: { title: string; capt
 function MatchMessage({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
     const t = useT();
     return (
-        <MatchModal title={title} onClose={onClose}>
+        <MatchModal title={title} message onClose={onClose}>
             <div className="match-body match-body--message">{children}</div>
             <footer className="form-actions">
                 <ActionButton type="button" variant="neutral" onClick={onClose}>
@@ -182,7 +200,7 @@ function MatchEditorLoader({ matchId, fromResult, onClose }: { matchId: string; 
                 </ActionButton>
             </MatchMessage>
         ) : (
-            <MatchModal title={title} onClose={onClose}>
+            <MatchModal title={title} caption="" onClose={onClose}>
                 <div className="match-body match-body--message">
                     <SheetLoader ariaLabel={t.page.loading} />
                 </div>
@@ -210,7 +228,7 @@ function MatchEditorLoader({ matchId, fromResult, onClose }: { matchId: string; 
     }
     if (matchesStatus !== 'loaded' || !matches) {
         return (
-            <MatchModal title={title} onClose={onClose}>
+            <MatchModal title={title} caption="" onClose={onClose}>
                 <div className="match-body match-body--message">
                     <SheetLoader ariaLabel={t.matches.loading} />
                 </div>
@@ -282,8 +300,22 @@ function MatchEditor({
     const saveMatch = useAppStore((state) => state.saveMatch);
     const [draft, setDraft] = useState<MatchDraft>(initialDraft);
     const [query, setQuery] = useState('');
+    const [searchOpen, setSearchOpen] = useState(false);
     const [showAnalysis, setShowAnalysis] = useState(false);
     const searchRef = useRef<HTMLInputElement | null>(null);
+    const addRef = useRef<HTMLDivElement | null>(null);
+
+    // The results float over the sides. A press anywhere else closes them and keeps the text. On the
+    // press, not on focus: Safari does not focus a button it taps, so a focus test would close the
+    // results before ROJO or NEGRO got the tap.
+    useEffect(() => {
+        if (!searchOpen) return;
+        const handlePointerDown = (event: PointerEvent) => {
+            if (!addRef.current?.contains(event.target as Node)) setSearchOpen(false);
+        };
+        document.addEventListener('pointerdown', handlePointerDown);
+        return () => document.removeEventListener('pointerdown', handlePointerDown);
+    }, [searchOpen]);
 
     const peopleById = useMemo(() => new Map(people.map((person) => [person.id, person])), [people]);
     const groups = useMemo(() => groupsCatalog ?? [], [groupsCatalog]);
@@ -304,6 +336,7 @@ function MatchEditor({
         .filter((person) => !inMatch.has(person.id))
         .sort((a, b) => Number(a.active === false) - Number(b.active === false) || a.nickname.localeCompare(b.nickname))
         .slice(0, SEARCH_LIMIT);
+    const showResults = searchOpen && query.trim() !== '';
 
     const placeOf = (groupId: string) => groups.find((group) => group.groupId === groupId)?.place ?? '';
     // The place starts with the group's own and can change; a place typed by hand stays.
@@ -328,14 +361,21 @@ function MatchEditor({
         setQuery('');
         searchRef.current?.focus();
     };
-    // Enter does nothing here; Escape clears the search before it closes the match.
-    const handleSearchKey = (event: KeyboardEvent<HTMLInputElement>) => {
-        if (event.key === 'Enter') event.preventDefault();
+    // Enter in the search does nothing. Escape, in the search or on a result's button, clears the
+    // search before it closes the match, and leaves the cursor in the search.
+    const handleSearchKey = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'Enter' && event.target === searchRef.current) event.preventDefault();
         if (event.key === 'Escape' && query) {
             event.stopPropagation();
             event.nativeEvent.stopImmediatePropagation();
             setQuery('');
+            searchRef.current?.focus();
         }
+    };
+    // Tab out of the search, to something outside it, closes the results too.
+    const handleSearchBlur = (event: FocusEvent<HTMLDivElement>) => {
+        const next = event.relatedTarget as Node | null;
+        if (next && !event.currentTarget.contains(next)) setSearchOpen(false);
     };
     const handleSave = () => {
         if (missing) return;
@@ -346,7 +386,7 @@ function MatchEditor({
     const title = isNew ? t.matches.newTitle : formatDay(draft.date, t.matches.weekdays);
 
     return (
-        <MatchModal title={title} caption={origin} onClose={onClose}>
+        <MatchModal title={title} caption={origin ?? ''} onClose={onClose}>
             <div className="match-body">
                 <div className="match-details">
                     <label className="match-field">
@@ -417,7 +457,7 @@ function MatchEditor({
                         </div>
                     </div>
 
-                    <div className="match-add">
+                    <div className="match-add" ref={addRef} onKeyDown={handleSearchKey} onBlur={handleSearchBlur}>
                         <label className="form-label" htmlFor="match-search">
                             {t.matches.addPlayers}
                         </label>
@@ -431,37 +471,45 @@ function MatchEditor({
                                 autoComplete="off"
                                 placeholder={t.matches.search}
                                 value={query}
-                                onChange={(event) => setQuery(event.target.value)}
-                                onKeyDown={handleSearchKey}
+                                onChange={(event) => {
+                                    setQuery(event.target.value);
+                                    setSearchOpen(true);
+                                }}
+                                onFocus={() => setSearchOpen(true)}
+                                onClick={() => setSearchOpen(true)}
                             />
                         </div>
-                        {query.trim() !== '' &&
-                            (results.length > 0 ? (
-                                <ul className="match-search-results">
-                                    {results.map((person) => (
-                                        <li key={person.id} className={`match-search-result ${person.active === false ? 'is-inactive' : ''}`}>
-                                            <span className="match-search-name">
-                                                {person.nickname}
-                                                {person.name && <small>{person.name}</small>}
-                                            </span>
-                                            <span className={`role ${person.role.toLowerCase()}`}>{person.role}</span>
-                                            {SIDES.map((side) => (
-                                                <button
-                                                    key={side}
-                                                    type="button"
-                                                    className={`match-add-btn match-add-btn--${COLOR[side]}`}
-                                                    aria-label={`${t.matches.addTo(LABEL[side])}: ${person.nickname}`}
-                                                    onClick={() => add(person, side)}
-                                                >
-                                                    {t.common.team(LABEL[side])}
-                                                </button>
-                                            ))}
-                                        </li>
-                                    ))}
-                                </ul>
-                            ) : (
-                                <p className="match-search-empty">{found.length > 0 ? t.matches.allIn : t.matches.noOneFound}</p>
-                            ))}
+                        {/* Over the sides, like a menu: the match keeps its size while she searches. */}
+                        {showResults && (
+                            <div className="match-search-pop">
+                                {results.length > 0 ? (
+                                    <ul className="match-search-results">
+                                        {results.map((person) => (
+                                            <li key={person.id} className={`match-search-result ${person.active === false ? 'is-inactive' : ''}`}>
+                                                <span className="match-search-name">
+                                                    {person.nickname}
+                                                    {person.name && <small>{person.name}</small>}
+                                                </span>
+                                                <span className={`role ${person.role.toLowerCase()}`}>{person.role}</span>
+                                                {SIDES.map((side) => (
+                                                    <button
+                                                        key={side}
+                                                        type="button"
+                                                        className={`match-add-btn match-add-btn--${COLOR[side]}`}
+                                                        aria-label={`${t.matches.addTo(LABEL[side])}: ${person.nickname}`}
+                                                        onClick={() => add(person, side)}
+                                                    >
+                                                        {t.common.team(LABEL[side])}
+                                                    </button>
+                                                ))}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="match-search-empty">{found.length > 0 ? t.matches.allIn : t.matches.noOneFound}</p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
 
